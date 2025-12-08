@@ -1,0 +1,23 @@
+# Errors
+
+All responses include a stable error schema so clients can branch unambiguously.
+
+```json
+{
+  "error": {
+    "type": "validation_error",
+    "message": "The subject field is required.",
+    "traceId": "req_8dkG1z"
+  }
+}
+```
+
+## Error types
+
+- `validation_error`: input failed schema validation
+- `auth_error`: API key or OAuth token is invalid
+- `rate_limit`: client exceeded the allocated quota
+- `internal_error`: something unexpected happened on our side
+
+Provide the `traceId` when contacting support so we can pinpoint the request in seconds.
+

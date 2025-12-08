@@ -1,0 +1,56 @@
+# Meet Dox
+
+Dox is a documentation system that embraces the ergonomics of Mintlify without importing any third-party design language or licensing. Every page is rendered by the Next.js App Router, compiled from MDX, and styled with Tailwind CSS plus a tiny shadcn-inspired component kit.
+
+## What’s included
+
+- Opinionated layout primitives for headers, navigation, and feedback affordances
+- Instant search with lightweight relevance scoring
+- Responsive typography and code blocks with dark-mode aware colors
+- A table of contents that syncs with scroll position
+
+## When to use Dox
+
+Choose Dox when you need to ship an authenticated developer portal, SDK references, or onboarding playbooks fast. Because everything runs on your infrastructure, you can extend the data layer, add analytics, or wire up custom authentication without leaving the stack.
+
+### Light and dark readiness
+
+<Note type="info" title="Best practice">
+Keep the preview window handy and flip the theme toggle after every major typography edit. All prose classes already expose the same CSS variables we import from Tailwind UI, so regressions are easy to spot.
+</Note>
+
+<Note type="warning" title="Spacing drift">
+If you author new components, rely on the layout primitives in `src/components/layout/sections.tsx` so headings keep their scroll margin and the table of contents remains accurate.
+</Note>
+
+### Sample multi-language snippet
+
+<CodeGroup title="Fetch workspace metadata">
+
+```ts
+const response = await fetch('https://api.dox.local/v1/workspaces', {
+  headers: { Authorization: `Bearer ${token}` },
+})
+const body = await response.json()
+console.log(body.items[0])
+```
+
+```python
+import os
+import requests
+
+response = requests.get(
+    "https://api.dox.local/v1/workspaces",
+    headers={"Authorization": f"Bearer {os.environ['DOX_TOKEN']}"},
+)
+print(response.json()["items"][0])
+```
+
+</CodeGroup>
+
+### Failure mode visibility
+
+<Note type="danger" title="Missing highlights?">
+If syntax highlighting ever disappears, ensure the MDX file sits inside `src/content/docs` and that the language fence matches a shiki grammar (for example `ts`, `tsx`, `python`, or `bash`).
+</Note>
+

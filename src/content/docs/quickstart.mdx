@@ -1,0 +1,57 @@
+# Quickstart
+
+## 1. Bootstrap the workspace
+
+```bash
+npx create-next-app dox-project --ts --eslint --tailwind
+cd dox-project
+npm install @dox/template
+```
+
+Import your API schema or seed MDX files inside `src/content/docs`. Each MDX file becomes a route that is automatically indexed by search and navigation.
+
+<Note type="info" title="Preview tip">
+Run `npm run dev` and open `/showcase` whenever you tweak typography so you can compare both themes side by side.
+</Note>
+
+## 2. Configure navigation
+
+Update `src/data/docs.ts` with a `group`, `title`, and `description` for every page. The sidebar and mobile navigation derive their structure from that map, so there is nothing else to keep in sync.
+
+<Note type="warning" title="Missing entry">
+If you forget to register a page in `docsEntries`, `next dev` still compiles the MDX file but users will have no way to reach it. Keep navigation data as the source of truth.
+</Note>
+
+### Multi-language config example
+
+<CodeGroup title="Bootstrap data source">
+
+```ts
+import { defineDocs } from '@dox/config'
+
+export const docs = defineDocs({
+  root: './src/content/docs',
+  navigation: './src/data/docs.ts',
+})
+```
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+  fmt.Println("Keep parity with the TypeScript config by mirroring slugs.")
+}
+```
+
+</CodeGroup>
+
+## 3. Deploy
+
+Dox runs anywhere Next.js does: Vercel, Netlify, Cloudflare, or your own container runtime. Because we avoid proprietary services, every environment variable and API secret lives entirely under your control.
+
+<Note type="danger" title="Build fails on deploy?">
+Make sure `NEXT_PUBLIC_SITE_URL` and any MDX-related env vars are defined in the hosting dashboard. The server components assume those values exist during `next build`.
+</Note>
+

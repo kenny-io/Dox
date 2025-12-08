@@ -1,0 +1,27 @@
+# Webhooks
+
+## Events
+
+| Event | Description |
+| --- | --- |
+| `conversation.created` | Fired when the first message is stored. |
+| `conversation.resolved` | Fired when status changes to `resolved`. |
+| `attachment.failed` | Fired when virus scanning blocks a file. |
+
+## Signing payloads
+
+Each webhook payload includes a `dox-signature` header. Re-compute the signature using HMAC-SHA256 with your webhook secret.
+
+```ts
+import crypto from 'node:crypto'
+
+function isValidSignature(payload: string, signature: string, secret: string) {
+  const digest = crypto.createHmac('sha256', secret).update(payload).digest('hex')
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))
+}
+```
+
+## Retries
+
+Dox retries delivery for twelve hours using exponential backoff. Set the `x-dox-delivery-id` header as idempotency key to deduplicate downstream.
+

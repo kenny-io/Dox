@@ -1,0 +1,107 @@
+# Visual Regression Deck
+
+Use this page to exercise every typography token, callout variant, and code-block state in both light and dark themes. Toggle the theme switch and ensure spacing, contrast ratios, and focus rings remain consistent.
+
+## Heading Scale
+
+### Section Title (H3)
+
+#### Nested Detail (H4)
+
+Body copy should maintain even rhythm regardless of heading depth. A short inline code sample like `fetch('/status')` should sit on the same baseline and preserve background pills across themes.
+
+## Inline Elements & Lists
+
+- Bold **strong** text
+- Emphasized _italics_
+- Hyperlinks that [gain underlines on hover](#inline-elements--lists)
+
+1. Ordered list level one
+2. Second item with a nested block:
+   - Bullet inside the ordered stack
+   - Another item with a `code` fragment
+
+> Blockquotes inherit the prose palette and provide extra spacing.
+
+## Color Callouts
+
+<Note type="info" title="Info note">
+Positive and neutral messaging renders with emerald accents.
+</Note>
+
+<Note type="warning" title="Warning note">
+Warnings lean on amber hues that remain legible on dark backgrounds.
+</Note>
+
+<Note type="danger" title="Error note">
+Error states use rose tones with sufficient contrast against the card background.
+</Note>
+
+## Tables
+
+| Column | Description                | Default |
+| ------ | -------------------------- | ------- |
+| A      | Left-aligned table header  | ✅      |
+| B      | Columns inherit prose vars | ✅      |
+
+## Code Blocks
+
+### Single Language
+
+```bash
+curl -X POST https://api.example.dev/v1/keys \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"docs"}'
+```
+
+### Multi-language Group
+
+<CodeGroup title="Initialize client">
+
+```ts
+import { createClient } from '@example/sdk'
+
+const client = createClient({
+  apiKey: process.env.EXAMPLE_TOKEN!,
+})
+
+await client.messages.send({
+  to: '+15551234567',
+  template: 'otp',
+  data: { code: '123456' },
+})
+```
+
+```python
+from example import Client
+
+client = Client(api_key=os.environ["EXAMPLE_TOKEN"])
+
+client.messages.send(
+    to="+15551234567",
+    template="otp",
+    data={"code": "123456"},
+)
+```
+
+</CodeGroup>
+
+### JSON Payloads
+
+```json
+{
+  "id": "evt_123",
+  "type": "message.delivered",
+  "data": {
+    "recipient": "+15551234567",
+    "status": "delivered",
+    "elapsedMs": 842
+  }
+}
+```
+
+## Next Steps
+
+Switch between light and dark themes, collapse the sidebar, and scroll to confirm the table of contents highlights each heading. This page should make it obvious when typography or syntax highlighting regresses.
+
+
