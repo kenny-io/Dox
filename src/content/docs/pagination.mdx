@@ -1,0 +1,25 @@
+# Pagination
+
+## Cursor strategy
+
+Every collection endpoint ships with cursor-based pagination so you can stream large datasets without skipping or duplicating records.
+
+```ts
+const response = await client.conversations.list({
+  limit: 50,
+  cursor: nextCursor, // provided in the previous response
+})
+```
+
+## Parameters
+
+| Param | Type | Description |
+| --- | --- | --- |
+| `limit` | number | Defaults to 25. Maximum of 200. |
+| `cursor` | string | Opaque string returned as `nextCursor`. |
+| `direction` | "forward" \| "backward" | Enables reverse traversal for audit tooling. |
+
+## Error handling
+
+Send the `Retry-After` header whenever a client attempts to fetch beyond the available window so they can recover gracefully.
+

@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Dox — Mintlify-Class Docs Without Licensing Headaches
 
-## Getting Started
+Dox is a fresh implementation of the TailwindUI documentation UX built entirely from scratch on Next.js 16, Tailwind CSS, Radix primitives, and shadcn-inspired UI atoms. The goal is to ship a Mintlify-style developer portal template that is clean-room, customizable, and safe to commercialize.
 
-First, run the development server:
+### Highlights
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- App Router + React Server Components with minimal client boundaries
+- MDX-driven docs stored in `src/content/docs`
+- Automatic navigation, instant search, and table-of-contents generation
+- Responsive shell with persistent sidebar, mobile drawer, theme toggle, and command palette
+- URL-synced search state via `nuqs`
+
+### Stack
+
+- Next.js 16 / TypeScript
+- Tailwind CSS 3.4 + `@tailwindcss/typography`
+- Radix UI (`dialog`, `scroll-area`, `slot`) and shadcn-flavored atoms
+- Lightweight client-side search scoring, `next-themes` for dark mode, `nuqs` for query state
+
+### Project Structure
+
+```
+src/
+  app/
+    (docs)/[[...slug]]  # MDX-driven routes
+    layout.tsx          # global shell
+  components/           # layout, navigation, mdx, ui primitives
+  content/docs/         # MDX pages
+  data/docs.ts          # manifest + navigation
+  lib/utils.ts          # helpers
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### UI Customization
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Edit `src/config/layout.ts` to tweak shared padding, column widths, and panel styles.
+- Use `PageContainer`, `SectionStack`, `ContentStack`, `Panel`, and `MutedPanel` from `src/components/layout/sections.tsx` when building new pages to inherit those tokens automatically.
+- Typography styles for headings/meta text live in `typography` exports in the same config.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Local Development
 
-## Learn More
+```bash
+npm install
+npm run dev
+# The dev script runs `next dev --webpack` so MDX plugins with Shiki work.
+# visit http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Adding Content
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Drop a new `.mdx` file into `src/content/docs`.
+2. Register it in `src/data/docs.ts` with title, description, group, and metadata.
+3. Navigation, search, and table of contents update automatically.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Production
 
-## Deploy on Vercel
+Build and run the optimized bundle:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build
+npm start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy anywhere that supports Next.js (Vercel, Netlify, Cloudflare, containers). No proprietary dependencies or licensing from Tailwind Labs remain.

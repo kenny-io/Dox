@@ -1,26 +1,50 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --dox-background: var(--brand-light-background, 0 0% 100%);
+  --dox-foreground: var(--brand-light-foreground, 222 45% 10%);
+  --dox-muted: 220 14% 96%;
+  --dox-border: 214 32% 91%;
+  --dox-accent: var(--brand-light-accent, 222 89% 58%);
+  --dox-accent-foreground: var(--brand-light-accent-foreground, 0 0% 100%);
+  --dox-ring: var(--brand-light-accent, 250 90% 66%);
+  --container-lg: 33rem;
+  --shiki-color-text: #f8fafc;
+  --shiki-token-constant: #86efac;
+  --shiki-token-string: #86efac;
+  --shiki-token-comment: #a1a1aa;
+  --shiki-token-keyword: #7dd3fc;
+  --shiki-token-parameter: #f9a8d4;
+  --shiki-token-function: #c4b5fd;
+  --shiki-token-string-expression: #86efac;
+  --shiki-token-punctuation: #e4e4e7;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  --dox-background: var(--brand-dark-background, 222 45% 6%);
+  --dox-foreground: var(--brand-dark-foreground, 0 0% 98%);
+  --dox-muted: 222 35% 12%;
+  --dox-border: 222 32% 18%;
+  --dox-accent: var(--brand-dark-accent, 266 85% 65%);
+  --dox-accent-foreground: var(--brand-dark-accent-foreground, 240 9% 12%);
+  --dox-ring: var(--brand-dark-accent, 266 85% 65%);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  @apply border-border;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground antialiased;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+::selection {
+  @apply bg-accent/20 text-accent-foreground;
+}
+
+[inert] ::-webkit-scrollbar {
+  display: none;
 }

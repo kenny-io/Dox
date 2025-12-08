@@ -1,0 +1,22 @@
+# Authentication
+
+## API keys
+
+Generate project-scoped API keys from your dashboard and send them as an `Authorization: Bearer` header. Keys are permissioned via roles, so you can create read-only variants for SDK demos or public sandboxes.
+
+```ts
+const request = await fetch('https://docs.dox.dev/api/projects', {
+  headers: { Authorization: `Bearer ${process.env.DOX_TOKEN}` },
+})
+```
+
+## OAuth handshakes
+
+Dox exposes a lightweight OAuth 2.1 server to support partner integrations. Enable the feature, register redirect URIs, and we handle PKCE along with refresh token rotation out of the box.
+
+## Session hardening
+
+- Device-bound tokens signed with P-256
+- Built-in detection for leaked secrets using the provenance service
+- Webhook notifications any time a secret is regenerated
+

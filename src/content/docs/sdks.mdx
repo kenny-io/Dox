@@ -1,0 +1,49 @@
+# SDKs
+
+We ship first-party SDKs for JavaScript, Python, Go, and Ruby. Each SDK mirrors the REST API while adding niceties such as retries, pagination helpers, and strongly typed responses.
+
+## JavaScript
+
+<CodeGroup title="Create a conversation">
+
+```ts
+import { Dox } from '@dox/js'
+
+const dox = new Dox({ token: process.env.DOX_TOKEN })
+const conversations = await dox.conversations.list()
+conversations.items.forEach((conversation) => {
+  console.log(conversation.id)
+})
+```
+
+## Python
+
+```python
+from dox import Dox
+
+client = Dox(token=os.getenv("DOX_TOKEN"))
+for conversation in client.conversations.list():
+    print(conversation.id)
+```
+
+```go
+package main
+
+import (
+  "fmt"
+  dox "github.com/example/dox-go"
+)
+
+func main() {
+  client := dox.New(dox.WithToken(os.Getenv("DOX_TOKEN")))
+  conversations, _ := client.Conversations.List()
+  for _, conversation := range conversations.Items {
+    fmt.Println(conversation.ID)
+  }
+}
+```
+
+</CodeGroup>
+
+SDKs include type hints or `.d.ts` files so they feel native in every editor. Rotate versions independently from your documentation by editing `src/data/docs.ts`.
+

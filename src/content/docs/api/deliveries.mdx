@@ -1,0 +1,40 @@
+# Delivery Receipts
+
+Query delivery receipts to understand downstream provider behavior, retries, and failure reasons.
+
+## Fetch latest receipts
+
+```ts
+const response = await fetch('https://api.dox.dev/v1/deliveries?messageId=msg_43af', {
+  headers: { Authorization: `Bearer ${process.env.DOX_TOKEN}` },
+})
+const receipts = await response.json()
+```
+
+```json
+{
+  "items": [
+    {
+      "id": "rcpt_1",
+      "status": "delivered",
+      "provider": "twilio",
+      "latencyMs": 842,
+      "completedAt": "2024-12-06T10:31:28.000Z"
+    }
+  ]
+}
+```
+
+<Note type="warning" title="Retention">
+Receipts are stored for 30 days. Persist the portions you need for auditing in your own datastore.
+</Note>
+
+## Filtering
+
+| Query param | Description                          |
+| ----------- | ------------------------------------ |
+| `messageId` | Filter receipts belonging to a message. |
+| `status`    | `queued`, `delivered`, `failed`.     |
+| `since`     | ISO timestamp for incremental sync.  |
+
+

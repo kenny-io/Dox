@@ -1,0 +1,23 @@
+# Customization
+
+## Layout tokens
+
+All spacing, panel, and column choices live in `src/config/layout.ts`. Update values like `pagePadding`, `columnGap`, or `panel` classes to instantly restyle the entire shell without touching component internals.
+
+```ts
+export const layout = {
+  pagePadding: 'px-4 sm:px-6 lg:px-12',
+  panel: 'rounded-xl border border-border/40 bg-muted',
+}
+```
+
+## Section primitives
+
+Use `PageContainer`, `SectionStack`, `ContentStack`, `Panel`, and `MutedPanel` from `src/components/layout/sections.tsx` to keep new views consistent. Each helper already consumes the layout tokens, so swapping tokens updates every section.
+
+## Extendable UI
+
+- Add new navigation groups by editing `src/data/docs.ts`.
+- Override `typography` tokens for heading/metadata styles.
+- Drop in additional components under `src/components/ui` and export them through the layout helpers to stay within the system.
+
