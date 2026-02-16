@@ -7,9 +7,9 @@ export const methodTokens: Record<
   }
 > = {
   get: {
-    text: 'text-emerald-500',
-    bg: 'bg-emerald-500/10',
-    ring: 'ring-emerald-500/20',
+    text: 'text-accent',
+    bg: 'bg-accent/10',
+    ring: 'ring-accent/20',
   },
   post: {
     text: 'text-sky-500',

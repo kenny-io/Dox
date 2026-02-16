@@ -26,7 +26,7 @@ function createHeading(level: 2 | 3) {
         data-heading={text}
         data-level={level}
         className={cn(
-          'scroll-mt-24 font-semibold tracking-tight',
+          'scroll-mt-24 font-semibold tracking-tight text-foreground',
           level === 2 ? 'mt-16 text-3xl' : 'mt-10 text-2xl',
         )}
       >

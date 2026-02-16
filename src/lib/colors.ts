@@ -44,4 +44,9 @@ export function hexToHslString(hex: string) {
   return `${hDeg} ${sPct}% ${lPct}%`
 }
 
+export function toHslValue(color: string) {
+  if (color.startsWith('#')) return hexToHslString(color)
+  return color
+}
+
 

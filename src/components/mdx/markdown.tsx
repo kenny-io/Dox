@@ -17,7 +17,7 @@ export function Markdown({ children, className }: MarkdownProps) {
           a: ({ href, children }) => (
             <a
               href={href}
-              className="underline decoration-dotted underline-offset-4 transition hover:text-emerald-500"
+              className="font-medium text-accent underline decoration-dotted underline-offset-4 transition hover:text-accent/80"
               target="_blank"
               rel="noreferrer"
             >

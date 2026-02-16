@@ -5,13 +5,13 @@ import { cn } from '@/lib/utils'
 type NoteType = 'info' | 'warning' | 'danger'
 
 const toneStyles: Record<NoteType, string> = {
-  info: 'border-emerald-500/40 bg-emerald-50/80 text-emerald-900 dark:border-emerald-300/30 dark:bg-emerald-500/10 dark:text-emerald-100',
+  info: 'border-accent/40 bg-accent/10 text-foreground dark:border-accent/30 dark:bg-accent/15 dark:text-foreground',
   warning: 'border-amber-500/40 bg-amber-50/80 text-amber-900 dark:border-amber-300/30 dark:bg-amber-500/10 dark:text-amber-100',
   danger: 'border-rose-500/40 bg-rose-50/80 text-rose-900 dark:border-rose-300/30 dark:bg-rose-500/10 dark:text-rose-100',
 }
 
 const toneAccent: Record<NoteType, string> = {
-  info: 'text-emerald-600 dark:text-emerald-200',
+  info: 'text-accent',
   warning: 'text-amber-600 dark:text-amber-200',
   danger: 'text-rose-600 dark:text-rose-200',
 }
@@ -35,8 +35,11 @@ function extractText(node: ReactNode): string {
   if (Array.isArray(node)) {
     return node.map(extractText).join(' ')
   }
-  if (node && typeof node === 'object' && 'props' in node && node.props?.children) {
-    return extractText(node.props.children)
+  if (node && typeof node === 'object' && 'props' in node) {
+    const props = (node as { props?: { children?: ReactNode } }).props
+    if (props?.children) {
+      return extractText(props.children)
+    }
   }
   return ''
 }
@@ -61,7 +64,7 @@ export function Note({ type, className, children }: NoteProps) {
   const resolvedType = type ?? resolveTypeFromContent(children)
   const Icon = toneIcon[resolvedType]
   return (
-    <div className={cn('not-prose rounded-2xl border px-4 py-3 text-sm shadow-sm', toneStyles[resolvedType], className)}>
+    <div className={cn('not-prose my-6 rounded-2xl border px-4 py-3 text-sm shadow-sm', toneStyles[resolvedType], className)}>
       <div className="flex items-start gap-3 text-current">
         <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center text-current', toneAccent[resolvedType])}>
           <Icon className="h-4 w-4" aria-hidden="true" />

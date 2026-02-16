@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { apiReferenceConfig } from '@/config/api-reference'
 import { getSpecConfig, loadSpec } from '@/lib/openapi/fetch'
-import { normalizeSpec } from '@/lib/openapi/normalize'
+import { buildOperationKey, normalizeSpec } from '@/lib/openapi/normalize'
 import type { NormalizedOperation, NormalizedSpec } from '@/lib/openapi/types'
 
 export interface ApiNavigationItem {
@@ -73,6 +73,27 @@ export async function getApiOperationBySlug(slugSegments?: Array<string>): Promi
   const targetSlug = operationSlug.join('/')
 
   return nodes.find((node) => node.slug.slice(1).join('/') === targetSlug) ?? null
+}
+
+export async function getApiOperationByKey(
+  method: string,
+  path: string,
+  specId?: string,
+): Promise<ApiOperationNode | null> {
+  if (!method || !path) {
+    return null
+  }
+
+  const normalizedMethod = method.toUpperCase()
+  const key = buildOperationKey(normalizedMethod, path)
+
+  if (specId) {
+    const nodes = await getApiOperationNodes(specId)
+    return nodes.find((node) => node.operation.key === key) ?? null
+  }
+
+  const allNodes = await getAllApiOperationNodes()
+  return allNodes.find((node) => node.operation.key === key) ?? null
 }
 
 export async function buildApiNavigation(specId?: string): Promise<Array<ApiNavigationGroup>> {

@@ -37,7 +37,7 @@ export function OperationPanel({ operation }: OperationPanelProps) {
             <div className="space-y-2">
               <h1 className="text-3xl font-semibold tracking-tight text-foreground">{operation.title}</h1>
               {operation.description ? (
-                <div className="prose prose-neutral max-w-none text-base text-foreground/70">
+                <div className="prose prose-neutral dark:prose-invert max-w-none text-base text-foreground/70">
                   <Markdown>{operation.description}</Markdown>
                 </div>
               ) : null}
@@ -52,7 +52,7 @@ export function OperationPanel({ operation }: OperationPanelProps) {
             <button
               type="button"
               onClick={() => setDialogOpen(true)}
-              className="rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow hover:bg-emerald-400"
+              className="rounded-full bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-wide text-accent-foreground shadow hover:bg-accent/90"
             >
               Try it
             </button>
@@ -170,7 +170,7 @@ function ParameterTable({ title, parameters }: { title: string; parameters: Arra
               {parameter.required ? <span className="text-xs font-semibold uppercase text-rose-500">Required</span> : null}
             </div>
             {parameter.description ? (
-              <Markdown className="text-sm text-foreground/70">{parameter.description}</Markdown>
+              <Markdown className="prose prose-sm prose-neutral dark:prose-invert text-sm text-foreground/70">{parameter.description}</Markdown>
             ) : null}
             {parameter.schema ? <SchemaViewer schema={parameter.schema} /> : null}
           </div>

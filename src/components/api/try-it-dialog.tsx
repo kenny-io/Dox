@@ -47,7 +47,7 @@ export function TryItDialog({ controller, open, onOpenChange }: TryItDialogProps
                   type="button"
                   onClick={() => void controller.sendRequest()}
                   disabled={!controller.preparedRequest.isServerConfigured || controller.isSending}
-                  className="flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow transition hover:bg-emerald-400 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-wide text-accent-foreground shadow transition hover:bg-accent/90 disabled:opacity-50"
                 >
                   {controller.isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                   {controller.isSending ? 'Sending' : 'Send'}

@@ -4,7 +4,7 @@ import { Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useEffect, useMemo, useState } from 'react'
-import { searchableDocs } from '@/data/docs'
+import type { SearchableDoc } from '@/data/docs'
 import {
   Command,
   CommandDialog,
@@ -18,15 +18,19 @@ import { cn } from '@/lib/utils'
 
 const parser = parseAsString.withDefault('')
 
-export function CommandSearch() {
+interface CommandSearchProps {
+  searchIndex: Array<SearchableDoc>
+}
+
+export function CommandSearch({ searchIndex }: CommandSearchProps) {
   const router = useRouter()
   const [query, setQuery] = useQueryState('q', parser)
   const [open, setOpen] = useState(false)
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase()
-    if (!normalized) return searchableDocs.slice(0, 6)
-    return searchableDocs
+    if (!normalized) return searchIndex.slice(0, 6)
+    return searchIndex
       .map((doc) => {
         const haystack = `${doc.title} ${doc.description} ${doc.keywords.join(' ')}`.toLowerCase()
         if (!haystack.includes(normalized)) return null
@@ -35,11 +39,11 @@ export function CommandSearch() {
           (doc.description.toLowerCase().includes(normalized) ? 1 : 0)
         return { doc, score }
       })
-      .filter((item): item is { doc: (typeof searchableDocs)[number]; score: number } => Boolean(item))
+      .filter((item): item is { doc: SearchableDoc; score: number } => Boolean(item))
       .sort((a, b) => b.score - a.score)
       .slice(0, 8)
       .map((item) => item.doc)
-  }, [query])
+  }, [query, searchIndex])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {

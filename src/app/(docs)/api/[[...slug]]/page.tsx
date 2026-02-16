@@ -11,7 +11,9 @@ interface PageProps {
 
 export async function generateStaticParams() {
   const nodes = await getAllApiOperationNodes()
-  return nodes.map((node) => ({ slug: node.slug }))
+  return nodes.map((node) => ({
+    slug: node.slug,
+  }))
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

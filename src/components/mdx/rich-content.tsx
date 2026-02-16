@@ -49,7 +49,7 @@ export interface IconProps {
 
 export function Icon({ icon, className }: IconProps) {
   const Component = iconMap[icon as IconName] ?? MessageSquare
-  return <Component className={cn('h-5 w-5 text-emerald-500', className)} aria-hidden="true" />
+  return <Component className={cn('h-5 w-5 text-accent', className)} aria-hidden="true" />
 }
 
 interface CardProps {
@@ -67,7 +67,7 @@ function isExternalLink(href: string) {
 
 export function Card({ title, href, icon, iconType, img, children }: CardProps) {
   const content = (
-    <article className="flex h-full flex-col gap-3 rounded-2xl border border-border/40 bg-background/95 p-5 shadow-sm transition hover:border-emerald-400/70">
+    <article className="flex h-full flex-col gap-3 rounded-2xl border border-border/40 bg-background/95 p-5 shadow-sm transition hover:border-accent/60">
       {img ? (
         <div className="relative overflow-hidden rounded-xl border border-border/30">
           <Image

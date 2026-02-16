@@ -1,15 +1,12 @@
 import type { ComponentType } from 'react'
+import fs from 'node:fs'
+import path from 'node:path'
+import matter from 'gray-matter'
 import docsNavigationConfig from '../../docs.json' assert { type: 'json' }
-import Authentication from '@/content/docs/authentication.mdx'
-import Customization from '@/content/docs/customization.mdx'
-import Errors from '@/content/docs/errors.mdx'
-import Introduction from '@/content/docs/introduction.mdx'
-import Pagination from '@/content/docs/pagination.mdx'
-import Quickstart from '@/content/docs/quickstart.mdx'
-import Showcase from '@/content/docs/showcase.mdx'
-import Sdks from '@/content/docs/sdks.mdx'
-import Webhooks from '@/content/docs/webhooks.mdx'
-import ApiReferenceGuide from '@/content/docs/api/reference.mdx'
+
+// ---------------------------------------------------------------------------
+// Public interfaces (consumed by components, pages, and stores)
+// ---------------------------------------------------------------------------
 
 export interface DocEntry {
   id: string
@@ -23,133 +20,14 @@ export interface DocEntry {
   component: ComponentType<Record<string, unknown>>
   timeEstimate: string
   lastUpdated: string
+  openapi?: OpenApiReference
 }
 
-const entry = (config: Omit<DocEntry, 'href'>): DocEntry => ({
-  ...config,
-  href: config.slug.length ? `/${config.slug.join('/')}` : '/',
-})
-
-export const docsEntries: Array<DocEntry> = [
-  entry({
-    id: 'introduction',
-    slug: [],
-    title: 'Introduction',
-    description: 'Overview of the Dox template architecture and guiding principles.',
-    group: 'Overview',
-    keywords: ['overview', 'dox', 'mintlify alternative'],
-    component: Introduction,
-    timeEstimate: '4 min',
-    lastUpdated: '2024-12-01',
-  }),
-  entry({
-    id: 'quickstart',
-    slug: ['quickstart'],
-    title: 'Quickstart',
-    description: 'Spin up a fully functional documentation workspace in minutes.',
-    group: 'Overview',
-    keywords: ['setup', 'install'],
-    component: Quickstart,
-    timeEstimate: '6 min',
-    lastUpdated: '2024-12-02',
-  }),
-  entry({
-    id: 'authentication',
-    slug: ['authentication'],
-    title: 'Authentication',
-    description: 'API key management, OAuth flows, and session hardening tips.',
-    group: 'Core',
-    keywords: ['oauth', 'api keys'],
-    component: Authentication,
-    timeEstimate: '5 min',
-    lastUpdated: '2024-12-02',
-  }),
-  entry({
-    id: 'pagination',
-    slug: ['pagination'],
-    title: 'Pagination',
-    description: 'Cursor-based pagination semantics for every collection endpoint.',
-    group: 'Core',
-    keywords: ['pagination', 'cursor'],
-    component: Pagination,
-    timeEstimate: '3 min',
-    lastUpdated: '2024-12-02',
-  }),
-  entry({
-    id: 'webhooks',
-    slug: ['webhooks'],
-    title: 'Webhooks',
-    description: 'Reliable events, signing strategies, and delivery guarantees.',
-    group: 'Integrations',
-    keywords: ['webhooks', 'events'],
-    badge: 'beta',
-    component: Webhooks,
-    timeEstimate: '7 min',
-    lastUpdated: '2024-12-03',
-  }),
-  entry({
-    id: 'sdks',
-    slug: ['sdks'],
-    title: 'SDKs',
-    description: 'Language SDKs with typed responses and ergonomic helpers.',
-    group: 'Integrations',
-    keywords: ['sdk', 'client'],
-    component: Sdks,
-    timeEstimate: '4 min',
-    lastUpdated: '2024-12-03',
-  }),
-  entry({
-    id: 'errors',
-    slug: ['errors'],
-    title: 'Errors',
-    description: 'Consistent error payloads with trace IDs for debugging.',
-    group: 'References',
-    keywords: ['errors', 'debugging'],
-    component: Errors,
-    timeEstimate: '2 min',
-    lastUpdated: '2024-12-03',
-  }),
-  entry({
-    id: 'customization',
-    slug: ['customization'],
-    title: 'Customization',
-    description: 'Modify spacing, panels, and typography via shared layout tokens.',
-    group: 'Foundations',
-    keywords: ['layout', 'theming'],
-    component: Customization,
-    timeEstimate: '3 min',
-    lastUpdated: '2024-12-05',
-  }),
-  entry({
-    id: 'showcase',
-    slug: ['showcase'],
-    title: 'Visual Regression Deck',
-    description: 'Stress-test headings, callouts, and multi-language code blocks.',
-    group: 'Foundations',
-    keywords: ['testing', 'visual'],
-    component: Showcase,
-    timeEstimate: '4 min',
-    lastUpdated: '2024-12-06',
-  }),
-  entry({
-    id: 'api-reference',
-    slug: ['api-reference'],
-    title: 'API Reference Automation',
-    description: 'Wire an OpenAPI spec into the docs shell with overrides and grouping.',
-    group: 'References',
-    keywords: ['openapi', 'reference'],
-    component: ApiReferenceGuide,
-    timeEstimate: '5 min',
-    lastUpdated: '2024-12-07',
-  }),
-]
-
-const docsConfig = docsNavigationConfig as DocsJsonConfig
-export const docEntriesBySlug = new Map<string, DocEntry>()
-docsEntries.forEach((doc) => {
-  const key = doc.slug.join('/')
-  docEntriesBySlug.set(key, doc)
-})
+export interface OpenApiReference {
+  specId: string
+  method: string
+  path: string
+}
 
 export interface NavigationSection {
   title: string
@@ -161,6 +39,7 @@ export interface SidebarCollection {
   label: string
   sections: Array<NavigationSection>
   href?: string
+  api?: DocsJsonApiConfig
 }
 
 export interface NavigationItem {
@@ -171,81 +50,96 @@ export interface NavigationItem {
   description?: string
 }
 
+export interface SearchableDoc {
+  id: string
+  title: string
+  description: string
+  href: string
+  keywords: Array<string>
+}
+
+// ---------------------------------------------------------------------------
+// docs.json schema types
+// ---------------------------------------------------------------------------
+
 interface DocsJsonNavigationGroup {
   group: string
   pages: Array<string | DocsJsonNavigationGroup>
 }
 
-interface DocsJsonNavigationTab {
-  id?: string
+export interface DocsJsonApiConfig {
+  source: string
+  tagsOrder?: Array<string>
+  defaultGroup?: string
+  webhookGroup?: string
+  overrides?: Record<string, {
+    title?: string
+    description?: string
+    badge?: string
+    group?: string
+    slug?: Array<string>
+    hidden?: boolean
+  }>
+}
+
+interface DocsJsonTab {
   tab: string
   href?: string
   groups?: Array<DocsJsonNavigationGroup>
-}
-
-interface DocsJsonLanguage {
-  language: string
-  tabs: Array<DocsJsonNavigationTab>
+  api?: DocsJsonApiConfig
 }
 
 interface DocsJsonConfig {
-  navigation: {
-    languages: Array<DocsJsonLanguage>
-  }
+  tabs: Array<DocsJsonTab>
 }
 
-const docIndex = new Map<string, DocEntry>()
-docsEntries.forEach((doc) => {
-  docIndex.set(doc.id, doc)
-  const slugPath = doc.slug.join('/')
-  if (slugPath && !docIndex.has(slugPath)) {
-    docIndex.set(slugPath, doc)
-  }
-  if (!doc.slug.length) {
-    docIndex.set('/', doc)
-    docIndex.set('', doc)
-  }
-})
+// ---------------------------------------------------------------------------
+// Content root & frontmatter cache
+// ---------------------------------------------------------------------------
 
-function resolveDocForNavigation(pageId: string): NavigationItem | null {
-  const doc = docIndex.get(pageId) ?? docIndex.get(pageId.replace(/^\//, ''))
-  if (doc) {
-    return {
-      id: doc.id,
-      title: doc.title,
-      href: doc.href,
-      badge: doc.badge,
-      description: doc.description,
+const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
+const docsConfig = docsNavigationConfig as unknown as DocsJsonConfig
+
+interface FrontmatterData {
+  title?: string
+  description?: string
+  badge?: string
+  keywords?: Array<string>
+  timeEstimate?: string
+  lastUpdated?: string
+  openapi?: string
+}
+
+const frontmatterCache = new Map<string, FrontmatterData>()
+
+function readFrontmatter(pageId: string): FrontmatterData {
+  if (frontmatterCache.has(pageId)) {
+    return frontmatterCache.get(pageId)!
+  }
+
+  const candidates = [
+    path.join(CONTENT_ROOT, `${pageId}.mdx`),
+    path.join(CONTENT_ROOT, `${pageId}/index.mdx`),
+  ]
+
+  for (const filePath of candidates) {
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf8')
+      const { data } = matter(raw)
+      frontmatterCache.set(pageId, data as FrontmatterData)
+      return data as FrontmatterData
     }
   }
 
-  if (!pageId) {
-    return null
-  }
-
-  const href = normalizeHref(pageId)
-
-  return {
-    id: slugifyId(pageId),
-    title: deriveTitleFromSlug(pageId),
-            href,
-    description: '',
-  }
+  frontmatterCache.set(pageId, {})
+  return {}
 }
 
-function slugifyId(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '')
-}
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-function normalizeHref(pageId: string) {
-  if (/^https?:\/\//i.test(pageId)) {
-    return pageId
-  }
-  return pageId.startsWith('/') ? pageId : `/${pageId}`
-}
+const Placeholder: ComponentType<Record<string, unknown>> = () => null
 
 export function deriveTitleFromSlug(pageId: string) {
   const clean = pageId
@@ -260,7 +154,136 @@ export function deriveTitleFromSlug(pageId: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-function buildNavigationSections(group: DocsJsonNavigationGroup, ancestors: Array<string> = []): Array<NavigationSection> {
+function slugifyId(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9/]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+    .replace(/\//g, '-')
+}
+
+function normalizeHref(pageId: string) {
+  if (/^https?:\/\//i.test(pageId)) {
+    return pageId
+  }
+  const slugSegments = pageId
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+  return slugSegments.length ? `/${slugSegments.join('/')}` : '/'
+}
+
+// ---------------------------------------------------------------------------
+// Collect all page IDs from docs.json (for static params & search index)
+// ---------------------------------------------------------------------------
+
+function collectPageIds(groups: Array<DocsJsonNavigationGroup>): Array<string> {
+  const ids: Array<string> = []
+  for (const group of groups) {
+    for (const page of group.pages) {
+      if (typeof page === 'string') {
+        ids.push(page)
+      } else {
+        ids.push(...collectPageIds([page]))
+      }
+    }
+  }
+  return ids
+}
+
+function buildDocEntryFromPageId(pageId: string): DocEntry {
+  const fm = readFrontmatter(pageId)
+  const slug = pageId === 'introduction' ? [] : pageId.split('/').filter(Boolean)
+  const href = slug.length ? `/${slug.join('/')}` : '/'
+  return {
+    id: pageId,
+    title: fm.title ?? deriveTitleFromSlug(pageId),
+    description: fm.description ?? '',
+    slug,
+    href,
+    group: '',
+    badge: fm.badge,
+    keywords: fm.keywords ?? [],
+    component: Placeholder,
+    timeEstimate: fm.timeEstimate ?? '5 min',
+    lastUpdated: fm.lastUpdated ?? '',
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Build entries from all tabs
+// ---------------------------------------------------------------------------
+
+let _allEntries: Array<DocEntry> | null = null
+
+function getAllDocEntries(): Array<DocEntry> {
+  if (_allEntries) return _allEntries
+
+  const seen = new Set<string>()
+  const entries: Array<DocEntry> = []
+
+  for (const tab of docsConfig.tabs) {
+    if (tab.groups) {
+      for (const id of collectPageIds(tab.groups)) {
+        if (!seen.has(id)) {
+          seen.add(id)
+          entries.push(buildDocEntryFromPageId(id))
+        }
+      }
+    }
+  }
+
+  _allEntries = entries
+  return entries
+}
+
+// ---------------------------------------------------------------------------
+// Public query functions
+// ---------------------------------------------------------------------------
+
+export function getDocEntries(): Array<DocEntry> {
+  return getAllDocEntries()
+}
+
+export function getDocEntryBySlug(slugPath: string): DocEntry | null
+export function getDocEntryBySlug(languageCode: string, slugPath: string): DocEntry | null
+export function getDocEntryBySlug(first: string, second?: string): DocEntry | null {
+  const slugPath = second !== undefined ? second : first
+  const entries = getAllDocEntries()
+  return entries.find((doc) => doc.slug.join('/') === slugPath) ?? null
+}
+
+export function getSearchableDocs(): Array<SearchableDoc> {
+  return getAllDocEntries().map((doc) => ({
+    id: doc.id,
+    title: doc.title,
+    description: doc.description,
+    href: doc.href,
+    keywords: doc.keywords,
+  }))
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar construction from docs.json
+// ---------------------------------------------------------------------------
+
+function resolveNavItem(pageId: string): NavigationItem {
+  const fm = readFrontmatter(pageId)
+  const slug = pageId === 'introduction' ? [] : pageId.split('/').filter(Boolean)
+  const href = slug.length ? `/${slug.join('/')}` : '/'
+  return {
+    id: slugifyId(pageId) || 'introduction',
+    title: fm.title ?? deriveTitleFromSlug(pageId),
+    href,
+    badge: fm.badge,
+    description: fm.description,
+  }
+}
+
+function buildNavigationSections(
+  group: DocsJsonNavigationGroup,
+  ancestors: Array<string> = [],
+): Array<NavigationSection> {
   const titleSegments = [...ancestors, group.group].filter(Boolean)
   const title = titleSegments.length ? titleSegments.join(' • ') : 'General'
 
@@ -269,18 +292,12 @@ function buildNavigationSections(group: DocsJsonNavigationGroup, ancestors: Arra
 
   group.pages.forEach((page) => {
     if (typeof page === 'string') {
-      const item = resolveDocForNavigation(page)
-      if (item) {
-        bufferedItems.push(item)
-      }
+      bufferedItems.push(resolveNavItem(page))
       return
     }
 
     if (bufferedItems.length) {
-      sections.push({
-        title,
-        items: bufferedItems,
-      })
+      sections.push({ title, items: bufferedItems })
       bufferedItems = []
     }
 
@@ -288,26 +305,19 @@ function buildNavigationSections(group: DocsJsonNavigationGroup, ancestors: Arra
   })
 
   if (bufferedItems.length) {
-    sections.push({
-      title,
-      items: bufferedItems,
-    })
+    sections.push({ title, items: bufferedItems })
   }
 
   return sections
 }
 
-function buildSidebarCollectionsFromDocsJson(languageCode = 'en'): Array<SidebarCollection> {
-  const languages = docsConfig.navigation?.languages ?? []
-  const languageConfig =
-    languages.find((language) => language.language === languageCode) ?? languages[0]
+let _sidebarCollections: Array<SidebarCollection> | null = null
 
-  if (!languageConfig) {
-    return []
-  }
+export function getSidebarCollections(): Array<SidebarCollection> {
+  if (_sidebarCollections) return _sidebarCollections
 
-  return languageConfig.tabs.map((tab) => {
-    const id = tab.id ?? slugifyId(tab.tab)
+  _sidebarCollections = docsConfig.tabs.map((tab) => {
+    const id = slugifyId(tab.tab) || tab.tab.toLowerCase()
     const groups = tab.groups ?? []
     const sections = groups.flatMap((group) => buildNavigationSections(group))
 
@@ -316,17 +326,17 @@ function buildSidebarCollectionsFromDocsJson(languageCode = 'en'): Array<Sidebar
       label: tab.tab,
       sections,
       href: tab.href,
+      api: tab.api,
     }
   })
+
+  return _sidebarCollections
 }
 
-export const sidebarCollections = buildSidebarCollectionsFromDocsJson()
+// ---------------------------------------------------------------------------
+// Pre-computed exports for client-side store defaults
+// ---------------------------------------------------------------------------
 
-export const searchableDocs = docsEntries.map((doc) => ({
-  id: doc.id,
-  title: doc.title,
-  description: doc.description,
-  href: doc.href,
-  keywords: doc.keywords,
-}))
+export const sidebarCollections = getSidebarCollections()
+export const searchableDocs = getSearchableDocs()
 

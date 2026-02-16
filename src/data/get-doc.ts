@@ -4,8 +4,8 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { ComponentType } from 'react'
 import { compileMDX } from 'next-mdx-remote/rsc'
-import type { DocEntry } from '@/data/docs'
-import { docEntriesBySlug, deriveTitleFromSlug } from '@/data/docs'
+import type { DocEntry, OpenApiReference } from '@/data/docs'
+import { deriveTitleFromSlug } from '@/data/docs'
 import { remarkPlugins } from '@/mdx/remark'
 import { rehypePlugins } from '@/mdx/rehype'
 import { useMDXComponents as getMDXComponents } from '@/components/mdx/mdx-components'
@@ -19,33 +19,30 @@ interface DocFrontmatter {
   keywords?: Array<string>
   timeEstimate?: string
   lastUpdated?: string
+  openapi?: string
 }
 
-const docsSearchRoots = [
-  path.join(process.cwd(), 'src/content/docs'),
-  path.join(process.cwd(), '..', 'lifi-docs'),
-]
+const localDocsRoot = path.join(process.cwd(), 'src/content')
 
 const dynamicDocCache = new Map<string, Promise<DocEntry | null>>()
 
 export async function getDocFromParams(slugSegments?: Array<string>) {
   const normalized = Array.isArray(slugSegments) ? slugSegments.filter(Boolean) : []
-  const key = normalized.join('/')
-  const staticDoc = docEntriesBySlug.get(key)
-  if (staticDoc) {
-    return staticDoc
-  }
+  const slugKey = normalized.join('/')
 
-  let pending = dynamicDocCache.get(key)
+  const cacheKey = slugKey
+  let pending = dynamicDocCache.get(cacheKey)
   if (!pending) {
     pending = loadDocFromFilesystem(normalized)
-    dynamicDocCache.set(key, pending)
+    dynamicDocCache.set(cacheKey, pending)
   }
 
   return pending
 }
 
-async function loadDocFromFilesystem(slugSegments: Array<string>): Promise<DocEntry | null> {
+async function loadDocFromFilesystem(
+  slugSegments: Array<string>,
+): Promise<DocEntry | null> {
   const slugPath = slugSegments.join('/')
   const candidate = await findDocSource(slugPath)
   if (!candidate) {
@@ -55,18 +52,16 @@ async function loadDocFromFilesystem(slugSegments: Array<string>): Promise<DocEn
 }
 
 async function findDocSource(slugPath: string) {
-  const normalized = slugPath || 'home'
+  const normalized = slugPath || 'introduction'
   const candidates = normalized.endsWith('.mdx') ? [normalized] : [`${normalized}.mdx`, `${normalized}/index.mdx`]
 
-  for (const root of docsSearchRoots) {
-    for (const candidate of candidates) {
-      const filePath = path.join(root, candidate)
-      try {
-        await fs.access(filePath)
-        return filePath
-      } catch {
-        // continue searching other roots
-      }
+  for (const candidate of candidates) {
+    const filePath = path.join(localDocsRoot, candidate)
+    try {
+      await fs.access(filePath)
+      return filePath
+    } catch {
+      // continue
     }
   }
 
@@ -100,6 +95,8 @@ async function compileDocEntry(filePath: string, slugSegments: Array<string>): P
   }
   GeneratedDoc.displayName = `DocContent(${href})`
 
+  const openapi = parseOpenApiReference(frontmatter?.openapi)
+
   return {
     id: slugPath || frontmatter?.title || 'doc',
     title: frontmatter?.title ?? deriveTitleFromSlug(slugPath),
@@ -112,6 +109,7 @@ async function compileDocEntry(filePath: string, slugSegments: Array<string>): P
     component: GeneratedDoc,
     timeEstimate: frontmatter?.timeEstimate ?? '5 min',
     lastUpdated: frontmatter?.lastUpdated ?? new Date().toISOString().slice(0, 10),
+    openapi: openapi ?? undefined,
   }
 }
 
@@ -130,7 +128,7 @@ function extractSnippetComponents(source: string) {
       .map((name: string) => name.trim())
       .filter(Boolean)
 
-    names.forEach((name) => {
+    names.forEach((name: string) => {
       const loader = resolveSnippetComponent(normalizedPath, name)
       if (loader) {
         snippetInjectors[name] = loader
@@ -143,5 +141,33 @@ function extractSnippetComponents(source: string) {
   })
 
   return { cleanedSource, snippetInjectors }
+}
+
+function parseOpenApiReference(raw?: string): OpenApiReference | null {
+  if (typeof raw !== 'string') {
+    return null
+  }
+
+  const trimmed = raw.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const parts = trimmed.split(/\s+/)
+  if (parts.length < 2) {
+    return null
+  }
+
+  const method = parts[0]?.toUpperCase()
+  const path = parts.slice(1).join(' ')
+  if (!method || !path.startsWith('/')) {
+    return null
+  }
+
+  return {
+    specId: 'default',
+    method,
+    path,
+  }
 }
 

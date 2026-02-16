@@ -1,10 +1,14 @@
 import { SiteShell } from '@/components/layout/site-shell'
 import { SidebarCollectionsHydrator } from '@/components/layout/sidebar-hydrator'
-import { sidebarCollections } from '@/data/docs'
-import type { NavigationSection, SidebarCollection } from '@/data/docs'
+import { getSearchableDocs, getSidebarCollections } from '@/data/docs'
+import type { NavigationSection } from '@/data/docs'
 import { buildApiNavigation } from '@/data/api-reference'
 
-export default async function DocsLayout({ children }: { children: React.ReactNode }) {
+interface DocsLayoutProps {
+  children: React.ReactNode
+}
+
+export default async function DocsLayout({ children }: DocsLayoutProps) {
   const navigation = await buildApiNavigation()
   const apiSections: Array<NavigationSection> = navigation.map((group) => ({
     title: group.title,
@@ -17,29 +21,24 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
     })),
   }))
 
-  const isApiCollection = (collection: SidebarCollection) => {
-    const normalizedId = collection.id.toLowerCase()
-    const normalizedLabel = collection.label.toLowerCase()
-    if (collection.href) {
-      return false
+  const sidebarCollections = getSidebarCollections()
+  const collections = sidebarCollections.map((collection) => {
+    if (collection.api) {
+      return { ...collection, sections: apiSections }
     }
-    if (normalizedId === 'api') {
-      return true
+    if (!collection.href && collection.id === 'overview') {
+      return { ...collection, href: '/' }
     }
-    if (normalizedId.includes('api') && normalizedId.includes('reference')) {
-      return true
-    }
-    return normalizedLabel.includes('api reference')
-  }
-
-  const collections = sidebarCollections.map((collection) =>
-    isApiCollection(collection) ? { ...collection, sections: apiSections } : collection,
-  )
+    return collection
+  })
+  const searchIndex = getSearchableDocs()
 
   return (
     <>
       <SidebarCollectionsHydrator collections={collections} />
-      <SiteShell>{children}</SiteShell>
+      <SiteShell searchIndex={searchIndex}>
+        {children}
+      </SiteShell>
     </>
   )
 }

@@ -17,7 +17,12 @@ export function OperationCodePanel({ controller }: OperationCodePanelProps) {
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground/60">Response</p>
           {response && 'status' in response ? (
-            <span className={cn('rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide', response.status >= 200 && response.status < 300 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400')}>
+            <span
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide',
+                response.status >= 200 && response.status < 300 ? 'bg-accent/10 text-accent' : 'bg-rose-500/10 text-rose-400',
+              )}
+            >
               {response.status}
             </span>
           ) : null}
@@ -57,7 +62,7 @@ function CodeBlock({ title, subtitle, lines, disabled }: CodeBlockProps) {
           Copy
         </button>
       </div>
-      <pre className="max-h-[320px] overflow-x-auto rounded-xl border border-border/30 bg-background/70 p-4 text-xs leading-relaxed text-foreground/80">
+      <pre className="scrollbar-hide max-h-[320px] overflow-auto rounded-xl border border-border/30 bg-background/70 p-4 text-xs leading-relaxed text-foreground/80">
         {lines.length ? lines.join('\n') : 'Configure a server URL to preview the generated curl command.'}
       </pre>
     </div>
