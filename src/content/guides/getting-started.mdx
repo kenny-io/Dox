@@ -1,0 +1,65 @@
+---
+title: Getting Started with Dox
+description: Set up Dox and create your first documentation page in under five minutes.
+---
+
+## Prerequisites
+
+- **Node.js 18+** and npm (or pnpm/yarn)
+- A terminal and code editor
+- An OpenAPI spec (optional — a Pet Store example is included)
+
+## 1. Clone the template
+
+```bash
+npx degit kenny-io/Dox my-docs
+cd my-docs
+npm install
+```
+
+## 2. Start the dev server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see the default docs site.
+
+## 3. Create your first page
+
+Create a new file at `src/content/my-first-page.mdx`:
+
+```mdx
+---
+title: My First Page
+description: A quick test page to verify everything works.
+---
+
+Welcome to my documentation! This page was created with Dox.
+
+## Next steps
+
+- Edit `docs.json` to add this page to the sidebar.
+- Replace the example content with your own.
+```
+
+## 4. Add it to the navigation
+
+Open `docs.json` and add your page to a group:
+
+```json
+{
+  "group": "Getting Started",
+  "pages": ["introduction", "quickstart", "my-first-page"]
+}
+```
+
+Save the file and the sidebar updates automatically.
+
+## 5. Deploy
+
+```bash
+npm run build
+```
+
+Deploy the output to any platform that supports Next.js — Vercel, Netlify, Cloudflare, or a Docker container.

@@ -1,0 +1,103 @@
+---
+title: Branding and Theming
+description: Customize colors, fonts, and site identity to match your product.
+---
+
+## Site configuration
+
+All site-level settings live in `src/data/site.ts`. Edit this file to set your product name, description, and links:
+
+```ts
+export const siteConfig: SiteConfig = {
+  name: 'Your Product',
+  description: 'Documentation for Your Product.',
+  repoUrl: 'https://github.com/your-org/your-repo',
+  links: [
+    { label: 'Get started', href: '/quickstart' },
+    { label: 'Support', href: 'https://github.com/your-org/your-repo/issues' },
+    { label: 'GitHub', href: 'https://github.com/your-org/your-repo' },
+    { label: 'Changelog', href: '/changelog' },
+  ],
+  // ...brand config
+}
+```
+
+## Brand presets
+
+Dox ships with two color presets:
+
+- **`primary`** — green accent (emerald tones)
+- **`secondary`** — purple accent (violet tones)
+
+Switch between them by changing the `brandPreset` variable:
+
+```ts
+const brandPreset: BrandPresetKey = 'primary'  // or 'secondary'
+```
+
+## Custom colors
+
+To define your own palette, edit the `brandPresets` object in `site.ts`. Each preset has `light` and `dark` variants with these tokens:
+
+| Token | Purpose |
+| --- | --- |
+| `background` | Page background |
+| `foreground` | Primary text color |
+| `muted` | Subtle background (cards, hover states) |
+| `border` | Border color |
+| `accent` | Primary brand color (links, active states) |
+| `accentForeground` | Text on accent backgrounds |
+| `ring` | Focus ring color |
+| `sidebarActiveBg` | Active sidebar item background |
+| `sidebarActiveText` | Active sidebar item text |
+
+Most colors are hex values (e.g. `#10B981`) which are auto-converted to HSL. The sidebar tokens (`sidebarActiveBg`, `sidebarActiveText`) use raw HSL strings with opacity (e.g. `'152 60% 88% / 0.55'`) for translucent effects.
+
+## Dark mode
+
+Dark mode is handled automatically by `next-themes`. Users toggle it with the theme switch in the top bar. Your brand palette defines both light and dark variants, so both themes stay on-brand.
+
+## Logo
+
+The logo component lives at `src/components/layout/logo.tsx`. Replace the SVG with your own:
+
+```tsx
+export function Logo({ className, showText = true }: LogoProps) {
+  return (
+    <div className={cn('inline-flex items-center gap-2', className)}>
+      {/* Replace this SVG with your logo */}
+      <img src="/logo.svg" alt="Logo" width={32} height={32} />
+      {showText ? (
+        <span className="text-lg font-bold tracking-tight text-foreground">
+          Your Product
+        </span>
+      ) : null}
+    </div>
+  )
+}
+```
+
+## Fonts
+
+Fonts are configured in `src/app/layout.tsx` using `next/font/google`. The defaults are:
+
+- **Sans**: Inter
+- **Mono**: JetBrains Mono
+
+To change them, swap the font imports:
+
+```ts
+import { Outfit, Fira_Code } from 'next/font/google'
+
+const fontSans = Outfit({ subsets: ['latin'], variable: '--font-sans' })
+const fontMono = Fira_Code({ subsets: ['latin'], variable: '--font-mono' })
+```
+
+## Layout tokens
+
+Fine-tune spacing and widths in `src/config/layout.ts`:
+
+- Sidebar width
+- Content max-width
+- Padding and gaps
+- Typography scale for meta text
