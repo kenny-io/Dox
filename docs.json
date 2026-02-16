@@ -26,6 +26,23 @@
       ]
     },
     {
+      "tab": "Guides",
+      "groups": [
+        {
+          "group": "Setup",
+          "pages": ["guides/getting-started", "guides/configuring-navigation"]
+        },
+        {
+          "group": "Content",
+          "pages": ["guides/writing-content", "guides/api-reference-setup"]
+        },
+        {
+          "group": "Customize & Ship",
+          "pages": ["guides/branding-and-theming", "guides/deploying"]
+        }
+      ]
+    },
+    {
       "tab": "API Reference",
       "api": {
         "source": "openapi.yaml",

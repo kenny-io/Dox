@@ -92,7 +92,7 @@ export const siteConfig: SiteConfig = {
   repoUrl: 'https://github.com/your-org/your-docs',
   links: [
     { label: 'Get started', href: '/quickstart' },
-    { label: 'Support', href: 'https://github.com/your-org/your-docs/issues' },
+    { label: 'Support', href: 'https://github.com/kenny-io/Dox/issues/new' },
     { label: 'GitHub', href: 'https://github.com/your-org/your-docs' },
     { label: 'Changelog', href: '/changelog' },
   ],

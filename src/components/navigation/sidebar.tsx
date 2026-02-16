@@ -41,10 +41,10 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
       <div className="sticky top-0 flex max-h-screen flex-col overflow-hidden">
         <div className={cn('flex flex-1 flex-col gap-6 overflow-hidden', layout.sidebarPadding)}>
           <div className="flex flex-col gap-3 px-1 pt-2">
-            <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Logo showText={false} className="shrink-0" />
               <span className="text-sm font-semibold text-foreground">{siteConfig.name} Docs</span>
-            </div>
+            </Link>
           </div>
           <div className="px-1">
             <p className="text-xs font-semibold uppercase tracking-[0.4em] text-foreground/40 line-clamp-1">{title}</p>
