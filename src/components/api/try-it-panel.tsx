@@ -176,7 +176,7 @@ function StatusPill({ status, statusText }: { status: number; statusText: string
   const intent = status >= 200 && status < 300 ? 'success' : status >= 400 ? 'error' : 'info'
   const styles =
     intent === 'success'
-      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+      ? 'bg-accent/10 text-accent border-accent/30'
       : intent === 'error'
         ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
         : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
@@ -199,7 +199,7 @@ function formatBody(body: string) {
 
 export function ResponseBody({ body }: { body: string }) {
   return (
-    <pre className="relative max-h-[320px] overflow-x-auto rounded-xl border border-border/40 bg-background/70 p-4 text-xs leading-relaxed text-foreground/80">
+    <pre className="scrollbar-hide relative max-h-[320px] overflow-auto rounded-xl border border-border/40 bg-background/70 p-4 text-xs leading-relaxed text-foreground/80">
       <button
         type="button"
         onClick={() => navigator.clipboard.writeText(body)}

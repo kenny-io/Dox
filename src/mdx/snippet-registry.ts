@@ -13,20 +13,7 @@ function loadSnippetComponent(importer: () => Promise<{ [key: string]: Component
   }
 }
 
-const registry: Registry = {
-  '/snippets/evm-tools.jsx': {
-    EvmTools: loadSnippetComponent(() => import('../../../lifi-docs/snippets/evm-tools.jsx'), 'EvmTools'),
-  },
-  '/snippets/contract-addresses.jsx': {
-    ContractAddresses: loadSnippetComponent(() => import('../../../lifi-docs/snippets/contract-addresses.jsx'), 'ContractAddresses'),
-  },
-  '/snippets/supported-chains.jsx': {
-    SupportedChains: loadSnippetComponent(() => import('../../../lifi-docs/snippets/supported-chains.jsx'), 'SupportedChains'),
-  },
-  '/snippets/supported-tools.jsx': {
-    SupportedTools: loadSnippetComponent(() => import('../../../lifi-docs/snippets/supported-tools.jsx'), 'SupportedTools'),
-  },
-}
+const registry: Registry = {}
 
 export function resolveSnippetComponent(path: string, name: string) {
   const loader = registry[path]?.[name]

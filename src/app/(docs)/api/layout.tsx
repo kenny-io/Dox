@@ -1,15 +1,16 @@
 import { SidebarCollectionsHydrator } from '@/components/layout/sidebar-hydrator'
-import { sidebarCollections } from '@/data/docs'
+import { getSidebarCollections } from '@/data/docs'
 import type { NavigationSection } from '@/data/docs'
 import { buildApiNavigation } from '@/data/api-reference'
 
 interface ApiLayoutProviderProps {
   children: React.ReactNode
-  params: { slug?: Array<string> }
+  params: Promise<{ slug?: Array<string> }>
 }
 
 export default async function ApiLayoutProvider({ children, params }: ApiLayoutProviderProps) {
-  const specId = params.slug?.[0]
+  const resolved = await params
+  const specId = resolved.slug?.[0]
   const navigation = await buildApiNavigation(specId)
   const apiSections: Array<NavigationSection> = navigation.map((group) => ({
     title: group.title,
@@ -22,13 +23,14 @@ export default async function ApiLayoutProvider({ children, params }: ApiLayoutP
     })),
   }))
 
-  const collections = sidebarCollections.map((collection) =>
-    collection.id === 'api' ? { ...collection, sections: apiSections } : collection,
+  const collections = getSidebarCollections()
+  const updatedCollections = collections.map((collection) =>
+    collection.api ? { ...collection, sections: apiSections } : collection,
   )
 
   return (
     <>
-      <SidebarCollectionsHydrator collections={collections} />
+      <SidebarCollectionsHydrator collections={updatedCollections} />
       {children}
     </>
   )

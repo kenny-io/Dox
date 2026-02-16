@@ -1,16 +1,30 @@
 'use client'
 
 import { create } from 'zustand'
-import type { SidebarCollection } from '@/data/docs'
-import { sidebarCollections as defaultCollections } from '@/data/docs'
+
+interface SidebarCollectionShape {
+  id: string
+  label: string
+  sections: Array<{
+    title: string
+    items: Array<{
+      id: string
+      title: string
+      href: string
+      badge?: string
+      description?: string
+    }>
+  }>
+  href?: string
+}
 
 interface SidebarCollectionsState {
-  collections: Array<SidebarCollection>
-  setCollections: (collections: Array<SidebarCollection>) => void
+  collections: Array<SidebarCollectionShape>
+  setCollections: (collections: Array<SidebarCollectionShape>) => void
 }
 
 export const useSidebarCollectionsStore = create<SidebarCollectionsState>((set) => ({
-  collections: defaultCollections,
+  collections: [],
   setCollections: (collections) => set({ collections }),
 }))
 

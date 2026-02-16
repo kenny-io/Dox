@@ -3,7 +3,7 @@ import type { DocEntry } from '@/data/docs'
 
 const Placeholder = () => null
 
-const docLike: DocEntry = {
+const doc: DocEntry = {
   id: 'changelog',
   title: 'Changelog',
   description: 'Track notable improvements to the Dox template.',
@@ -14,17 +14,17 @@ const docLike: DocEntry = {
   component: Placeholder,
   timeEstimate: '2 min',
   lastUpdated: new Date().toISOString().slice(0, 10),
-  category: 'docs',
 }
 
 export const metadata = {
-  title: 'Changelog',
-  description: docLike.description,
+  title: doc.title,
+  description: doc.description,
 }
 
 export default function ChangelogPage() {
+
   return (
-    <DocLayout doc={docLike}>
+    <DocLayout doc={doc}>
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-semibold">v0.1.0</h2>

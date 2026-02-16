@@ -9,6 +9,8 @@ import type { NavigationSection } from '@/data/docs'
 import { Badge } from '@/components/ui/badge'
 import { typography } from '@/config/layout'
 import { cn } from '@/lib/utils'
+import { Logo } from '@/components/layout/logo'
+import { siteConfig } from '@/data/site'
 
 interface MobileNavProps {
   sections: Array<NavigationSection>
@@ -21,23 +23,26 @@ export function MobileNav({ sections }: MobileNavProps) {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <button className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground lg:hidden">
+        <button className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-muted/50 lg:hidden">
           <span className="sr-only">Open navigation</span>
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4 w-4" />
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-y-0 left-0 z-50 w-full max-w-xs border-r border-border bg-background px-6 pb-10 pt-6 shadow-2xl">
+        <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-full max-w-[min(85vw,320px)] flex-col border-r border-border bg-background shadow-2xl">
           <Dialog.Title className="sr-only">Primary navigation</Dialog.Title>
-          <div className="flex items-center justify-between">
-            <p className="text-lg font-semibold">Navigate</p>
-            <Dialog.Close className="rounded-full border border-border p-2">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-4">
+            <div className="flex items-center gap-2">
+              <Logo showText={false} />
+              <span className="text-base font-semibold">{siteConfig.name}</span>
+            </div>
+            <Dialog.Close className="rounded-full border border-border p-1.5 transition hover:bg-muted/50">
               <span className="sr-only">Close</span>
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
-          <nav className="mt-8 flex flex-col gap-6">
+          <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-6">
             {sections.map((section) => (
               <div key={section.title} className="space-y-2">
                 <p className={typography.meta}>{section.title}</p>

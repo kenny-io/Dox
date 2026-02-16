@@ -8,7 +8,7 @@ import {
   isValidElement,
   useContext,
   useEffect,
-  useRef,
+  useMemo,
   useState,
 } from 'react'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
@@ -78,7 +78,7 @@ function CopyButton({ code }: { code: string }) {
       className={clsx(
         'group/button absolute top-3.5 right-4 overflow-hidden rounded-full py-1 pr-3 pl-2 text-2xs font-medium opacity-0 backdrop-blur-sm transition group-hover:opacity-100 focus-visible:opacity-100',
         copied
-          ? 'bg-emerald-400/10 ring-1 ring-emerald-400/20 ring-inset'
+          ? 'bg-accent/10 ring-1 ring-accent/20 ring-inset'
           : 'bg-white/5 hover:bg-white/10 dark:bg-white/10 dark:hover:bg-white/5',
       )}
       onClick={() => {
@@ -100,7 +100,7 @@ function CopyButton({ code }: { code: string }) {
       <span
         aria-hidden={!copied}
         className={clsx(
-          'pointer-events-none absolute inset-0 flex items-center justify-center text-emerald-400 transition duration-300',
+          'pointer-events-none absolute inset-0 flex items-center justify-center text-accent transition duration-300',
           !copied && 'translate-y-1.5 opacity-0',
         )}
       >
@@ -167,6 +167,16 @@ function CodePanel({
   const content =
     renderableChildren.length === 1 ? primaryChild : <>{renderableChildren}</>
 
+  function getLanguageClassName() {
+    const probe = renderableChildren.find((child) => isValidElement(child))
+    if (!probe) return ''
+    const className = (probe.props as { className?: string }).className ?? ''
+    const match = className.match(/language-[\w-]+/)
+    return match?.[0] ?? ''
+  }
+
+  const languageClass = getLanguageClassName()
+
   let resolvedTag = tag
   let resolvedLabel = label
   let resolvedCode = code
@@ -204,7 +214,12 @@ function CodePanel({
     <div className="group dark:bg-white/10">
       <CodePanelHeader tag={resolvedTag} label={resolvedLabel} />
       <div className="relative">
-        <pre className="overflow-x-auto p-4 text-xs text-white">{content}</pre>
+        <pre
+          className={clsx('overflow-x-auto p-4 text-xs text-white', languageClass)}
+          suppressHydrationWarning
+        >
+          {content}
+        </pre>
         <CopyButton code={resolvedCode} />
       </div>
     </div>
@@ -229,9 +244,9 @@ function CodeGroupHeader({
   return (
     <div className="flex min-h-[calc(3rem+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
       {title && (
-        <h3 className="mr-auto pt-3 text-xs font-semibold text-white">
+        <p className="mr-auto pt-3 text-xs font-semibold text-white">
           {title}
-        </h3>
+        </p>
       )}
       {hasTabs && (
         <TabList className="-mb-px flex gap-4 text-xs font-medium">
@@ -240,7 +255,7 @@ function CodeGroupHeader({
               className={clsx(
                 'border-b py-3 transition focus-visible:outline-none',
                 childIndex === selectedIndex
-                  ? 'border-emerald-500 text-emerald-400'
+                  ? 'border-accent text-accent'
                   : 'border-transparent text-zinc-400 hover:text-zinc-300',
               )}
             >
@@ -278,38 +293,6 @@ function CodeGroupPanels({
   return <CodePanel {...props}>{children}</CodePanel>
 }
 
-function usePreventLayoutShift() {
-  const positionRef = useRef<HTMLElement>(null)
-  const rafRef = useRef<number | undefined>(undefined)
-
-  useEffect(() => {
-    return () => {
-      if (typeof rafRef.current !== 'undefined') {
-        window.cancelAnimationFrame(rafRef.current)
-      }
-    }
-  }, [])
-
-  return {
-    positionRef,
-    preventLayoutShift(callback: () => void) {
-      if (!positionRef.current) {
-        return
-      }
-
-      const initialTop = positionRef.current.getBoundingClientRect().top
-
-      callback()
-
-      rafRef.current = window.requestAnimationFrame(() => {
-        const newTop =
-          positionRef.current?.getBoundingClientRect().top ?? initialTop
-        window.scrollBy(0, newTop - initialTop)
-      })
-    },
-  }
-}
-
 const usePreferredLanguageStore = create<{
   preferredLanguages: Array<string>
   addPreferredLanguage: (language: string) => void
@@ -326,28 +309,53 @@ const usePreferredLanguageStore = create<{
     })),
 }))
 
+function resolvePreferredLanguage(
+  availableLanguages: Array<string>,
+  preferredLanguages: Array<string>,
+) {
+  if (!availableLanguages.length) {
+    return undefined
+  }
+  const languageSet = new Set(availableLanguages)
+  for (let index = preferredLanguages.length - 1; index >= 0; index -= 1) {
+    const candidate = preferredLanguages[index]
+    if (languageSet.has(candidate)) {
+      return candidate
+    }
+  }
+  return availableLanguages[0]
+}
+
 function useTabGroupProps(availableLanguages: Array<string>) {
   const { preferredLanguages, addPreferredLanguage } = usePreferredLanguageStore()
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const activeLanguage = [...availableLanguages].sort(
-    (a, z) => preferredLanguages.indexOf(z) - preferredLanguages.indexOf(a),
-  )[0]
-  const languageIndex = availableLanguages.indexOf(activeLanguage)
-  const newSelectedIndex = languageIndex === -1 ? selectedIndex : languageIndex
-  if (newSelectedIndex !== selectedIndex) {
-    setSelectedIndex(newSelectedIndex)
-  }
 
-  const { positionRef, preventLayoutShift } = usePreventLayoutShift()
+  useEffect(() => {
+    const preferredLanguage = resolvePreferredLanguage(
+      availableLanguages,
+      preferredLanguages,
+    )
+    if (!preferredLanguage) {
+      return
+    }
+    const preferredIndex = availableLanguages.indexOf(preferredLanguage)
+    if (preferredIndex === -1) {
+      return
+    }
+    setSelectedIndex((current) =>
+      current === preferredIndex ? current : preferredIndex,
+    )
+  }, [availableLanguages, preferredLanguages])
 
   return {
     as: 'div' as const,
-    ref: positionRef,
     selectedIndex,
     onChange: (newSelectedIndex: number) => {
-      preventLayoutShift(() =>
-        addPreferredLanguage(availableLanguages[newSelectedIndex]),
-      )
+      setSelectedIndex(newSelectedIndex)
+      const language = availableLanguages[newSelectedIndex]
+      if (language) {
+        addPreferredLanguage(language)
+      }
     },
   }
 }
@@ -359,12 +367,15 @@ export function CodeGroup({
   title = 'Code',
   ...props
 }: ComponentPropsWithoutRef<typeof CodeGroupPanels> & { title?: string }) {
-  const languages =
+  const languages = useMemo(
+    () =>
     Children.map(children, (child) =>
       getPanelTitle(
         isValidElement(child) ? (child.props as { title?: string }) : {},
       ),
-    ) ?? []
+      ) ?? [],
+    [children],
+  )
   const tabGroupProps = useTabGroupProps(languages)
   const hasTabs = Children.count(children) > 1
 
@@ -410,7 +421,13 @@ export function Code({
         '`Code` children must be a string when nested inside a `CodeGroup`.',
       )
     }
-    return <code {...props} dangerouslySetInnerHTML={{ __html: children }} />
+    return (
+      <code
+        {...props}
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: children }}
+      />
+    )
   }
 
   return <code {...props}>{children}</code>

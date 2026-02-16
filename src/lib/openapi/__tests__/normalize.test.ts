@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { apiReferenceConfig } from '@/config/api-reference'
 import { normalizeSpec, buildOperationKey } from '@/lib/openapi/normalize'
 import type { ApiSpecConfig, ResolvedSpec } from '@/lib/openapi/types'
 
-const baseConfig = apiReferenceConfig.specs[0]
+const baseConfig: ApiSpecConfig = {
+  id: 'test',
+  label: 'Test API',
+  source: { type: 'inline', document: {} },
+  tagsOrder: ['plants', 'webhooks'],
+  defaultGroup: 'Core',
+  webhookGroup: 'Webhooks',
+  operationOverrides: {
+    'GET /plants': { title: 'List plants', description: 'Fetch plants', badge: 'Stable' },
+    'POST /plants': { title: 'Create plant', description: 'Create a plant entry' },
+    'DELETE /plants/{id}': { title: 'Delete plant', description: 'Remove a plant' },
+    'WEBHOOK POST /plant/webhook': { group: 'Webhooks', badge: 'Webhook' },
+  },
+}
 const plantStoreSpec = {
   openapi: '3.1.0',
   info: { title: 'Plant Store', version: '1.0.0' },

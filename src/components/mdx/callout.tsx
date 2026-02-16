@@ -11,9 +11,8 @@ interface CalloutProps {
 const variantStyles = {
   info: {
     container:
-      'border-emerald-500/30 bg-emerald-500/5 text-emerald-900 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-100',
-    iconRing:
-      'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-200',
+      'border-accent/30 bg-accent/10 text-foreground dark:border-accent/25 dark:bg-accent/15 dark:text-foreground',
+    iconRing: 'bg-accent/15 text-accent dark:bg-accent/20',
   },
   warning: {
     container:

@@ -1,6 +1,5 @@
 'use client'
 
-import * as ScrollArea from '@radix-ui/react-scroll-area'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { NavigationSection } from '@/data/docs'
@@ -20,85 +19,100 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
   const pathname = usePathname()
 
   function isActive(href: string) {
-    if (href === '/') {
-      return pathname === '/'
+    if (!href || /^https?:\/\//i.test(href)) {
+      return false
     }
-    return pathname.startsWith(href)
+    const normalizedHref = normalizePath(href)
+    const normalizedPath = normalizePath(pathname)
+    if (normalizedHref === '/') {
+      return normalizedPath === '/'
+    }
+    const segments = normalizedHref.split('/').filter(Boolean)
+    if (segments.length <= 1) {
+      return normalizedPath === normalizedHref
+    }
+    return normalizedPath === normalizedHref || normalizedPath.startsWith(`${normalizedHref}/`)
   }
 
   return (
-    <aside className={cn('hidden shrink-0 border-r border-border/80 bg-background lg:block', layout.sidebarWidth, className)}>
-      <ScrollArea.Root className="h-screen w-full">
-        <ScrollArea.Viewport className="h-full w-full">
-          <div className={cn('flex flex-col gap-8', layout.sidebarPadding)}>
-            <div className="flex items-center gap-3 px-1">
-              <Logo />
-              <div>
-                <p className="text-sm font-semibold tracking-tight text-foreground">
-                  {siteConfig.name}
-                </p>
-              </div>
+    <aside
+      className={cn('hidden shrink-0 border-r border-border/80 bg-background lg:block', layout.sidebarWidth, className)}
+    >
+      <div className="sticky top-0 flex max-h-screen flex-col overflow-hidden">
+        <div className={cn('flex flex-1 flex-col gap-6 overflow-hidden', layout.sidebarPadding)}>
+          <div className="flex flex-col gap-3 px-1 pt-2">
+            <div className="flex items-center gap-2">
+              <Logo showText={false} className="shrink-0" />
+              <span className="text-sm font-semibold text-foreground">{siteConfig.name} Docs</span>
             </div>
-            <div className="px-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-foreground/40">
-                {title}
-              </p>
-            </div>
-            <nav className="flex flex-col gap-8">
-              {sections.map((section) => {
-              return (
-                <div key={section.title} className="space-y-4">
-                  <p className={cn(typography.meta, 'px-1 uppercase tracking-wide text-foreground/70')}>
-                    {section.title}
-                  </p>
-                  <div className="relative pl-4">
-                    <span className="absolute inset-y-0 left-1 w-px rounded-full bg-border/70" />
-                    <div className="space-y-1">
-                      {section.items.map((item) => {
-                        const active = isActive(item.href)
-                        return (
-                          <Link
-                            key={item.id}
-                            href={item.href}
-                            aria-current={active ? 'page' : undefined}
+          </div>
+          <div className="px-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-foreground/40 line-clamp-1">{title}</p>
+          </div>
+          <nav className="flex-1 space-y-6 overflow-y-auto overscroll-y-contain pr-1 pb-4">
+            {sections.map((section) => (
+              <div key={section.title} className="space-y-3">
+                <p className={cn(typography.meta, 'px-1 uppercase tracking-wide text-foreground/70 line-clamp-2')}>{section.title}</p>
+                <div className="relative pl-4">
+                  <span className="absolute inset-y-0 left-1 w-px rounded-full bg-border/70" />
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const active = isActive(item.href)
+                      const activeStyles = active
+                        ? {
+                            backgroundColor: `hsl(var(--sidebar-active-bg))`,
+                            color: `hsl(var(--sidebar-active-text))`,
+                          }
+                        : undefined
+                      return (
+                        <Link
+                          key={item.id}
+                          href={item.href}
+                          aria-current={active ? 'page' : undefined}
+                          className={cn(
+                            'group relative block rounded-2xl px-3 py-2 text-left transition',
+                            active
+                              ? 'rounded-lg text-foreground shadow-none'
+                              : 'text-foreground/70 hover:bg-muted/40 hover:text-foreground',
+                          )}
+                          style={activeStyles}
+                        >
+                          <span
                             className={cn(
-                              'group relative block rounded-2xl px-4 py-2 text-left transition',
-                              active
-                                ? 'bg-emerald-500/[0.08] text-foreground shadow-sm'
-                                : 'text-foreground/70 hover:bg-muted/40 hover:text-foreground',
+                              'absolute -left-4 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full transition',
+                              active ? 'bg-accent' : 'bg-transparent group-hover:bg-border/80',
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              'flex items-center gap-2 text-sm leading-tight',
+                              active ? 'font-semibold' : 'font-medium',
                             )}
                           >
-                            <span
-                              className={cn(
-                                'absolute -left-4 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full transition',
-                                active ? 'bg-emerald-500' : 'bg-transparent group-hover:bg-border/80',
-                              )}
-                            />
-                            <span
-                              className={cn(
-                                'flex items-center gap-2 text-sm leading-tight',
-                                active ? 'font-semibold' : 'font-medium',
-                              )}
-                            >
-                              {item.title}
-                              {item.badge ? <Badge className="text-[10px] uppercase">{item.badge}</Badge> : null}
-                            </span>
-                          </Link>
-                        )
-                      })}
-                    </div>
+                            <span className="line-clamp-2 break-words">{item.title}</span>
+                            {item.badge ? <Badge className="shrink-0 text-[10px] uppercase">{item.badge}</Badge> : null}
+                          </span>
+                        </Link>
+                      )
+                    })}
                   </div>
                 </div>
-              )
-              })}
-            </nav>
-          </div>
-        </ScrollArea.Viewport>
-        <ScrollArea.Scrollbar orientation="vertical" className="w-2 bg-transparent">
-          <ScrollArea.Thumb className="rounded-full bg-foreground/20" />
-        </ScrollArea.Scrollbar>
-      </ScrollArea.Root>
+              </div>
+            ))}
+          </nav>
+        </div>
+      </div>
     </aside>
   )
+}
+
+function normalizePath(value: string) {
+  if (!value) {
+    return '/'
+  }
+  if (value === '/') {
+    return '/'
+  }
+  return value.endsWith('/') ? value.slice(0, -1) : value
 }
 

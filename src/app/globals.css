@@ -1,15 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import '../styles/brand.css';
 
 :root {
   --dox-background: var(--brand-light-background, 0 0% 100%);
   --dox-foreground: var(--brand-light-foreground, 222 45% 10%);
-  --dox-muted: 220 14% 96%;
-  --dox-border: 214 32% 91%;
+  --dox-muted: var(--brand-light-muted, 220 14% 96%);
+  --dox-border: var(--brand-light-border, 214 32% 91%);
   --dox-accent: var(--brand-light-accent, 222 89% 58%);
   --dox-accent-foreground: var(--brand-light-accent-foreground, 0 0% 100%);
-  --dox-ring: var(--brand-light-accent, 250 90% 66%);
+  --dox-ring: var(--brand-light-ring, 250 90% 66%);
   --container-lg: 33rem;
   --shiki-color-text: #f8fafc;
   --shiki-token-constant: #86efac;
@@ -20,16 +21,23 @@
   --shiki-token-function: #c4b5fd;
   --shiki-token-string-expression: #86efac;
   --shiki-token-punctuation: #e4e4e7;
+  --sidebar-active-bg: var(--brand-sidebar-active-bg-light, 152 55% 90% / 0.6);
+  --sidebar-active-text: var(--brand-sidebar-active-text-light, 152 65% 22%);
+  /* Ensure prose variables track the active foreground */
+  --tw-prose-headings: hsl(var(--dox-foreground));
 }
 
 .dark {
   --dox-background: var(--brand-dark-background, 222 45% 6%);
   --dox-foreground: var(--brand-dark-foreground, 0 0% 98%);
-  --dox-muted: 222 35% 12%;
-  --dox-border: 222 32% 18%;
+  --dox-muted: var(--brand-dark-muted, 222 35% 12%);
+  --dox-border: var(--brand-dark-border, 222 32% 18%);
   --dox-accent: var(--brand-dark-accent, 266 85% 65%);
   --dox-accent-foreground: var(--brand-dark-accent-foreground, 240 9% 12%);
-  --dox-ring: var(--brand-dark-accent, 266 85% 65%);
+  --dox-ring: var(--brand-dark-ring, 266 85% 65%);
+  --sidebar-active-bg: var(--brand-sidebar-active-bg-dark, 152 38% 34% / 0.32);
+  --sidebar-active-text: var(--brand-sidebar-active-text-dark, 152 60% 78%);
+  --tw-prose-headings: hsl(var(--dox-foreground));
 }
 
 * {
@@ -47,4 +55,37 @@ body {
 
 [inert] ::-webkit-scrollbar {
   display: none;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling for overflow containers */
+/* Ensure prose headings follow the active foreground instead of legacy mint */
+.prose :where(h1, h2, h3, h4) {
+  color: var(--tw-prose-headings) !important;
+}
+.dark .prose :where(h1, h2, h3, h4) {
+  color: var(--tw-prose-headings) !important;
+}
+
+@layer utilities {
+  .overflow-touch {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Better text rendering on mobile */
+@media (max-width: 640px) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 }

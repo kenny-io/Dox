@@ -6,10 +6,9 @@ const variantStyles = {
 }
 
 const colorStyles = {
-  emerald: {
-    small: 'text-emerald-500 dark:text-emerald-400',
-    medium:
-      'ring-emerald-300 dark:ring-emerald-400/30 bg-emerald-400/10 text-emerald-500 dark:text-emerald-400',
+  accent: {
+    small: 'text-accent',
+    medium: 'ring-accent/30 dark:ring-accent/30 bg-accent/10 text-accent dark:bg-accent/15',
   },
   sky: {
     small: 'text-sky-500',
@@ -34,7 +33,7 @@ const colorStyles = {
 }
 
 const valueColorMap: Record<string, keyof typeof colorStyles> = {
-  GET: 'emerald',
+  GET: 'accent',
   POST: 'sky',
   PUT: 'amber',
   DELETE: 'rose',
@@ -47,7 +46,7 @@ interface TagProps {
 }
 
 export function Tag({ children, variant = 'medium', color }: TagProps) {
-  const resolvedColor = color ?? valueColorMap[children] ?? 'emerald'
+  const resolvedColor = color ?? valueColorMap[children] ?? 'accent'
   return (
     <span
       className={cn(

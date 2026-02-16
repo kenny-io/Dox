@@ -32,14 +32,16 @@ const config: Config = {
       boxShadow: {
         focus: '0 0 0 2px hsl(var(--dox-ring) / 0.4)',
       },
-      typography: ({ theme }) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      typography: ({ theme }: { theme: any }) => ({
         DEFAULT: {
           css: {
             '--tw-prose-body': theme('colors.zinc.700'),
-            '--tw-prose-headings': theme('colors.zinc.900'),
-            '--tw-prose-links': theme('colors.emerald.500'),
-            '--tw-prose-links-hover': theme('colors.emerald.600'),
-            '--tw-prose-links-underline': 'rgba(16, 185, 129, 0.3)',
+            '--tw-prose-headings': 'hsl(var(--dox-foreground))',
+            '--tw-prose-links': 'hsl(var(--dox-accent))',
+            '--tw-prose-links-hover': 'hsl(var(--dox-accent) / 0.85)',
+            '--tw-prose-links-underline': 'hsl(var(--dox-accent) / 0.3)',
+            '--tw-prose-strong': 'hsl(var(--dox-accent))',
             '--tw-prose-bold': theme('colors.zinc.900'),
             '--tw-prose-counters': theme('colors.zinc.500'),
             '--tw-prose-bullets': theme('colors.zinc.300'),
@@ -53,10 +55,10 @@ const config: Config = {
             '--tw-prose-th-borders': theme('colors.zinc.300'),
             '--tw-prose-td-borders': theme('colors.zinc.200'),
             '--tw-prose-invert-body': theme('colors.zinc.400'),
-            '--tw-prose-invert-headings': theme('colors.white'),
-            '--tw-prose-invert-links': theme('colors.emerald.400'),
-            '--tw-prose-invert-links-hover': theme('colors.emerald.500'),
-            '--tw-prose-invert-links-underline': 'rgba(16, 185, 129, 0.3)',
+            '--tw-prose-invert-headings': 'hsl(var(--dox-foreground))',
+            '--tw-prose-invert-links': 'hsl(var(--dox-accent))',
+            '--tw-prose-invert-links-hover': 'hsl(var(--dox-accent) / 0.85)',
+            '--tw-prose-invert-links-underline': 'hsl(var(--dox-accent) / 0.3)',
             '--tw-prose-invert-bold': theme('colors.white'),
             '--tw-prose-invert-counters': theme('colors.zinc.400'),
             '--tw-prose-invert-bullets': theme('colors.zinc.600'),
@@ -313,6 +315,12 @@ const config: Config = {
               boxShadow: 'inset 0 0 0 1px var(--tw-prose-code-ring)',
               backgroundColor: 'var(--tw-prose-code-bg)',
               fontSize: theme('fontSize.2xs')[0],
+            },
+            'code::before': {
+              content: 'none',
+            },
+            'code::after': {
+              content: 'none',
             },
             ':is(a, h1, h2, h3, blockquote, thead th) code': {
               color: 'inherit',

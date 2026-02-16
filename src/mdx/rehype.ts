@@ -1,7 +1,6 @@
 import type { Element, Root } from 'hast'
 import shiki from 'shiki'
 import { visit } from 'unist-util-visit'
-import type { Plugin } from 'unified'
 
 let highlighter: Awaited<ReturnType<typeof shiki.getHighlighter>> | null = null
 
@@ -18,9 +17,10 @@ function normalizeLanguage(language?: string) {
   return languageAliases[normalized] ?? normalized
 }
 
-function rehypeParseCodeBlocks(): Plugin<[], Root> {
-  return (tree) => {
-    visit(tree, 'element', (node: Element, _index, parent: Element | undefined) => {
+function rehypeParseCodeBlocks() {
+  return (tree: Root) => {
+    // @ts-expect-error -- unist-util-visit visitor types are stricter than needed
+    visit(tree, 'element', (node: Element, _index: number | undefined, parent: Element | undefined) => {
       if (!parent || node.tagName !== 'code') {
         return
       }
@@ -42,8 +42,8 @@ function rehypeParseCodeBlocks(): Plugin<[], Root> {
   }
 }
 
-function rehypeShiki(): Plugin<[], Root> {
-  return async (tree) => {
+function rehypeShiki() {
+  return async (tree: Root) => {
     highlighter =
       highlighter ?? (await shiki.getHighlighter({ theme: 'css-variables' }))
 
