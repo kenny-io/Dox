@@ -1,7 +1,7 @@
+@import '../styles/brand.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import '../styles/brand.css';
 
 :root {
   --dox-background: var(--brand-light-background, 0 0% 100%);
