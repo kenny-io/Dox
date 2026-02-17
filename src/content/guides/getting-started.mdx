@@ -9,23 +9,48 @@ description: Set up Dox and create your first documentation page in under five m
 - A terminal and code editor
 - An OpenAPI spec (optional — a Pet Store example is included)
 
-## 1. Clone the template
+## 1. Create your project
+
+### Option A: Use the CLI (recommended)
 
 ```bash
-npx degit kenny-io/Dox my-docs
-cd my-docs
-npm install
+npx create-dox my-docs
 ```
 
-## 2. Start the dev server
+The CLI walks you through an interactive setup:
+
+- **Project name** — displayed in the header and metadata
+- **Description** — used for SEO and OpenGraph tags
+- **Brand preset** — `primary` (green) or `secondary` (purple)
+- **GitHub repo URL** — auto-wires the Support and GitHub links
+- **Install dependencies** — runs `npm install` for you
+
+Once complete, your project is ready to run:
 
 ```bash
+cd my-docs
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the default docs site.
+You can also skip the prompts and accept all defaults:
 
-## 3. Create your first page
+```bash
+npx create-dox my-docs --yes
+```
+
+### Option B: Clone manually
+
+```bash
+git clone https://github.com/kenny-io/Dox.git my-docs
+cd my-docs
+rm -rf .git
+npm install
+npm run dev
+```
+
+Open [http://localhost:3040](http://localhost:3040) to see the default docs site.
+
+## 2. Create your first page
 
 Create a new file at `src/content/my-first-page.mdx`:
 
@@ -43,7 +68,7 @@ Welcome to my documentation! This page was created with Dox.
 - Replace the example content with your own.
 ```
 
-## 4. Add it to the navigation
+## 3. Add it to the navigation
 
 Open `docs.json` and add your page to a group:
 
@@ -56,7 +81,7 @@ Open `docs.json` and add your page to a group:
 
 Save the file and the sidebar updates automatically.
 
-## 5. Deploy
+## 4. Deploy
 
 ```bash
 npm run build
