@@ -1,11 +1,13 @@
 ---
 title: Customization
-description: Modify spacing, panels, and typography via shared layout tokens.
+description: Extend Dox with custom components, layout tokens, and new pages.
 ---
+
+Dox is designed to be extended. Every part of the UI is built with composable components and shared layout tokens.
 
 ## Layout tokens
 
-All spacing, panel, and column choices live in `src/config/layout.ts`. Update values like `pagePadding`, `columnGap`, or `panel` classes to instantly restyle the entire shell without touching component internals.
+Spacing, panel styles, and typography are centralized in `src/config/layout.ts`:
 
 ```ts
 export const layout = {
@@ -14,13 +16,25 @@ export const layout = {
 }
 ```
 
+Update these values to restyle the entire shell without touching individual components.
+
+## Adding custom components
+
+Create new components in `src/components/` and use them directly in MDX files. Dox automatically makes common components like `Note` and `CodeGroup` available in all MDX content.
+
+To register a new MDX component, add it to the components map in `src/data/get-doc.ts`.
+
 ## Section primitives
 
-Use `PageContainer`, `SectionStack`, `ContentStack`, `Panel`, and `MutedPanel` from `src/components/layout/sections.tsx` to keep new views consistent. Each helper already consumes the layout tokens, so swapping tokens updates every section.
+Use the built-in layout helpers from `src/components/layout/sections.tsx`:
 
-## Extendable UI
+- **`PageContainer`** — consistent page-level padding
+- **`ContentStack`** — vertical spacing for content sections
+- **`Panel`** / **`MutedPanel`** — styled card containers
 
-- Add new navigation groups by editing `src/data/docs.ts`.
-- Override `typography` tokens for heading/metadata styles.
-- Drop in additional components under `src/components/ui` and export them through the layout helpers to stay within the system.
+These helpers consume the layout tokens, so changing a token updates every section that uses it.
+
+<Note type="info" title="Sample page">
+This is example content that ships with the Dox template. Replace it with your own product documentation.
+</Note>
 

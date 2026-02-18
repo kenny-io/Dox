@@ -1,61 +1,84 @@
 ---
 title: Quickstart
-description: Spin up a fully functional documentation workspace in minutes.
+description: Get a Dox documentation site running locally in under five minutes.
 ---
 
+Follow these steps to go from zero to a running docs site.
 
-## 1. Bootstrap the workspace
+<Steps>
+
+<Step title="Create your project">
 
 ```bash
-npx create-next-app dox-project --ts --eslint --tailwind
-cd dox-project
-npm install @dox/template
+npx create-dox my-docs
+cd my-docs
+npm run dev
 ```
 
-Import your API schema or seed MDX files inside `src/content/docs`. Each MDX file becomes a route that is automatically indexed by search and navigation.
+Open [http://localhost:3040](http://localhost:3040) to see your new docs site.
 
-<Note type="info" title="Preview tip">
-Run `npm run dev` and open `/showcase` whenever you tweak typography so you can compare both themes side by side.
-</Note>
+</Step>
 
-## 2. Configure navigation
+<Step title="Add a page">
 
-Update `src/data/docs.ts` with a `group`, `title`, and `description` for every page. The sidebar and mobile navigation derive their structure from that map, so there is nothing else to keep in sync.
+Create `src/content/my-page.mdx`:
 
-<Note type="warning" title="Missing entry">
-If you forget to register a page in `docsEntries`, `next dev` still compiles the MDX file but users will have no way to reach it. Keep navigation data as the source of truth.
-</Note>
+```mdx
+---
+title: My Page
+description: A new documentation page.
+---
 
-### Multi-language config example
-
-<CodeGroup title="Bootstrap data source">
-
-```ts
-import { defineDocs } from '@dox/config'
-
-export const docs = defineDocs({
-  root: './src/content/docs',
-  navigation: './src/data/docs.ts',
-})
+Write your content here using Markdown and JSX components.
 ```
 
-```go
-package main
+</Step>
 
-import "fmt"
+<Step title="Register it in navigation">
 
-func main() {
-  fmt.Println("Keep parity with the TypeScript config by mirroring slugs.")
+Open `docs.json` and add the page to a group:
+
+```json
+{
+  "group": "Getting Started",
+  "pages": ["introduction", "quickstart", "my-page"]
 }
 ```
 
-</CodeGroup>
+The sidebar updates automatically — no restart required.
 
-## 3. Deploy
+</Step>
 
-Dox runs anywhere Next.js does: Vercel, Netlify, Cloudflare, or your own container runtime. Because we avoid proprietary services, every environment variable and API secret lives entirely under your control.
+<Step title="Add an API reference">
 
-<Note type="danger" title="Build fails on deploy?">
-Make sure `NEXT_PUBLIC_SITE_URL` and any MDX-related env vars are defined in the hosting dashboard. The server components assume those values exist during `next build`.
+Drop an OpenAPI spec (YAML or JSON) into the project root and reference it in `docs.json`:
+
+```json
+{
+  "tab": "API Reference",
+  "api": {
+    "source": "openapi.yaml"
+  }
+}
+```
+
+Dox generates interactive endpoint pages with parameter tables, schemas, code samples, and a "Try It" console.
+
+</Step>
+
+<Step title="Deploy">
+
+```bash
+npm run build
+```
+
+Deploy to any platform that supports Next.js — Vercel, Netlify, Cloudflare, or a Docker container.
+
+<Note type="info" title="Environment variables">
+Set `NEXT_PUBLIC_SITE_URL` in your hosting dashboard for correct OpenGraph URLs and metadata.
 </Note>
+
+</Step>
+
+</Steps>
 

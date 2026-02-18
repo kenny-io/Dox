@@ -1,31 +1,65 @@
 ---
-title: Pagination
-description: Cursor-based pagination semantics for every collection endpoint.
+title: Writing Content
+description: How to author documentation pages using MDX in Dox.
 ---
 
+Every documentation page in Dox is an `.mdx` file inside `src/content/`. Each file needs frontmatter at the top with a `title` and `description`:
 
+```mdx
+---
+title: My Page Title
+description: A short summary for SEO and navigation.
+---
 
-
-## Cursor strategy
-
-Every collection endpoint ships with cursor-based pagination so you can stream large datasets without skipping or duplicating records.
-
-```ts
-const response = await client.conversations.list({
-  limit: 50,
-  cursor: nextCursor, // provided in the previous response
-})
+Your content starts here.
 ```
 
-## Parameters
+## Markdown features
 
-| Param | Type | Description |
-| --- | --- | --- |
-| `limit` | number | Defaults to 25. Maximum of 200. |
-| `cursor` | string | Opaque string returned as `nextCursor`. |
-| `direction` | "forward" \| "backward" | Enables reverse traversal for audit tooling. |
+Dox supports all standard Markdown syntax plus a few extras:
 
-## Error handling
+| Feature | Syntax |
+| --- | --- |
+| Headings | `## H2`, `### H3`, `#### H4` |
+| Code blocks | Fenced with language identifier |
+| Tables | Pipe-delimited columns |
+| Lists | Ordered and unordered |
+| Links | `[text](url)` |
+| Images | `![alt](src)` |
 
-Send the `Retry-After` header whenever a client attempts to fetch beyond the available window so they can recover gracefully.
+## Built-in components
+
+Dox includes several JSX components you can use directly in MDX:
+
+### Notes
+
+```mdx
+<Note type="info" title="Heads up">
+Informational callout with a blue accent.
+</Note>
+```
+
+### Code groups
+
+```mdx
+<CodeGroup title="Install">
+
+\`\`\`bash
+npm install my-package
+\`\`\`
+
+\`\`\`bash
+yarn add my-package
+\`\`\`
+
+</CodeGroup>
+```
+
+## File organization
+
+Pages can be nested in subdirectories. A file at `src/content/guides/setup.mdx` is referenced in `docs.json` as `"guides/setup"`.
+
+<Note type="info" title="Sample page">
+This is example content that ships with the Dox template. Replace it with your own product documentation.
+</Note>
 

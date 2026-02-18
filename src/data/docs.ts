@@ -334,6 +334,40 @@ export function getSidebarCollections(): Array<SidebarCollection> {
 }
 
 // ---------------------------------------------------------------------------
+// Prev / Next navigation
+// ---------------------------------------------------------------------------
+
+export interface PrevNextLink {
+  title: string
+  href: string
+}
+
+export function getPrevNextLinks(currentHref: string): { prev: PrevNextLink | null; next: PrevNextLink | null } {
+  const collections = getSidebarCollections()
+  const flatPages: Array<{ title: string; href: string }> = []
+
+  for (const collection of collections) {
+    for (const section of collection.sections) {
+      for (const item of section.items) {
+        if (!flatPages.some((p) => p.href === item.href)) {
+          flatPages.push({ title: item.title, href: item.href })
+        }
+      }
+    }
+  }
+
+  const index = flatPages.findIndex((p) => p.href === currentHref)
+  if (index === -1) {
+    return { prev: null, next: null }
+  }
+
+  return {
+    prev: index > 0 ? flatPages[index - 1] : null,
+    next: index < flatPages.length - 1 ? flatPages[index + 1] : null,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Pre-computed exports for client-side store defaults
 // ---------------------------------------------------------------------------
 

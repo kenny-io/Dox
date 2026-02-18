@@ -75,6 +75,11 @@ body {
   color: var(--tw-prose-headings) !important;
 }
 
+/* Steps component — hide connector line on last step */
+.dox-steps > .dox-step:last-of-type > .dox-step-line {
+  display: none;
+}
+
 @layer utilities {
   .overflow-touch {
     -webkit-overflow-scrolling: touch;

@@ -1,113 +1,146 @@
 ---
-title: Visual Regression Deck
-description: Stress-test headings, callouts, and multi-language code blocks.
+title: Component Showcase
+description: A visual demo of the MDX components available in Dox.
 ---
 
+This page demonstrates the built-in components and typography styles available in Dox. Use it as a reference when authoring your own documentation.
 
-
-
-Use this page to exercise every typography token, callout variant, and code-block state in both light and dark themes. Toggle the theme switch and ensure spacing, contrast ratios, and focus rings remain consistent.
-
-## Heading Scale
+## Headings
 
 ### Section Title (H3)
 
 #### Nested Detail (H4)
 
-Body copy should maintain even rhythm regardless of heading depth. A short inline code sample like `fetch('/status')` should sit on the same baseline and preserve background pills across themes.
+Body text maintains consistent rhythm regardless of heading depth. Inline code like `npm run dev` renders with a subtle background.
 
-## Inline Elements & Lists
+## Lists
 
-- Bold **strong** text
-- Emphasized _italics_
-- Hyperlinks that [gain underlines on hover](#inline-elements--lists)
+- **Bold items** stand out in unordered lists
+- _Italicized text_ for emphasis
+- Links [with hover underlines](#lists)
 
-1. Ordered list level one
-2. Second item with a nested block:
-   - Bullet inside the ordered stack
-   - Another item with a `code` fragment
+1. Ordered lists for sequential steps
+2. Nested content works too:
+   - Sub-item with a `code` fragment
+   - Another nested bullet
 
-> Blockquotes inherit the prose palette and provide extra spacing.
+> Blockquotes are styled with a left border and muted text.
 
-## Color Callouts
+## Callouts
 
-<Note type="info" title="Info note">
-Positive and neutral messaging renders with the current accent color.
+<Note type="info" title="Info">
+Use info notes for helpful tips and additional context.
 </Note>
 
-<Note type="warning" title="Warning note">
-Warnings lean on amber hues that remain legible on dark backgrounds.
+<Note type="warning" title="Warning">
+Warnings highlight potential issues or important caveats.
 </Note>
 
-<Note type="danger" title="Error note">
-Error states use rose tones with sufficient contrast against the card background.
+<Note type="danger" title="Danger">
+Danger notes flag breaking changes or critical errors.
 </Note>
 
 ## Tables
 
-| Column | Description                | Default |
-| ------ | -------------------------- | ------- |
-| A      | Left-aligned table header  | ✅      |
-| B      | Columns inherit prose vars | ✅      |
+| Feature | Status | Notes |
+| --- | --- | --- |
+| MDX pages | Supported | File-based routing |
+| API reference | Supported | OpenAPI 3.x |
+| Search | Supported | Client-side |
+| Dark mode | Supported | Automatic |
 
-## Code Blocks
+## Code blocks
 
-### Single Language
+### Single language
 
 ```bash
-curl -X POST https://api.example.dev/v1/keys \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"name":"docs"}'
+npx create-dox my-docs
+cd my-docs
+npm run dev
 ```
 
-### Multi-language Group
+### Multi-language group
 
-<CodeGroup title="Initialize client">
+<CodeGroup title="Install dependencies">
 
-```ts
-import { createClient } from '@example/sdk'
-
-const client = createClient({
-  apiKey: process.env.EXAMPLE_TOKEN!,
-})
-
-await client.messages.send({
-  to: '+15551234567',
-  template: 'otp',
-  data: { code: '123456' },
-})
+```bash
+npm install
 ```
 
-```python
-from example import Client
+```bash
+yarn install
+```
 
-client = Client(api_key=os.environ["EXAMPLE_TOKEN"])
-
-client.messages.send(
-    to="+15551234567",
-    template="otp",
-    data={"code": "123456"},
-)
+```bash
+pnpm install
 ```
 
 </CodeGroup>
 
-### JSON Payloads
+### JSON example
 
 ```json
 {
-  "id": "evt_123",
-  "type": "message.delivered",
-  "data": {
-    "recipient": "+15551234567",
-    "status": "delivered",
-    "elapsedMs": 842
-  }
+  "tabs": [
+    {
+      "tab": "Overview",
+      "groups": [
+        {
+          "group": "Getting Started",
+          "pages": ["introduction", "quickstart"]
+        }
+      ]
+    }
+  ]
 }
 ```
 
-## Next Steps
+## Steps
 
-Switch between light and dark themes, collapse the sidebar, and scroll to confirm the table of contents highlights each heading. This page should make it obvious when typography or syntax highlighting regresses.
+<Steps>
+
+<Step title="Install Dox">
+
+Run the CLI to scaffold a new project:
+
+```bash
+npx create-dox my-docs
+```
+
+You'll be prompted for a project name, description, and brand preset.
+
+</Step>
+
+<Step title="Add your content">
+
+Create `.mdx` files in `src/content/` and register them in `docs.json`:
+
+1. Write your page with frontmatter (`title`, `description`)
+2. Add the page slug to a group in `docs.json`
+3. The sidebar updates automatically
+
+<Note type="info" title="Tip">
+Use the `showcase` page to preview all available components as you write.
+</Note>
+
+</Step>
+
+<Step title="Deploy">
+
+Build and deploy to any platform that supports Next.js:
+
+```bash
+npm run build
+```
+
+- **Vercel** — zero-config deployment
+- **Netlify** — add a `netlify.toml` with the Next.js plugin
+- **Docker** — use the included `Dockerfile` or roll your own
+
+</Step>
+
+</Steps>
+
+Toggle between light and dark themes to verify all components render correctly in both modes.
 
 
