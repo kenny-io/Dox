@@ -9,9 +9,11 @@ description: Set up Dox and create your first documentation page in under five m
 - A terminal and code editor
 - An OpenAPI spec (optional — a Pet Store example is included)
 
-## 1. Create your project
+<Steps>
 
-### Option A: Use the CLI (recommended)
+<Step title="Create your project">
+
+Use the CLI (recommended):
 
 ```bash
 npx create-dox my-docs
@@ -25,32 +27,35 @@ The CLI walks you through an interactive setup:
 - **GitHub repo URL** — auto-wires the Support and GitHub links
 - **Install dependencies** — runs `npm install` for you
 
-Once complete, your project is ready to run:
-
-```bash
-cd my-docs
-npm run dev
-```
-
 You can also skip the prompts and accept all defaults:
 
 ```bash
 npx create-dox my-docs --yes
 ```
 
-### Option B: Clone manually
+Or clone manually:
 
 ```bash
 git clone https://github.com/kenny-io/Dox.git my-docs
 cd my-docs
 rm -rf .git
 npm install
+```
+
+</Step>
+
+<Step title="Start the dev server">
+
+```bash
+cd my-docs
 npm run dev
 ```
 
 Open [http://localhost:3040](http://localhost:3040) to see the default docs site.
 
-## 2. Create your first page
+</Step>
+
+<Step title="Create your first page">
 
 Create a new file at `src/content/my-first-page.mdx`:
 
@@ -68,7 +73,9 @@ Welcome to my documentation! This page was created with Dox.
 - Replace the example content with your own.
 ```
 
-## 3. Add it to the navigation
+</Step>
+
+<Step title="Add it to the navigation">
 
 Open `docs.json` and add your page to a group:
 
@@ -79,12 +86,18 @@ Open `docs.json` and add your page to a group:
 }
 ```
 
-Save the file and the sidebar updates automatically.
+Save the file and the sidebar updates automatically — no restart required.
 
-## 4. Deploy
+</Step>
+
+<Step title="Deploy">
 
 ```bash
 npm run build
 ```
 
 Deploy the output to any platform that supports Next.js — Vercel, Netlify, Cloudflare, or a Docker container.
+
+</Step>
+
+</Steps>

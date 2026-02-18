@@ -8,20 +8,16 @@
           "pages": ["introduction", "quickstart"]
         },
         {
-          "group": "Core Concepts",
+          "group": "Concepts",
           "pages": ["authentication", "pagination"]
         },
         {
-          "group": "Integrations",
+          "group": "Features",
           "pages": ["webhooks", "sdks"]
         },
         {
-          "group": "References",
-          "pages": ["errors", "api/reference"]
-        },
-        {
-          "group": "Customization",
-          "pages": ["customization", "showcase"]
+          "group": "Project",
+          "pages": ["errors", "customization", "showcase"]
         }
       ]
     },

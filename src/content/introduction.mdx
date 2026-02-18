@@ -1,17 +1,19 @@
 ---
 title: Introduction
-description: Overview of the Dox template architecture and guiding principles.
+description: Dox is an open-source documentation template built with Next.js, MDX, and Tailwind CSS.
 ---
 
+Dox is an open-source documentation template that gives you a production-ready docs site out of the box. It is built with the Next.js App Router, MDX for content authoring, and Tailwind CSS for styling. Every page you write is a `.mdx` file — no CMS, no vendor lock-in, and full control over your infrastructure.
 
-Dox is a documentation system that embraces the ergonomics of Mintlify without importing any third-party design language or licensing. Every page is rendered by the Next.js App Router, compiled from MDX, and styled with Tailwind CSS plus a tiny shadcn-inspired component kit.
+## What's included
 
-## What’s included
-
-- Opinionated layout primitives for headers, navigation, and feedback affordances
-- Instant search with lightweight relevance scoring
-- Responsive typography and code blocks with dark-mode aware colors
-- A table of contents that syncs with scroll position
+- **MDX content authoring** — write documentation in Markdown with JSX components
+- **Tabbed navigation** — organize content into tabs, groups, and pages via a single `docs.json` file
+- **API reference generation** — drop in an OpenAPI spec and get interactive endpoint docs with a built-in "Try It" console
+- **Full-text search** — instant client-side search with relevance scoring
+- **Dark mode** — automatic light/dark theming with customizable brand colors
+- **Responsive layout** — sidebar navigation, table of contents, and mobile-friendly design
+- **Code blocks** — syntax highlighting with Shiki, multi-language code groups, and copy-to-clipboard
 
 ## Getting started
 
@@ -21,7 +23,7 @@ The fastest way to create a new Dox project is with the CLI:
 npx create-dox my-docs
 ```
 
-The CLI will prompt you for a project name, description, brand preset, and optional GitHub repo URL — then scaffold a ready-to-run docs site with starter content, navigation, and dependencies installed.
+The CLI prompts you for a project name, description, brand preset, and optional GitHub repo URL — then scaffolds a ready-to-run docs site with starter content, navigation, and dependencies installed.
 
 Alternatively, clone the template manually:
 
@@ -32,48 +34,22 @@ npm install
 npm run dev
 ```
 
+## How it works
+
+Dox uses a file-based content model. All documentation lives in `src/content/` as `.mdx` files. Navigation structure is defined in `docs.json` at the project root — you list your tabs, groups, and pages there, and the sidebar, breadcrumbs, and routing are derived automatically.
+
+For API documentation, point the API Reference tab in `docs.json` to an OpenAPI spec file. Dox parses the spec and generates endpoint pages with parameter tables, request/response schemas, code samples, and an interactive playground.
+
 ## When to use Dox
 
-Choose Dox when you need to ship an authenticated developer portal, SDK references, or onboarding playbooks fast. Because everything runs on your infrastructure, you can extend the data layer, add analytics, or wire up custom authentication without leaving the stack.
+Dox is a good fit when you want to:
 
-### Light and dark readiness
+- **Ship docs fast** — start writing content in minutes, not days
+- **Own your stack** — no third-party service dependencies or monthly fees
+- **Customize freely** — extend the Next.js app with your own components, analytics, or auth
+- **Document APIs** — auto-generate reference docs from an OpenAPI spec
 
-<Note type="info" title="Best practice">
-Keep the preview window handy and flip the theme toggle after every major typography edit. All prose classes already expose the same CSS variables we import from Tailwind UI, so regressions are easy to spot.
-</Note>
-
-<Note type="warning" title="Spacing drift">
-If you author new components, rely on the layout primitives in `src/components/layout/sections.tsx` so headings keep their scroll margin and the table of contents remains accurate.
-</Note>
-
-### Sample multi-language snippet
-
-<CodeGroup title="Fetch workspace metadata">
-
-```ts
-const response = await fetch('https://api.dox.local/v1/workspaces', {
-  headers: { Authorization: `Bearer ${token}` },
-})
-const body = await response.json()
-console.log(body.items[0])
-```
-
-```python
-import os
-import requests
-
-response = requests.get(
-    "https://api.dox.local/v1/workspaces",
-    headers={"Authorization": f"Bearer {os.environ['DOX_TOKEN']}"},
-)
-print(response.json()["items"][0])
-```
-
-</CodeGroup>
-
-### Failure mode visibility
-
-<Note type="danger" title="Missing highlights?">
-If syntax highlighting ever disappears, ensure the MDX file sits inside `src/content/docs` and that the language fence matches a shiki grammar (for example `ts`, `tsx`, `python`, or `bash`).
+<Note type="info" title="Sample content">
+The pages in this Overview tab are example content that ships with the template. Replace them with your own product documentation to get started.
 </Note>
 

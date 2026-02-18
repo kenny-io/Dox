@@ -1,33 +1,87 @@
 ---
-title: Webhooks
-description: Reliable events, signing strategies, and delivery guarantees.
+title: API Reference Setup
+description: Generate interactive API docs from an OpenAPI specification.
 ---
 
+Dox auto-generates a full API reference from an OpenAPI 3.x spec. Here's how to set it up.
 
+<Steps>
 
+<Step title="Add your OpenAPI spec">
 
-## Events
+Place your OpenAPI 3.x spec file (YAML or JSON) in the project root:
 
-| Event | Description |
-| --- | --- |
-| `conversation.created` | Fired when the first message is stored. |
-| `conversation.resolved` | Fired when status changes to `resolved`. |
-| `attachment.failed` | Fired when virus scanning blocks a file. |
+```bash
+cp path/to/your/openapi.yaml ./openapi.yaml
+```
 
-## Signing payloads
+Dox ships with a Pet Store example spec you can use as a starting point.
 
-Each webhook payload includes a `dox-signature` header. Re-compute the signature using HMAC-SHA256 with your webhook secret.
+</Step>
 
-```ts
-import crypto from 'node:crypto'
+<Step title="Configure the API tab">
 
-function isValidSignature(payload: string, signature: string, secret: string) {
-  const digest = crypto.createHmac('sha256', secret).update(payload).digest('hex')
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))
+Add an API Reference tab in `docs.json`:
+
+```json
+{
+  "tab": "API Reference",
+  "api": {
+    "source": "openapi.yaml",
+    "tagsOrder": ["Pets", "Store"],
+    "defaultGroup": "General"
+  }
 }
 ```
 
-## Retries
+Dox parses the spec and generates interactive endpoint pages automatically.
 
-Dox retries delivery for twelve hours using exponential backoff. Set the `x-dox-delivery-id` header as idempotency key to deduplicate downstream.
+</Step>
+
+<Step title="Customize endpoint metadata">
+
+Use `overrides` to tweak titles, descriptions, or badges for specific operations:
+
+```json
+{
+  "overrides": {
+    "GET /pets": {
+      "title": "List pets",
+      "description": "Custom description for this endpoint.",
+      "badge": "Stable"
+    }
+  }
+}
+```
+
+The key format is `METHOD /path` (e.g. `GET /pets`, `POST /store/orders`).
+
+</Step>
+
+</Steps>
+
+## Configuration options
+
+| Option | Description |
+| --- | --- |
+| `source` | Path to the OpenAPI spec file (YAML or JSON) |
+| `tagsOrder` | Order of tag groups in the sidebar |
+| `defaultGroup` | Group name for untagged operations |
+| `overrides` | Per-endpoint title, description, and badge overrides |
+
+## Supported spec features
+
+- Path, query, header, and cookie parameters
+- Request body schemas with examples
+- Multiple response codes with schema viewers
+- Server URL selection
+- Security scheme documentation
+
+## Try It console
+
+Every generated endpoint page includes a **Try It** button that opens an interactive console. Users can fill in parameters, edit the request body, and send live requests directly from the docs.
+
+<Note type="info" title="Sample page">
+This is example content that ships with the Dox template. Replace it with your own product documentation.
+</Note>
 

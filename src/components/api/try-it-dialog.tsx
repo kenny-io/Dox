@@ -22,8 +22,8 @@ export function TryItDialog({ controller, open, onOpenChange }: TryItDialogProps
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-background/70 backdrop-blur-md" />
-        <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-border/40 bg-background/95 p-6 shadow-2xl">
+        <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => onOpenChange(false)}>
+          <div className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-border/40 bg-background/95 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <header className="flex flex-wrap gap-4">
               <div className="space-y-1">
                 <Dialog.Title className="text-lg font-semibold">Execute {controller.operation.title}</Dialog.Title>
