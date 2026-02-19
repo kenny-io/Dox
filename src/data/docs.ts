@@ -368,6 +368,41 @@ export function getPrevNextLinks(currentHref: string): { prev: PrevNextLink | nu
 }
 
 // ---------------------------------------------------------------------------
+// Breadcrumbs
+// ---------------------------------------------------------------------------
+
+export interface BreadcrumbItem {
+  label: string
+  href?: string
+}
+
+export function getBreadcrumbs(currentHref: string): Array<BreadcrumbItem> {
+  const collections = getSidebarCollections()
+
+  for (const collection of collections) {
+    for (const section of collection.sections) {
+      const match = section.items.find((item) => item.href === currentHref)
+      if (match) {
+        const crumbs: Array<BreadcrumbItem> = []
+        // Tab level
+        const firstPageHref = collection.sections[0]?.items[0]?.href
+        crumbs.push({ label: collection.label, href: firstPageHref })
+        // Group level (section title may contain " • " for nested groups)
+        const groupParts = section.title.split(' • ')
+        for (const part of groupParts) {
+          crumbs.push({ label: part })
+        }
+        // Current page
+        crumbs.push({ label: match.title })
+        return crumbs
+      }
+    }
+  }
+
+  return []
+}
+
+// ---------------------------------------------------------------------------
 // Pre-computed exports for client-side store defaults
 // ---------------------------------------------------------------------------
 

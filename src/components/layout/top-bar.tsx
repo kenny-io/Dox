@@ -7,6 +7,7 @@ import type { SidebarCollection, SearchableDoc } from '@/data/docs'
 import { MobileNav } from '@/components/navigation/mobile-nav'
 import { CommandSearch } from '@/components/search/command-search'
 import { ThemeSwitch } from '@/components/theme/theme-switch'
+import { VersionSwitcher } from '@/components/docs/version-switcher'
 import { shell } from '@/config/layout'
 import { cn } from '@/lib/utils'
 import { siteConfig } from '@/data/site'
@@ -87,6 +88,7 @@ export function TopBar({
                 <span className="inline sm:hidden">{primaryCta.label.replace('Get ', '')}</span>
               </Link>
             ) : null}
+            <VersionSwitcher />
             <ThemeSwitch />
           </div>
         </div>

@@ -45,6 +45,28 @@ export interface OgImageConfig {
   fontWeight?: string
 }
 
+export interface AnalyticsConfig {
+  /** Google Analytics measurement ID (e.g. "G-XXXXXXXXXX"). */
+  googleAnalyticsId?: string
+  /** Plausible domain (e.g. "docs.example.com"). */
+  plausibleDomain?: string
+  /** Plausible script URL. Defaults to "https://plausible.io/js/script.js". */
+  plausibleScriptUrl?: string
+  /** PostHog project API key. */
+  posthogKey?: string
+  /** PostHog API host. Defaults to "https://us.i.posthog.com". */
+  posthogHost?: string
+}
+
+export interface DocVersion {
+  /** Version label displayed in the switcher (e.g. "v2.0", "Latest"). */
+  label: string
+  /** URL for this version. Use "/" for the current site, or a full URL for older versions hosted elsewhere. */
+  href: string
+  /** Whether this is the currently active version. Exactly one should be true. */
+  current?: boolean
+}
+
 export interface SiteConfig {
   name: string
   description: string
@@ -55,6 +77,10 @@ export interface SiteConfig {
   brandPresets: Record<BrandPresetKey, BrandConfig>
   /** Configuration for dynamic OG image generation. All fields are optional and fall back to brand colors. */
   ogImage?: OgImageConfig
+  /** Analytics provider configuration. Leave undefined to disable analytics. */
+  analytics?: AnalyticsConfig
+  /** Doc versions for the version switcher. Leave undefined or empty to hide the switcher. */
+  versions?: Array<DocVersion>
 }
 
 const brandPresets: Record<BrandPresetKey, BrandConfig> = {

@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { ZoomableContent } from '@/components/mdx/zoomable-content'
 import {
   BookOpen,
   Code2,
@@ -136,13 +137,18 @@ export function Columns({ cols = 2, children }: ColumnsProps) {
 
 interface FrameProps {
   caption?: string
+  zoom?: boolean
   children: ReactNode
 }
 
-export function Frame({ caption, children }: FrameProps) {
+export function Frame({ caption, zoom = true, children }: FrameProps) {
   return (
     <figure className="my-6 space-y-3 rounded-3xl border border-border/40 bg-muted/30 p-5">
-      <div className="overflow-hidden rounded-2xl border border-border/40 bg-background">{children}</div>
+      {zoom ? (
+        <ZoomableContent>{children}</ZoomableContent>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-border/40 bg-background">{children}</div>
+      )}
       {caption ? <figcaption className="text-sm text-foreground/70">{caption}</figcaption> : null}
     </figure>
   )
