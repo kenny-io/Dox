@@ -14,7 +14,7 @@ export function ZoomableContent({ children }: ZoomableContentProps) {
       <div
         role="button"
         tabIndex={0}
-        className="cursor-zoom-in overflow-hidden rounded-2xl border border-border/40 bg-background"
+        className="cursor-zoom-in"
         onClick={() => setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
