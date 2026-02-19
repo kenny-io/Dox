@@ -95,3 +95,14 @@ Then run `npm run build` — the output will be in the `out/` directory, ready f
 <Note type="warning" title="Static export limitation">
   The API "Try It" panel requires a server-side proxy route and won't work with static export. All other features work fine.
 </Note>
+
+## SEO and feeds
+
+Once deployed, Dox automatically serves:
+
+- **`/sitemap.xml`** — includes all doc pages, API reference pages, and the changelog
+- **`/robots.txt`** — allows crawlers on all pages, blocks internal API routes (`/api/og`, `/api/try-it`)
+- **`/changelog/rss.xml`** — RSS feed for changelog updates
+- **Dynamic OG images** — every page gets a branded social preview image via `/api/og`
+
+All of these use `NEXT_PUBLIC_SITE_URL` to generate absolute URLs, so make sure it's set before deploying.

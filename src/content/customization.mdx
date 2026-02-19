@@ -20,9 +20,47 @@ Update these values to restyle the entire shell without touching individual comp
 
 ## Adding custom components
 
-Create new components in `src/components/` and use them directly in MDX files. Dox automatically makes common components like `Note` and `CodeGroup` available in all MDX content.
+Create new components in `src/components/` and use them directly in MDX files. Dox automatically makes common components available in all MDX content.
 
-To register a new MDX component, add it to the components map in `src/data/get-doc.ts`.
+To register a new MDX component, add it to the components map in `src/components/mdx/mdx-components.tsx`:
+
+```ts
+import { MyWidget } from '@/components/mdx/my-widget'
+
+const components: MDXComponents = {
+  // ...existing components
+  MyWidget: (props) => <MyWidget {...props} />,
+}
+```
+
+### Built-in MDX components
+
+| Component | Purpose |
+| --- | --- |
+| `<Note>` | Info, warning, and danger callouts |
+| `<CodeGroup>` | Multi-language tabbed code blocks |
+| `<Steps>` / `<Step>` | Numbered step-by-step guides |
+| `<Tabs>` / `<Tab>` | Content tabs for platform-specific instructions |
+| `<Card>` / `<CardGroup>` | Clickable card grids with icons |
+| `<Frame>` | Styled image wrapper with click-to-zoom |
+| `<Accordion>` | Collapsible content sections |
+| `<Tooltip>` | Inline tooltip on hover |
+| `<Columns>` | Multi-column layout grid |
+
+## Site configuration options
+
+The `siteConfig` object in `src/data/site.ts` controls many features beyond branding:
+
+| Field | Purpose |
+| --- | --- |
+| `name` | Site name in header, OG images, and metadata |
+| `description` | Default meta description |
+| `repoUrl` | Enables "Edit on GitHub" links on every page |
+| `links` | Header navigation links (Support, GitHub, CTA) |
+| `brand` / `brandPreset` | Color theme for light and dark modes |
+| `ogImage` | Customize dynamic OG image colors, fonts, and branding |
+| `analytics` | Plug in Google Analytics, Plausible, or PostHog |
+| `versions` | Enable the version switcher dropdown in the top bar |
 
 ## Section primitives
 
