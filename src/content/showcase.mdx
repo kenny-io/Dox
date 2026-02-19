@@ -141,6 +141,58 @@ npm run build
 
 </Steps>
 
+## Tabs
+
+<Tabs>
+
+<Tab title="macOS">
+
+```bash
+brew install node
+npx create-dox my-docs
+```
+
+</Tab>
+
+<Tab title="Windows">
+
+```bash
+winget install OpenJS.NodeJS
+npx create-dox my-docs
+```
+
+</Tab>
+
+<Tab title="Linux">
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+npx create-dox my-docs
+```
+
+</Tab>
+
+</Tabs>
+
+## Cards
+
+<CardGroup cols={3}>
+
+<Card title="Quickstart" href="/quickstart" icon="book-open">
+Get a docs site running in under five minutes.
+</Card>
+
+<Card title="Configuration" href="/authentication" icon="wrench">
+Control navigation, tabs, and groups with docs.json.
+</Card>
+
+<Card title="API Reference" href="/webhooks" icon="code-simple">
+Generate interactive API docs from an OpenAPI spec.
+</Card>
+
+</CardGroup>
+
 Toggle between light and dark themes to verify all components render correctly in both modes.
 
 

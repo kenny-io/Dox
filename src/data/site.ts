@@ -22,6 +22,29 @@ export interface BrandConfig {
   dark: BrandPalette
 }
 
+export interface OgImageConfig {
+  /** Background gradient start color (hex). Defaults to dark background from brand. */
+  backgroundStart?: string
+  /** Background gradient end color (hex). Defaults to dark muted from brand. */
+  backgroundEnd?: string
+  /** Accent color for top bar and decorative orbs (hex). Defaults to dark accent from brand. */
+  accent?: string
+  /** Title text color (hex). Defaults to dark foreground from brand. */
+  titleColor?: string
+  /** Description text color (hex). */
+  descriptionColor?: string
+  /** Group label text color (hex). Defaults to accent. */
+  groupColor?: string
+  /** Domain text shown in the bottom bar (e.g. "docs.example.com"). Defaults to NEXT_PUBLIC_SITE_URL hostname. */
+  domain?: string
+  /** Logo text displayed in the bottom bar. Defaults to site name. */
+  logoText?: string
+  /** Google Font family for the title. Defaults to "Inter". */
+  fontFamily?: string
+  /** Google Font weight for the title. Defaults to "700". */
+  fontWeight?: string
+}
+
 export interface SiteConfig {
   name: string
   description: string
@@ -30,6 +53,8 @@ export interface SiteConfig {
   brand: BrandConfig
   brandPreset: BrandPresetKey
   brandPresets: Record<BrandPresetKey, BrandConfig>
+  /** Configuration for dynamic OG image generation. All fields are optional and fall back to brand colors. */
+  ogImage?: OgImageConfig
 }
 
 const brandPresets: Record<BrandPresetKey, BrandConfig> = {
