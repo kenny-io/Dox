@@ -6,6 +6,7 @@ import { Code, CodeGroup, Pre } from '@/components/mdx/code-blocks'
 import { Accordion, Card, CardGroup, Columns, Frame, Icon, Tooltip } from '@/components/mdx/rich-content'
 import { Steps, Step } from '@/components/mdx/steps'
 import { Tabs, Tab } from '@/components/mdx/content-tabs'
+import { HeadingAnchor } from '@/components/mdx/heading-anchor'
 import { cn, slugify } from '@/lib/utils'
 
 function flattenText(node: ReactNode): string {
@@ -32,9 +33,9 @@ function createHeading(level: 2 | 3) {
           level === 2 ? 'mt-16 text-3xl' : 'mt-10 text-2xl',
         )}
       >
-        <a href={`#${id}`} className="no-underline hover:underline">
+        <HeadingAnchor id={id}>
           {children}
-        </a>
+        </HeadingAnchor>
       </Tag>
     )
   }

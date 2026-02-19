@@ -6,6 +6,7 @@ import { siteConfig } from '@/data/site'
 import { cn } from '@/lib/utils'
 import { toHslValue } from '@/lib/colors'
 import { buildOgImageUrl } from '@/lib/og'
+import { AnalyticsProvider } from '@/components/analytics/analytics-provider'
 
 const fontSans = Inter({
   subsets: ['latin'],
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning style={brandStyle}>
       <body className={cn('min-h-screen bg-background font-sans text-foreground antialiased', fontSans.variable, fontMono.variable)}>
         <Providers>{children}</Providers>
+        <AnalyticsProvider />
       </body>
     </html>
   )
