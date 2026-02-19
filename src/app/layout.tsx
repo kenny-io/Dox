@@ -5,6 +5,7 @@ import { Providers } from '@/app/providers'
 import { siteConfig } from '@/data/site'
 import { cn } from '@/lib/utils'
 import { toHslValue } from '@/lib/colors'
+import { buildOgImageUrl } from '@/lib/og'
 
 const fontSans = Inter({
   subsets: ['latin'],
@@ -17,6 +18,8 @@ const fontMono = JetBrains_Mono({
   variable: '--font-mono',
   display: 'swap',
 })
+
+const defaultOgImage = buildOgImageUrl({})
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
@@ -41,11 +44,13 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
     siteName: siteConfig.name,
+    images: [{ url: defaultOgImage, width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title: `${siteConfig.name} Documentation`,
     description: siteConfig.description,
+    images: [defaultOgImage],
   },
 }
 

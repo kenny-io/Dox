@@ -34,7 +34,7 @@
         },
         {
           "group": "Customize & Ship",
-          "pages": ["guides/branding-and-theming", "guides/deploying"]
+          "pages": ["guides/branding-and-theming", "guides/og-images", "guides/deploying"]
         }
       ]
     },

@@ -5,6 +5,7 @@ import { Note } from '@/components/mdx/note'
 import { Code, CodeGroup, Pre } from '@/components/mdx/code-blocks'
 import { Accordion, Card, CardGroup, Columns, Frame, Icon, Tooltip } from '@/components/mdx/rich-content'
 import { Steps, Step } from '@/components/mdx/steps'
+import { Tabs, Tab } from '@/components/mdx/content-tabs'
 import { cn, slugify } from '@/lib/utils'
 
 function flattenText(node: ReactNode): string {
@@ -60,6 +61,8 @@ const components: MDXComponents = {
   Icon: (props) => <Icon {...props} />,
   Steps: (props) => <Steps {...props} />,
   Step: (props) => <Step {...props} />,
+  Tabs: (props) => <Tabs {...props} />,
+  Tab: (props) => <Tab {...props} />,
   table: ({ className, ...props }) => (
     <div className="my-6 overflow-x-auto rounded-2xl border border-border">
       <table className={cn('w-full text-sm', className)} {...props} />

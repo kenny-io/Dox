@@ -160,7 +160,7 @@ function success(projectDir, projectName) {
 function cloneTemplate(targetDir) {
   console.log('')
   console.log('  ⏳ Cloning Dox template...')
-  run(`git clone --depth 1 ${REPO_URL} "${targetDir}"`)
+  run(`git clone --depth 1 --branch main ${REPO_URL} "${targetDir}"`)
 
   // Remove the template's .git so the user starts fresh
   const gitDir = join(targetDir, '.git')

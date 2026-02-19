@@ -7,6 +7,7 @@ import { getApiOperationByKey } from '@/data/api-reference'
 import { DocHeader } from '@/components/docs/doc-header'
 import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
+import { buildOgImageUrl } from '@/lib/og'
 
 interface PageProps {
   params: Promise<{ slug?: Array<string> }>
@@ -25,9 +26,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!doc) {
     return {}
   }
+
+  const ogImageUrl = buildOgImageUrl({
+    title: doc.title,
+    description: doc.description,
+    group: doc.group,
+  })
+
   return {
     title: doc.title,
     description: doc.description,
+    openGraph: {
+      title: doc.title,
+      description: doc.description,
+      images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: doc.title,
+      description: doc.description,
+      images: [ogImageUrl],
+    },
   }
 }
 
