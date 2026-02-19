@@ -143,13 +143,13 @@ interface FrameProps {
 
 export function Frame({ caption, zoom = true, children }: FrameProps) {
   return (
-    <figure className="my-6 space-y-3 rounded-3xl border border-border/40 bg-muted/30 p-5">
+    <figure className="my-6 overflow-hidden rounded-3xl border border-border/40 bg-background">
       {zoom ? (
-        <ZoomableContent>{children}</ZoomableContent>
+        <ZoomableContent><div className="p-5">{children}</div></ZoomableContent>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border/40 bg-background">{children}</div>
+        <div className="p-5">{children}</div>
       )}
-      {caption ? <figcaption className="text-sm text-foreground/70">{caption}</figcaption> : null}
+      {caption ? <figcaption className="border-t border-border/40 px-5 py-3 text-sm text-foreground/70">{caption}</figcaption> : null}
     </figure>
   )
 }
