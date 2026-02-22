@@ -53,6 +53,18 @@ const components: MDXComponents = {
   Warning: (props) => <Note type="warning" {...props} />,
   Error: (props) => <Note type="danger" {...props} />,
   Note: (props) => <Note {...props} />,
+  Tip: (props) => <Note {...props} />,
+  // Callout: safety net for migrated content that uses <Callout type="...">
+  Callout: ({ type, ...props }: { type?: string; children?: ReactNode }) => {
+    if (type === 'warning') return <Note type="warning" {...props} />
+    if (type === 'danger' || type === 'error') return <Note type="danger" {...props} />
+    if (type === 'info') return <Note type="info" {...props} />
+    return <Note {...props} />
+  },
+  // AccordionGroup: Mintlify wrapper — Dox uses <Accordion> directly, no group needed
+  AccordionGroup: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  // Latex: Mintlify LaTeX component — render as inline code (no renderer available)
+  Latex: ({ children }: { children?: ReactNode }) => <code className="font-mono text-sm">{children}</code>,
   Card: (props) => <Card {...props} />,
   CardGroup: (props) => <CardGroup {...props} />,
   Columns: (props) => <Columns {...props} />,
