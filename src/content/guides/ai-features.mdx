@@ -1,0 +1,131 @@
+---
+title: AI Features
+description: Built-in AI capabilities — chat widget, LLM-ready endpoints, and MCP tools for querying your docs.
+---
+
+Dox ships with a set of AI-native features that make your documentation consumable by AI systems and give your users an AI-powered Q&A experience.
+
+---
+
+## AI chat widget
+
+Add a floating chat button to your docs site that lets users ask questions and get answers grounded in your actual documentation — powered by Claude.
+
+### Enable it
+
+Add `"ai": { "chat": true }` to your `docs.json`:
+
+```json
+{
+  "ai": { "chat": true },
+  "tabs": [...]
+}
+```
+
+Then set your Anthropic API key in `.env.local`:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+That's it. A chat button appears in the bottom-right corner of your docs site. Users click it, ask a question, and get a streamed answer sourced from your documentation.
+
+### How it works
+
+When a user sends a message, the `/api/chat` route:
+
+1. Loads the full content of all your doc pages (same as `/llms-full.txt`)
+2. Sends it as context to `claude-haiku-4-5` along with the user's message
+3. Streams the response back to the widget
+
+Answers are grounded in your docs. If the answer isn't there, Claude says so rather than guessing.
+
+<Note type="info" title="Cost">
+The chat widget uses `claude-haiku-4-5` — Anthropic's fastest and most affordable model. Each response costs a fraction of a cent.
+</Note>
+
+<Note type="warning" title="Rate limiting">
+The chat route applies a simple rate limit of 10 requests per minute per IP. No Redis or external service is required.
+</Note>
+
+---
+
+## LLM-ready endpoints
+
+Dox automatically exposes your documentation in formats optimized for AI consumption. These endpoints are publicly accessible and can be referenced by any AI tool that supports URL-based context loading.
+
+### `/llms.txt`
+
+A concise, structured summary of your entire documentation — links to every page, organized by tab and group. Follows the [llmstxt.org](https://llmstxt.org) standard.
+
+```
+GET /llms.txt
+```
+
+Use this when you want AI tools to discover and index what your docs cover.
+
+### `/llms-full.txt`
+
+The complete content of every documentation page in a single plain-text file — stripped of JSX, ready for LLM context windows.
+
+```
+GET /llms-full.txt
+```
+
+Use this as a system prompt or context document when building AI features on top of your docs.
+
+### `/api/docs/[slug]`
+
+Serves a single documentation page as clean Markdown with YAML frontmatter. Useful for programmatic access to individual pages.
+
+```
+GET /api/docs/guides/authentication
+```
+
+Response:
+
+```markdown
+---
+title: Authentication
+description: How to authenticate requests to the API.
+url: https://docs.example.com/guides/authentication
+---
+
+# Authentication
+
+...page content...
+```
+
+---
+
+## MCP tools for querying docs
+
+The `@dox/mcp` server includes three tools that let AI agents search and read your documentation as context.
+
+### `search_docs`
+
+Searches all pages by keyword and returns ranked results.
+
+```
+Search the acme-docs project for anything about rate limiting
+```
+
+Results are scored by match quality in title (3 pts), description (2 pts), keywords (2 pts), and body content.
+
+### `read_page`
+
+Reads the full content of a single page by its ID.
+
+```
+Read the "guides/webhooks" page from the acme-docs project
+```
+
+### `get_context`
+
+Returns the most relevant documentation for a given topic, fitting within a token budget. This is the right tool when you want to answer a question using your docs as a knowledge base.
+
+```
+Get context from acme-docs about the webhook authentication flow, up to 4000 tokens
+```
+
+See [MCP Server](/guides/mcp-server) for setup instructions and the full tool reference.

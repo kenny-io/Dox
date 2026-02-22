@@ -93,6 +93,61 @@ const fontSans = Outfit({ subsets: ['latin'], variable: '--font-sans' })
 const fontMono = Fira_Code({ subsets: ['latin'], variable: '--font-mono' })
 ```
 
+## Analytics
+
+Add analytics by setting one or more providers in `siteConfig.analytics`. Scripts load automatically — no code changes needed.
+
+```ts
+export const siteConfig: SiteConfig = {
+  // ...
+  analytics: {
+    googleAnalyticsId: 'G-XXXXXXXXXX',
+    // or
+    plausibleDomain: 'docs.yourproduct.com',
+    // or
+    posthogKey: 'phc_...',
+    posthogHost: 'https://us.i.posthog.com',
+  },
+}
+```
+
+Leave `analytics` undefined to disable all tracking.
+
+## Version switcher
+
+If your docs have multiple versions, add a `versions` array to `siteConfig`. A dropdown appears in the top bar automatically.
+
+```ts
+export const siteConfig: SiteConfig = {
+  // ...
+  versions: [
+    { label: 'v2.0', href: '/', current: true },
+    { label: 'v1.0', href: 'https://v1.docs.yourproduct.com' },
+  ],
+}
+```
+
+- **`label`** — text shown in the dropdown
+- **`href`** — URL for that version (`/` for the current site, or a full URL for older versions)
+- **`current`** — marks the active version (exactly one should be `true`)
+
+The switcher is hidden when fewer than two versions are defined.
+
+## Edit on GitHub
+
+When `repoUrl` in `siteConfig` points to a real GitHub repository, every doc page shows an "Edit this page on GitHub" link at the bottom. This links directly to the MDX source file on the `main` branch.
+
+```ts
+export const siteConfig: SiteConfig = {
+  repoUrl: 'https://github.com/your-org/your-docs',
+  // ...
+}
+```
+
+## Changelog RSS feed
+
+Dox serves an RSS feed at `/changelog/rss.xml`. Users can subscribe to it in any RSS reader to get notified of updates. The feed entries are defined in `src/app/changelog/rss.xml/route.ts`.
+
 ## Layout tokens
 
 Fine-tune spacing and widths in `src/config/layout.ts`:

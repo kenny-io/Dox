@@ -2,14 +2,19 @@
   "name": "dox",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev --webpack -p 3040",
     "build": "next build",
     "start": "next start -p 3040",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "packages:build": "npm run build -w packages/create-dox && npm run build -w packages/mcp"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@headlessui/react": "^2.2.9",
     "@mdx-js/loader": "^3.1.0",
     "@mdx-js/react": "^3.1.0",

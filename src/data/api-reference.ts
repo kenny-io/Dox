@@ -33,6 +33,7 @@ function resolveSpecId(specId?: string) {
 }
 
 const getNormalizedSpec = cache(async (specId?: string): Promise<NormalizedSpec> => {
+  if (apiReferenceConfig.specs.length === 0) return { operations: [], config: {} as NormalizedSpec['config'], servers: [] }
   const resolvedSpecId = resolveSpecId(specId)
   const config = getSpecConfig(apiReferenceConfig, resolvedSpecId)
   const resolved = await loadSpec(config)
@@ -97,6 +98,7 @@ export async function getApiOperationByKey(
 }
 
 export async function buildApiNavigation(specId?: string): Promise<Array<ApiNavigationGroup>> {
+  if (apiReferenceConfig.specs.length === 0) return []
   const spec = await getNormalizedSpec(specId)
   const nodes = await getApiOperationNodes(spec.config.id)
   const groupMap = new Map<string, Array<ApiNavigationItem>>()

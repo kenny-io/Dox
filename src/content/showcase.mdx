@@ -193,6 +193,72 @@ Generate interactive API docs from an OpenAPI spec.
 
 </CardGroup>
 
+## Frame
+
+Wrap images in a `<Frame>` for a styled border, optional caption, and click-to-zoom:
+
+<Frame caption="A sample image inside a Frame — click to zoom in.">
+
+![JavaScript and flowchart](/images/image1.jpg)
+
+</Frame>
+
+You can also wrap non-image content. Use `zoom={false}` to disable the zoom overlay:
+
+<Frame caption="Color tokens used by the theming system." zoom={false}>
+
+| Token | Purpose |
+| --- | --- |
+| `background` | Page background |
+| `accent` | Primary brand color |
+| `foreground` | Text color |
+
+</Frame>
+
+## Accordion
+
+<Accordion title="What is Dox?">
+Dox is an open-source documentation template built with Next.js, MDX, and Tailwind CSS. It gives you a production-ready docs site with zero vendor lock-in.
+</Accordion>
+
+<Accordion title="How do I add a new page?">
+Create an `.mdx` file in `src/content/`, then add its slug to a group in `docs.json`. The sidebar updates automatically.
+</Accordion>
+
+<Accordion title="Can I use my own components?">
+Yes. Create a component in `src/components/` and register it in `src/components/mdx/mdx-components.tsx`. It will be available in all MDX files.
+</Accordion>
+
+## Tooltip
+
+Hover over the <Tooltip tip="Dox uses next-themes for automatic light/dark mode switching.">underlined text</Tooltip> to see a tooltip. You can also use tooltips to explain <Tooltip tip="Application Programming Interface">API</Tooltip> acronyms or <Tooltip tip="MDX lets you use JSX components inside Markdown.">technical terms</Tooltip> inline.
+
+## Columns
+
+<Columns cols={2}>
+
+<div>
+
+### Left column
+
+![HTML browser](/images/image2.jpg)
+
+Columns are useful for side-by-side comparisons, feature lists, or layout variety.
+
+</div>
+
+<div>
+
+### Right column
+
+![City skyline](/images/image3.jpg)
+
+Each column supports full MDX content including images, code blocks, lists, and callouts.
+
+</div>
+
+</Columns>
+
 Toggle between light and dark themes to verify all components render correctly in both modes.
 
 

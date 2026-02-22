@@ -73,13 +73,94 @@ Standard Markdown links work for both internal and external pages:
 Check the [Quickstart](/quickstart) guide or visit [GitHub](https://github.com).
 ```
 
-## Images
+## Tabs
+
+Use `<Tabs>` and `<Tab>` to show platform-specific or variant content without code blocks:
+
+```mdx
+<Tabs>
+
+<Tab title="macOS">
+Install with Homebrew:
+\`\`\`bash
+brew install your-cli
+\`\`\`
+</Tab>
+
+<Tab title="Linux">
+Install with apt:
+\`\`\`bash
+sudo apt install your-cli
+\`\`\`
+</Tab>
+
+</Tabs>
+```
+
+Each `<Tab>` supports full MDX content inside — code blocks, lists, callouts, and more.
+
+## Steps
+
+Use `<Steps>` and `<Step>` for sequential instructions with numbered circles and connector lines:
+
+```mdx
+<Steps>
+
+<Step title="Install">
+Run the installer:
+\`\`\`bash
+npm install your-package
+\`\`\`
+</Step>
+
+<Step title="Configure">
+Create a config file and add your API key.
+</Step>
+
+</Steps>
+```
+
+## Cards
+
+Use `<CardGroup>` and `<Card>` to create clickable card grids for landing pages or "next steps" sections:
+
+```mdx
+<CardGroup cols={2}>
+
+<Card title="Quickstart" href="/quickstart" icon="book-open">
+Get up and running in five minutes.
+</Card>
+
+<Card title="API Reference" href="/api" icon="code-simple">
+Explore the full API.
+</Card>
+
+</CardGroup>
+```
+
+Available icons: `book-open`, `code-simple`, `grid-round`, `link-simple`, `wrench`, `party-horn`, `telegram`, `envelope`, `x-twitter`, `message`.
+
+## Images and frames
 
 Place images in the `public/` folder and reference them with a leading slash:
 
 ```mdx
-![Architecture diagram](/images/architecture.png)
+![Screenshot](/images/image1.jpg)
 ```
+
+Wrap images in a `<Frame>` for a styled border with an optional caption. Frames are click-to-zoom by default:
+
+```mdx
+<Frame caption="System architecture overview">
+  ![Screenshot](/images/image1.jpg)
+</Frame>
+```
+
+Disable zoom with `<Frame zoom={false}>`.
+
+## Heading anchor links
+
+Every `h2` and `h3` heading automatically gets a `#` anchor link. Hovering over a heading reveals the `#` symbol, and clicking it copies the full URL to the clipboard. This makes it easy to share links to specific sections.
 
 ## Tables
 
