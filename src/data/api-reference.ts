@@ -33,7 +33,7 @@ function resolveSpecId(specId?: string) {
 }
 
 const getNormalizedSpec = cache(async (specId?: string): Promise<NormalizedSpec> => {
-  if (apiReferenceConfig.specs.length === 0) return { operations: [] }
+  if (apiReferenceConfig.specs.length === 0) return { operations: [], config: {} as NormalizedSpec['config'], servers: [] }
   const resolvedSpecId = resolveSpecId(specId)
   const config = getSpecConfig(apiReferenceConfig, resolvedSpecId)
   const resolved = await loadSpec(config)
