@@ -37,8 +37,8 @@ export const metadata: Metadata = {
     'radix ui',
   ],
   icons: {
-    icon: '/icon.svg',
-    shortcut: '/icon.svg',
+    icon: '/icon',
+    shortcut: '/icon',
   },
   openGraph: {
     title: `${siteConfig.name} Documentation`,
