@@ -91,6 +91,17 @@ interface DocsJsonTab {
 
 interface DocsJsonConfig {
   tabs: Array<DocsJsonTab>
+  ai?: {
+    chat?: boolean
+    /** Label shown on the FAB and in the chat header. Defaults to "DoxAI". */
+    label?: string
+    /**
+     * Icon shown on the FAB. Either a named icon ("sparkles" | "zap" | "bot" |
+     * "brain" | "stars" | "wand") or a URL / path to an image (e.g. "/logo.png").
+     * Defaults to "sparkles".
+     */
+    icon?: string
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -400,6 +411,10 @@ export function getBreadcrumbs(currentHref: string): Array<BreadcrumbItem> {
   }
 
   return []
+}
+
+export function getAiConfig(): { chat?: boolean; label?: string; icon?: string } {
+  return docsConfig.ai ?? {}
 }
 
 // ---------------------------------------------------------------------------
