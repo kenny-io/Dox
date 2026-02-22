@@ -1,23 +1,37 @@
 {
+  "ai": { "chat": true },
   "tabs": [
     {
       "tab": "Overview",
       "groups": [
         {
           "group": "Getting Started",
-          "pages": ["introduction", "quickstart"]
+          "pages": [
+            "introduction",
+            "quickstart"
+          ]
         },
         {
           "group": "Concepts",
-          "pages": ["authentication", "pagination"]
+          "pages": [
+            "authentication",
+            "pagination"
+          ]
         },
         {
           "group": "Features",
-          "pages": ["webhooks", "sdks"]
+          "pages": [
+            "webhooks",
+            "sdks"
+          ]
         },
         {
           "group": "Project",
-          "pages": ["errors", "customization", "showcase"]
+          "pages": [
+            "errors",
+            "customization",
+            "showcase"
+          ]
         }
       ]
     },
@@ -26,15 +40,34 @@
       "groups": [
         {
           "group": "Setup",
-          "pages": ["guides/getting-started", "guides/configuring-navigation"]
+          "pages": [
+            "guides/getting-started",
+            "guides/configuring-navigation"
+          ]
         },
         {
           "group": "Content",
-          "pages": ["guides/writing-content", "guides/api-reference-setup"]
+          "pages": [
+            "guides/writing-content",
+            "guides/api-reference-setup"
+          ]
         },
         {
           "group": "Customize & Ship",
-          "pages": ["guides/branding-and-theming", "guides/og-images", "guides/deploying"]
+          "pages": [
+            "guides/branding-and-theming",
+            "guides/og-images",
+            "guides/deploying"
+          ]
+        },
+        {
+          "group": "Tooling",
+          "pages": [
+            "guides/cli-reference",
+            "guides/mcp-server",
+            "guides/migrating",
+            "guides/ai-features"
+          ]
         }
       ]
     },
@@ -42,7 +75,10 @@
       "tab": "API Reference",
       "api": {
         "source": "openapi.yaml",
-        "tagsOrder": ["Pets", "Store"],
+        "tagsOrder": [
+          "Pets",
+          "Store"
+        ],
         "defaultGroup": "General",
         "overrides": {
           "GET /pets": {

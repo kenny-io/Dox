@@ -103,16 +103,27 @@ export function TopBar({
             )
             if (collection.href) {
               const isExternal = /^https?:\/\//.test(collection.href)
+              if (isExternal) {
+                return (
+                  <a
+                    key={collection.id}
+                    href={collection.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={baseClasses}
+                  >
+                    {collection.label}
+                  </a>
+                )
+              }
               return (
-                <a
+                <Link
                   key={collection.id}
                   href={collection.href}
-                  target={isExternal ? '_blank' : undefined}
-                  rel={isExternal ? 'noreferrer' : undefined}
                   className={baseClasses}
                 >
                   {collection.label}
-                </a>
+                </Link>
               )
             }
             return (

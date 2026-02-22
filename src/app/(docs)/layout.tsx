@@ -1,8 +1,9 @@
 import { SiteShell } from '@/components/layout/site-shell'
 import { SidebarCollectionsHydrator } from '@/components/layout/sidebar-hydrator'
-import { getSearchableDocs, getSidebarCollections } from '@/data/docs'
+import { getSearchableDocs, getSidebarCollections, getAiConfig } from '@/data/docs'
 import type { NavigationSection } from '@/data/docs'
 import { buildApiNavigation } from '@/data/api-reference'
+import { DocsChat } from '@/components/docs/docs-chat'
 
 interface DocsLayoutProps {
   children: React.ReactNode
@@ -32,6 +33,7 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
     return collection
   })
   const searchIndex = getSearchableDocs()
+  const aiConfig = getAiConfig()
 
   return (
     <>
@@ -39,6 +41,7 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
       <SiteShell searchIndex={searchIndex}>
         {children}
       </SiteShell>
+      {aiConfig.chat && <DocsChat label={aiConfig.label} icon={aiConfig.icon} />}
     </>
   )
 }

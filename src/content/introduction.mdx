@@ -5,22 +5,41 @@ description: Dox is an open-source documentation template built with Next.js, MD
 
 Dox is an open-source documentation template that gives you a production-ready docs site out of the box. It is built with the Next.js App Router, MDX for content authoring, and Tailwind CSS for styling. Every page you write is a `.mdx` file — no CMS, no vendor lock-in, and full control over your infrastructure.
 
+<Frame caption="Built with modern web technologies" zoom={false}>
+
+![JavaScript and modern tooling](/images/image1.jpg)
+
+</Frame>
+
 ## What's included
 
+**Content & authoring**
 - **MDX content authoring** — write documentation in Markdown with JSX components like Steps, Tabs, Cards, and Callouts
 - **Tabbed navigation** — organize content into tabs, groups, and pages via a single `docs.json` file
 - **API reference generation** — drop in an OpenAPI spec and get interactive endpoint docs with a built-in "Try It" console
 - **Full-text search** — instant client-side search with relevance scoring
+- **Code blocks** — syntax highlighting with Shiki, multi-language code groups, and copy-to-clipboard
+- **Changelog with RSS** — changelog page with an RSS feed at `/changelog/rss.xml`
+
+**Tooling**
+- **CLI (`create-dox`)** — scaffold a new project, migrate from another platform, or lint your docs in one command
+- **MCP server (`@dox/mcp`)** — 10 tools for Claude, Cursor, and any MCP client to create, edit, search, and migrate docs through natural language
+- **Migration** — import from Mintlify, Docusaurus, GitBook, Nextra, and more with `create-dox migrate`
+
+**AI features**
+- **AI chat widget** — floating Q&A powered by Claude, grounded in your actual docs content
+- **`/llms.txt` and `/llms-full.txt`** — LLM-ready endpoints so AI tools can index and read your docs
+- **`/api/docs/[slug]`** — individual pages as clean Markdown for programmatic access
+
+**Design & infrastructure**
 - **Dark mode** — automatic light/dark theming with customizable brand colors
 - **Responsive layout** — sidebar, breadcrumbs, table of contents, and mobile-friendly design
-- **Code blocks** — syntax highlighting with Shiki, multi-language code groups, and copy-to-clipboard
 - **Dynamic OG images** — auto-generated social preview images that match your brand
 - **SEO built-in** — sitemap.xml, robots.txt, and per-page meta tags out of the box
 - **Heading anchor links** — click-to-copy `#` links on every heading for easy sharing
 - **Version switcher** — configurable dropdown for switching between doc versions
 - **Analytics hook** — pluggable support for Google Analytics, Plausible, or PostHog
 - **Edit on GitHub** — automatic "Edit this page" links when you set your repo URL
-- **Changelog with RSS** — changelog page with an RSS feed at `/changelog/rss.xml`
 
 ## Getting started
 

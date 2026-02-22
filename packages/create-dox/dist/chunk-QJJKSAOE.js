@@ -1,0 +1,322 @@
+#!/usr/bin/env node
+
+// src/scaffold.ts
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, readdirSync as readdirSync2 } from "fs";
+import { resolve } from "path";
+
+// src/download.ts
+import { Readable, pipeline } from "stream";
+import { promisify } from "util";
+import tar from "tar";
+var pipelineAsync = promisify(pipeline);
+var TARBALL_URL = "https://codeload.github.com/kenny-io/Dox/tar.gz/main";
+var EXCLUDE_PATHS = ["/cli/", "/packages/", "/node_modules/", "/.git/"];
+function shouldInclude(path) {
+  for (const excluded of EXCLUDE_PATHS) {
+    if (path.includes(excluded)) {
+      return false;
+    }
+  }
+  return true;
+}
+async function downloadTemplate(targetDir) {
+  console.log("");
+  console.log("  \u23F3 Downloading Dox template...");
+  const response = await fetch(TARBALL_URL);
+  if (!response.ok) {
+    throw new Error(`Failed to download template: ${response.status} ${response.statusText}`);
+  }
+  if (!response.body) {
+    throw new Error("Response body is empty");
+  }
+  const nodeStream = Readable.fromWeb(response.body);
+  await pipelineAsync(
+    nodeStream,
+    tar.extract({ cwd: targetDir, strip: 1, filter: shouldInclude })
+  );
+}
+
+// src/customize.ts
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, cpSync } from "fs";
+import { join } from "path";
+import { execSync } from "child_process";
+var STARTER_PAGES = {
+  "introduction.mdx": `---
+title: Introduction
+description: Welcome to {NAME} documentation.
+---
+
+## Welcome
+
+This is the home page of your **{NAME}** documentation site, powered by [Dox](https://github.com/kenny-io/Dox).
+
+Get started by editing this file at \`src/content/introduction.mdx\`.
+`,
+  "quickstart.mdx": `---
+title: Quickstart
+description: Get up and running with {NAME} in under 5 minutes.
+---
+
+## Installation
+
+\`\`\`bash
+npm install {SLUG}
+\`\`\`
+
+## Basic usage
+
+\`\`\`ts
+import { create } from '{SLUG}'
+
+const client = create({ apiKey: 'your-api-key' })
+\`\`\`
+
+That's it \u2014 you're ready to go!
+`
+};
+var STARTER_DOCS_JSON = `{
+  "tabs": [
+    {
+      "tab": "Overview",
+      "groups": [
+        {
+          "group": "Getting Started",
+          "pages": ["introduction", "quickstart"]
+        }
+      ]
+    },
+    {
+      "tab": "API Reference",
+      "api": {
+        "source": "openapi.yaml"
+      }
+    },
+    {
+      "tab": "Changelog",
+      "href": "/changelog"
+    }
+  ]
+}
+`;
+function writeStarterContent(targetDir, projectName, slug) {
+  const contentDir = join(targetDir, "src", "content");
+  if (existsSync(contentDir)) {
+    const entries = readdirSync(contentDir);
+    for (const entry of entries) {
+      const fullPath = join(contentDir, entry);
+      execSync(`rm -rf "${fullPath}"`);
+    }
+  } else {
+    mkdirSync(contentDir, { recursive: true });
+  }
+  for (const [filename, template] of Object.entries(STARTER_PAGES)) {
+    const content = template.replace(/\{NAME\}/g, projectName).replace(/\{SLUG\}/g, slug);
+    writeFileSync(join(contentDir, filename), content, "utf8");
+  }
+  writeFileSync(join(targetDir, "docs.json"), STARTER_DOCS_JSON, "utf8");
+}
+function updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl) {
+  const siteFile = join(targetDir, "src", "data", "site.ts");
+  if (!existsSync(siteFile)) {
+    console.log("  \u26A0\uFE0F  Could not find src/data/site.ts \u2014 skipping config update.");
+    return;
+  }
+  let source = readFileSync(siteFile, "utf8");
+  source = source.replace(
+    /name:\s*'[^']*'/,
+    `name: '${projectName.replace(/'/g, "\\'")}'`
+  );
+  source = source.replace(
+    /description:\s*\n\s*'[^']*'/,
+    `description:
+    '${description.replace(/'/g, "\\'")}'`
+  );
+  source = source.replace(
+    /const brandPreset:\s*BrandPresetKey\s*=\s*'[^']*'/,
+    `const brandPreset: BrandPresetKey = '${brandPreset}'`
+  );
+  if (repoUrl) {
+    source = source.replace(
+      /repoUrl:\s*'[^']*'/,
+      `repoUrl: '${repoUrl}'`
+    );
+    source = source.replace(
+      /\{\s*label:\s*'GitHub',\s*href:\s*'[^']*'\s*\}/,
+      `{ label: 'GitHub', href: '${repoUrl}' }`
+    );
+    source = source.replace(
+      /\{\s*label:\s*'Support',\s*href:\s*'[^']*'\s*\}/,
+      `{ label: 'Support', href: '${repoUrl}/issues/new' }`
+    );
+  }
+  writeFileSync(siteFile, source, "utf8");
+}
+function patchApiReferenceGuard(targetDir) {
+  const filePath = join(targetDir, "src", "data", "api-reference.ts");
+  if (!existsSync(filePath)) return;
+  let source = readFileSync(filePath, "utf8");
+  source = source.replace(
+    /export async function buildApiNavigation\([^)]*\)[^{]*\{\n/,
+    (match) => `${match}  if (apiReferenceConfig.specs.length === 0) return []
+`
+  );
+  writeFileSync(filePath, source, "utf8");
+}
+function patchTopBarNavigation(targetDir) {
+  const filePath = join(targetDir, "src", "components", "layout", "top-bar.tsx");
+  if (!existsSync(filePath)) return;
+  const source = readFileSync(filePath, "utf8");
+  if (!source.includes("target={isExternal ? '_blank' : undefined}")) return;
+  const patched = source.replace(
+    /if \(collection\.href\) \{\n              const isExternal[^\n]+\n              return \(\n                <a[\s\S]*?<\/a>\n              \)\n            \}/,
+    `if (collection.href) {
+              const isExternal = /^https?:\\/\\//.test(collection.href)
+              if (isExternal) {
+                return (
+                  <a
+                    key={collection.id}
+                    href={collection.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={baseClasses}
+                  >
+                    {collection.label}
+                  </a>
+                )
+              }
+              return (
+                <Link
+                  key={collection.id}
+                  href={collection.href}
+                  className={baseClasses}
+                >
+                  {collection.label}
+                </Link>
+              )
+            }`
+  );
+  writeFileSync(filePath, patched, "utf8");
+}
+function patchOpenApiFetch(targetDir) {
+  const filePath = join(targetDir, "src", "lib", "openapi", "fetch.ts");
+  if (!existsSync(filePath)) return;
+  let source = readFileSync(filePath, "utf8");
+  source = source.replace(
+    /const absolutePath = path\.isAbsolute\(filePath\) \? filePath : path\.resolve\(process\.cwd\(\), filePath\)/,
+    `const absolutePath = filePath.startsWith('/')
+    ? path.resolve(process.cwd(), 'public', filePath.slice(1))
+    : path.resolve(process.cwd(), filePath)`
+  );
+  writeFileSync(filePath, source, "utf8");
+}
+function updateEnvExample(targetDir) {
+  const envFile = join(targetDir, ".env.example");
+  if (existsSync(envFile)) {
+    const envLocal = join(targetDir, ".env.local");
+    if (!existsSync(envLocal)) {
+      cpSync(envFile, envLocal);
+    }
+  }
+}
+
+// src/utils.ts
+import { execSync as execSync2 } from "child_process";
+import { basename } from "path";
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+function run(cmd, cwd) {
+  execSync2(cmd, { cwd, stdio: "inherit" });
+}
+function initGit(targetDir) {
+  try {
+    run("git init", targetDir);
+    run("git add -A", targetDir);
+    run('git commit -m "Initial commit from create-dox"', targetDir);
+  } catch {
+    console.log("  \u26A0\uFE0F  Could not initialize git (you can do this manually).");
+  }
+}
+function installDeps(targetDir) {
+  console.log("");
+  console.log("  \u{1F4E6} Installing dependencies...");
+  console.log("");
+  run("npm install", targetDir);
+}
+function logo() {
+  console.log("");
+  console.log("  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557");
+  console.log("  \u2551                                      \u2551");
+  console.log("  \u2551       \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557  \u2588\u2588\u2557      \u2551");
+  console.log("  \u2551       \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557\u255A\u2588\u2588\u2557\u2588\u2588\u2554\u255D      \u2551");
+  console.log("  \u2551       \u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551 \u255A\u2588\u2588\u2588\u2554\u255D       \u2551");
+  console.log("  \u2551       \u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2554\u2588\u2588\u2557       \u2551");
+  console.log("  \u2551       \u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2554\u255D \u2588\u2588\u2557      \u2551");
+  console.log("  \u2551       \u255A\u2550\u2550\u2550\u2550\u2550\u255D  \u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u255D  \u255A\u2550\u255D      \u2551");
+  console.log("  \u2551                                      \u2551");
+  console.log("  \u2551   Beautiful docs, zero lock-in.      \u2551");
+  console.log("  \u2551                                      \u2551");
+  console.log("  \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D");
+  console.log("");
+}
+function success(projectDir, projectName) {
+  console.log("");
+  console.log("  \u2705 Your Dox project is ready!");
+  console.log("");
+  console.log(`  \u{1F4C2} ${projectDir}`);
+  console.log("");
+  console.log("  Next steps:");
+  console.log("");
+  console.log(`    cd ${basename(projectDir)}`);
+  console.log("    npm run dev");
+  console.log("");
+  console.log(`  Then open http://localhost:3040 to see your ${projectName} docs.`);
+  console.log("");
+  console.log("  \u{1F4DD} Key files to edit:");
+  console.log("    \u2022 src/data/site.ts        \u2014 name, links, branding");
+  console.log("    \u2022 docs.json               \u2014 navigation structure");
+  console.log("    \u2022 src/content/*.mdx        \u2014 your documentation");
+  console.log("    \u2022 openapi.yaml            \u2014 API spec (optional)");
+  console.log("");
+  console.log("  Happy documenting! \u{1F680}");
+  console.log("");
+}
+
+// src/scaffold.ts
+async function scaffold(options) {
+  const {
+    projectDir,
+    projectName,
+    description,
+    brandPreset,
+    repoUrl,
+    doInstall
+  } = options;
+  const targetDir = resolve(projectDir);
+  if (existsSync2(targetDir) && readdirSync2(targetDir).length > 0) {
+    throw new Error(`Directory "${targetDir}" already exists and is not empty.`);
+  }
+  mkdirSync2(targetDir, { recursive: true });
+  const slug = slugify(projectName);
+  await downloadTemplate(targetDir);
+  writeStarterContent(targetDir, projectName, slug);
+  updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl);
+  patchApiReferenceGuard(targetDir);
+  patchTopBarNavigation(targetDir);
+  patchOpenApiFetch(targetDir);
+  updateEnvExample(targetDir);
+  if (doInstall) {
+    installDeps(targetDir);
+  }
+  initGit(targetDir);
+  return { projectDir: targetDir };
+}
+
+export {
+  slugify,
+  initGit,
+  installDeps,
+  logo,
+  success,
+  scaffold
+};

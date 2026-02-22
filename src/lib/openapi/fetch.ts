@@ -10,7 +10,11 @@ function cacheKey(config: ApiSpecConfig) {
 }
 
 async function readFromFile(filePath: string) {
-  const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath)
+  // URL-style paths like /openapi.json are served from public/ at runtime,
+  // so resolve them relative to public/ on the filesystem.
+  const absolutePath = filePath.startsWith('/')
+    ? path.resolve(process.cwd(), 'public', filePath.slice(1))
+    : path.resolve(process.cwd(), filePath)
   const buffer = await readFile(absolutePath, 'utf8')
   const ext = path.extname(absolutePath).toLowerCase()
   if (ext === '.yaml' || ext === '.yml') {
