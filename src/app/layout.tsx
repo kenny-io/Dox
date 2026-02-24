@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from '@/app/providers'
 import { siteConfig } from '@/data/site'
-import { getI18nConfig } from '@/data/docs'
+import { getBannerConfig, getCustomScriptsConfig, getFontsConfig, getI18nConfig, getStructuralTheme } from '@/data/docs'
 import { cn } from '@/lib/utils'
 import { toHslValue } from '@/lib/colors'
 import { buildOgImageUrl } from '@/lib/og'
 import { AnalyticsProvider } from '@/components/analytics/analytics-provider'
+import { SiteBanner } from '@/components/layout/site-banner'
 
+// Default fonts via next/font (optimal performance — preloaded, no FOUC)
 const fontSans = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
@@ -20,6 +23,106 @@ const fontMono = JetBrains_Mono({
   variable: '--font-mono',
   display: 'swap',
 })
+
+// ---------------------------------------------------------------------------
+// Custom font injection from docs.json
+// ---------------------------------------------------------------------------
+
+function buildGoogleFontsUrl(family: string, weights: string[]): string {
+  const familyParam = family.replace(/ /g, '+')
+  // Google Fonts v2 format: family=Name:wght@400;600;700
+  const weightParam = weights.join(';')
+  return `https://fonts.googleapis.com/css2?family=${familyParam}:wght@${weightParam}&display=swap`
+}
+
+const fontsConfig = getFontsConfig()
+
+// Deduplicate Google Font URLs (body and heading might be the same family)
+const googleFontUrlSet = new Set<string>()
+let bodyFontFamily: string | null = null
+let headingFontFamily: string | null = null
+
+if (fontsConfig.body?.family) {
+  bodyFontFamily = fontsConfig.body.family
+  googleFontUrlSet.add(
+    buildGoogleFontsUrl(fontsConfig.body.family, fontsConfig.body.weight ?? ['400', '500', '600', '700']),
+  )
+}
+
+if (fontsConfig.heading?.family) {
+  headingFontFamily = fontsConfig.heading.family
+  googleFontUrlSet.add(
+    buildGoogleFontsUrl(fontsConfig.heading.family, fontsConfig.heading.weight ?? ['600', '700']),
+  )
+}
+
+const googleFontUrls = Array.from(googleFontUrlSet)
+
+// CSS variable overrides injected into :root when custom fonts are set
+const fontOverrides = [
+  bodyFontFamily ? `--font-sans: '${bodyFontFamily}', sans-serif;` : '',
+  headingFontFamily ? `--font-heading: '${headingFontFamily}', sans-serif;` : '',
+]
+  .filter(Boolean)
+  .join(' ')
+
+// ---------------------------------------------------------------------------
+// Structural theme — read once at module level (same as fonts above)
+const structuralTheme = getStructuralTheme()
+
+// Structural theme CSS variable injection
+// Injected as a <style> tag (same pattern as fontOverrides) so the overrides
+// are SSR'd directly in the HTML. This is more reliable than html[data-theme]
+// CSS attribute selectors, which depend on module-level caching behaviour and
+// Next.js HMR propagation timing.
+// ---------------------------------------------------------------------------
+const THEME_VARS: Record<string, string> = {
+  default: '',
+  maple: [
+    '--theme-radius-sm:0.5rem',
+    '--theme-radius-md:0.75rem',
+    '--theme-radius-lg:1.25rem',
+    '--theme-radius-xl:2rem',
+    '--theme-sidebar-item-radius:0.625rem',
+    '--theme-sidebar-indicator-opacity:0',
+    '--theme-nav-bar-radius:1.5rem',
+    '--theme-nav-tab-radius:9999px',
+    '--theme-nav-tab-indicator-opacity:0',
+  ].join(';'),
+  sharp: [
+    '--theme-radius-sm:0.125rem',
+    '--theme-radius-md:0.1875rem',
+    '--theme-radius-lg:0.25rem',
+    '--theme-radius-xl:0.375rem',
+    '--theme-sidebar-item-radius:0.1875rem',
+    '--theme-sidebar-indicator-opacity:1',
+    '--sidebar-active-bg:0 0% 0% / 0',
+    '--theme-nav-bar-bg:transparent',
+    '--theme-nav-bar-border-color:transparent',
+    '--theme-nav-bar-radius:0.25rem',
+    '--theme-nav-tab-radius:0.25rem',
+    '--theme-nav-tab-indicator-opacity:1',
+  ].join(';'),
+  minimal: [
+    '--theme-radius-sm:0',
+    '--theme-radius-md:0',
+    '--theme-radius-lg:0',
+    '--theme-radius-xl:0',
+    '--theme-sidebar-item-radius:0',
+    '--theme-sidebar-indicator-opacity:0',
+    '--sidebar-active-bg:0 0% 0% / 0',
+    '--theme-nav-bar-bg:transparent',
+    '--theme-nav-bar-border-color:transparent',
+    '--theme-nav-tab-active-bg:transparent',
+    '--theme-nav-tab-active-shadow:none',
+    '--theme-nav-bar-radius:0',
+    '--theme-nav-tab-radius:0',
+    '--theme-nav-tab-indicator-opacity:1',
+  ].join(';'),
+}
+const themeVars = THEME_VARS[structuralTheme] ?? ''
+
+// ---------------------------------------------------------------------------
 
 const defaultOgImage = buildOgImageUrl({})
 
@@ -78,13 +181,37 @@ const brandStyle: Record<string, string> = {
 }
 
 const defaultLang = getI18nConfig()?.defaultLocale ?? 'en'
+const bannerConfig = getBannerConfig()
+const customScripts = getCustomScriptsConfig()
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang={defaultLang} suppressHydrationWarning style={brandStyle}>
+    <html lang={defaultLang} suppressHydrationWarning style={brandStyle} data-theme={structuralTheme}>
+      {/* Google Fonts for custom body/heading fonts set in docs.json */}
+      {googleFontUrls.length > 0 && (
+        <>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          {googleFontUrls.map((url) => (
+            <link key={url} rel="stylesheet" href={url} />
+          ))}
+        </>
+      )}
+      {/* CSS variable overrides for custom fonts */}
+      {fontOverrides && <style>{`:root { ${fontOverrides} }`}</style>}
+      {/* CSS variable overrides for structural theme (radius, sidebar, nav tabs) */}
+      {themeVars && <style>{`:root { ${themeVars} }`}</style>}
       <body className={cn('min-h-screen bg-background font-sans text-foreground antialiased', fontSans.variable, fontMono.variable)}>
+        {bannerConfig && <SiteBanner banner={bannerConfig} />}
         <Providers>{children}</Providers>
         <AnalyticsProvider />
+        {customScripts.map((script) => (
+          <Script
+            key={script.src}
+            src={script.src}
+            strategy={script.strategy ?? 'afterInteractive'}
+          />
+        ))}
       </body>
     </html>
   )

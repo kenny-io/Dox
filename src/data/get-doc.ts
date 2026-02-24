@@ -20,6 +20,9 @@ interface DocFrontmatter {
   timeEstimate?: string
   lastUpdated?: string
   openapi?: string
+  noindex?: boolean
+  hidden?: boolean
+  mode?: 'default' | 'wide' | 'custom' | 'center'
 }
 
 const localDocsRoot = path.join(process.cwd(), 'src/content')
@@ -181,6 +184,9 @@ async function compileDocEntry(
     timeEstimate: frontmatter?.timeEstimate ?? '5 min',
     lastUpdated: frontmatter?.lastUpdated ?? new Date().toISOString().slice(0, 10),
     openapi: openapi ?? undefined,
+    noindex: frontmatter?.noindex,
+    hidden: frontmatter?.hidden,
+    mode: frontmatter?.mode,
     isFallback,
     isStale,
   }

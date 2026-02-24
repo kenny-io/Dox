@@ -15,34 +15,38 @@ tags:
     description: Manage pets in the store
   - name: Store
     description: Store inventory and orders
+  - name: Webhooks
+    description: Register and manage webhook subscriptions
 
 paths:
   /pets:
     get:
       operationId: listPets
       summary: List all pets
-      description: Returns a paginated list of pets in the store.
+      description: Returns a cursor-paginated list of all pets in the store. Use the `next_cursor` from a response to fetch the next page.
       tags:
         - Pets
       parameters:
         - name: limit
           in: query
-          description: Maximum number of pets to return (1–100).
+          description: Maximum number of pets to return per page. Must be between `1` and `100`.
           required: false
           schema:
             type: integer
             minimum: 1
             maximum: 100
             default: 20
+            example: 10
         - name: cursor
           in: query
-          description: Pagination cursor returned from a previous request.
+          description: Pagination cursor returned from a previous response. Omit to start from the beginning of the list.
           required: false
           schema:
             type: string
+            example: eyJpZCI6ImIyYzNkNGU1In0
         - name: status
           in: query
-          description: Filter by pet status.
+          description: Filter results by availability status. When omitted, all pets are returned regardless of status.
           required: false
           schema:
             type: string
@@ -50,22 +54,49 @@ paths:
               - available
               - pending
               - sold
+            example: available
       responses:
         '200':
-          description: A list of pets.
+          description: A paginated list of pets.
           content:
             application/json:
+              example:
+                data:
+                  - id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    name: Buddy
+                    species: dog
+                    breed: Golden Retriever
+                    age: 3
+                    status: available
+                    tags:
+                      - friendly
+                      - trained
+                    created_at: "2025-01-15T10:30:00Z"
+                    updated_at: "2025-01-15T10:30:00Z"
+                  - id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                    name: Whiskers
+                    species: cat
+                    breed: Maine Coon
+                    age: 2
+                    status: available
+                    tags:
+                      - indoor
+                    created_at: "2025-01-14T09:00:00Z"
+                    updated_at: "2025-01-14T09:00:00Z"
+                next_cursor: eyJpZCI6ImIyYzNkNGU1In0
               schema:
                 type: object
                 properties:
                   data:
                     type: array
+                    description: Array of pet objects for the current page.
                     items:
                       $ref: '#/components/schemas/Pet'
                   next_cursor:
                     type: string
                     nullable: true
-                    description: Cursor for the next page, or null if no more results.
+                    description: Cursor to pass as `cursor` in the next request. `null` when there are no more results.
+                    example: eyJpZCI6ImIyYzNkNGU1In0
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -74,20 +105,41 @@ paths:
     post:
       operationId: createPet
       summary: Create a pet
-      description: Add a new pet to the store inventory.
+      description: Add a new pet to the store inventory. Returns the created pet with a server-assigned `id` and timestamps.
       tags:
         - Pets
       requestBody:
         required: true
+        description: Pet details. `name` and `species` are required; all other fields are optional.
         content:
           application/json:
+            example:
+              name: Buddy
+              species: dog
+              breed: Golden Retriever
+              age: 3
+              tags:
+                - friendly
+                - trained
             schema:
               $ref: '#/components/schemas/CreatePetRequest'
       responses:
         '201':
-          description: The created pet.
+          description: The pet was created successfully.
           content:
             application/json:
+              example:
+                id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                name: Buddy
+                species: dog
+                breed: Golden Retriever
+                age: 3
+                status: available
+                tags:
+                  - friendly
+                  - trained
+                created_at: "2025-01-15T10:30:00Z"
+                updated_at: "2025-01-15T10:30:00Z"
               schema:
                 $ref: '#/components/schemas/Pet'
         '400':
@@ -111,6 +163,18 @@ paths:
           description: The requested pet.
           content:
             application/json:
+              example:
+                id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                name: Buddy
+                species: dog
+                breed: Golden Retriever
+                age: 3
+                status: available
+                tags:
+                  - friendly
+                  - trained
+                created_at: "2025-01-15T10:30:00Z"
+                updated_at: "2025-01-15T10:30:00Z"
               schema:
                 $ref: '#/components/schemas/Pet'
         '401':
@@ -121,22 +185,45 @@ paths:
     put:
       operationId: updatePet
       summary: Update a pet
-      description: Replace all fields of an existing pet.
+      description: Replace all fields of an existing pet. The request body follows the same schema as `POST /pets`. Fields omitted from the body are cleared.
       tags:
         - Pets
       parameters:
         - $ref: '#/components/parameters/PetId'
       requestBody:
         required: true
+        description: Updated pet details. All fields follow the same rules as `POST /pets`.
         content:
           application/json:
+            example:
+              name: Buddy
+              species: dog
+              breed: Golden Retriever
+              age: 4
+              tags:
+                - friendly
+                - trained
+                - house-broken
             schema:
               $ref: '#/components/schemas/CreatePetRequest'
       responses:
         '200':
-          description: The updated pet.
+          description: The pet was updated successfully.
           content:
             application/json:
+              example:
+                id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                name: Buddy
+                species: dog
+                breed: Golden Retriever
+                age: 4
+                status: available
+                tags:
+                  - friendly
+                  - trained
+                  - house-broken
+                created_at: "2025-01-15T10:30:00Z"
+                updated_at: "2025-02-01T08:15:00Z"
               schema:
                 $ref: '#/components/schemas/Pet'
         '400':
@@ -151,14 +238,14 @@ paths:
     delete:
       operationId: deletePet
       summary: Delete a pet
-      description: Remove a pet from the store. This action is irreversible.
+      description: Permanently remove a pet from the store. This action is irreversible — the pet record cannot be recovered after deletion.
       tags:
         - Pets
       parameters:
         - $ref: '#/components/parameters/PetId'
       responses:
         '204':
-          description: Pet deleted successfully.
+          description: Pet deleted successfully. No response body is returned.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -168,7 +255,7 @@ paths:
     get:
       operationId: getInventory
       summary: Get store inventory
-      description: Returns a summary of pet counts grouped by status.
+      description: Returns a summary of pet counts grouped by status. Useful for dashboards and availability checks.
       tags:
         - Store
       responses:
@@ -176,37 +263,93 @@ paths:
           description: Inventory counts by status.
           content:
             application/json:
+              example:
+                available: 42
+                pending: 7
+                sold: 123
               schema:
                 type: object
                 properties:
                   available:
                     type: integer
+                    description: Number of pets with `available` status.
                     example: 42
                   pending:
                     type: integer
+                    description: Number of pets with `pending` status — reserved but not yet sold.
                     example: 7
                   sold:
                     type: integer
+                    description: Number of pets with `sold` status.
                     example: 123
 
   /store/orders:
     post:
       operationId: placeOrder
       summary: Place an order
-      description: Place a new order for a pet.
+      description: Place a new order for a pet. The pet must have `available` status; placing an order automatically sets it to `pending`.
       tags:
         - Store
       requestBody:
         required: true
+        description: Order details. `pet_id` is required; `shipping_address` and `payment` can be provided to pre-fill fulfillment and billing info.
         content:
           application/json:
+            example:
+              pet_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+              quantity: 1
+              shipping_address:
+                street: 123 Main St
+                city: San Francisco
+                state: CA
+                postal_code: "94105"
+                country: US
+              payment:
+                type: card
+                card:
+                  brand: visa
+                  last4: "4242"
+                  exp_month: 12
+                  exp_year: 2028
+                  cardholder_name: Jane Doe
+              notes: Leave at front door
             schema:
               $ref: '#/components/schemas/CreateOrderRequest'
       responses:
         '201':
-          description: The placed order.
+          description: The order was placed successfully.
           content:
             application/json:
+              example:
+                id: c3d4e5f6-a7b8-9012-cdef-123456789012
+                pet_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                quantity: 1
+                status: placed
+                created_at: "2025-01-15T11:00:00Z"
+                fulfillment:
+                  status: pending
+                  shipping_address:
+                    street: 123 Main St
+                    city: San Francisco
+                    state: CA
+                    postal_code: "94105"
+                    country: US
+                payment_details:
+                  subtotal: 29999
+                  tax: 2700
+                  shipping_fee: 999
+                  total: 33698
+                  currency: USD
+                  fee:
+                    amount: 300
+                    rate: 0.01
+                    breakdown:
+                      - label: Processing fee
+                        amount: 150
+                        rate: 0.005
+                      - label: Platform fee
+                        amount: 150
+                        rate: 0.005
               schema:
                 $ref: '#/components/schemas/Order'
         '400':
@@ -220,23 +363,186 @@ paths:
     get:
       operationId: getOrder
       summary: Get an order
-      description: Retrieve a single order by its identifier.
+      description: Retrieve a single order by its identifier, including fulfillment status, payment details, and the full status timeline.
       tags:
         - Store
       parameters:
         - name: orderId
           in: path
           required: true
+          description: Unique identifier of the order.
           schema:
             type: string
             format: uuid
+            example: c3d4e5f6-a7b8-9012-cdef-123456789012
       responses:
         '200':
           description: The requested order.
           content:
             application/json:
+              example:
+                id: c3d4e5f6-a7b8-9012-cdef-123456789012
+                pet_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                quantity: 1
+                status: shipped
+                created_at: "2025-01-15T11:00:00Z"
+                fulfillment:
+                  status: shipped
+                  carrier: FedEx
+                  tracking_number: "7489234584279825"
+                  estimated_delivery: "2025-01-20"
+                  shipping_address:
+                    street: 123 Main St
+                    city: San Francisco
+                    state: CA
+                    postal_code: "94105"
+                    country: US
+                  items:
+                    - pet_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                      quantity: 1
+                payment_details:
+                  subtotal: 29999
+                  tax: 2700
+                  shipping_fee: 999
+                  total: 33698
+                  currency: USD
+                  fee:
+                    amount: 300
+                    rate: 0.01
+                    breakdown:
+                      - label: Processing fee
+                        amount: 150
+                        rate: 0.005
+                      - label: Platform fee
+                        amount: 150
+                        rate: 0.005
+                timeline:
+                  - status: placed
+                    timestamp: "2025-01-15T11:00:00Z"
+                    actor:
+                      type: customer
+                      id: usr_abc123
+                      name: Jane Doe
+                    note: Order confirmed and payment captured.
+                  - status: shipped
+                    timestamp: "2025-01-16T09:30:00Z"
+                    actor:
+                      type: system
+                    note: Shipment dispatched via FedEx.
               schema:
                 $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks:
+    get:
+      operationId: listWebhooks
+      summary: List webhooks
+      description: Returns all webhook subscriptions registered for the current API key.
+      tags:
+        - Webhooks
+      responses:
+        '200':
+          description: A list of webhook subscriptions.
+          content:
+            application/json:
+              example:
+                data:
+                  - id: wh_abc123
+                    url: https://your-app.com/webhooks/pets
+                    events:
+                      - order.placed
+                      - order.shipped
+                    status: active
+                    created_at: "2025-01-10T08:00:00Z"
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    description: Array of webhook subscription objects.
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      operationId: createWebhook
+      summary: Create a webhook
+      description: Register a new HTTPS endpoint to receive real-time event notifications. Returns a signing `secret` that can be used to verify payloads — store it securely, as it is only returned once.
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        description: Webhook configuration. `url` and `events` are required.
+        content:
+          application/json:
+            example:
+              url: https://your-app.com/webhooks/pets
+              events:
+                - order.placed
+                - order.shipped
+              description: Production order notifications
+              config:
+                timeout_ms: 3000
+                max_retries: 5
+                retry_policy:
+                  type: exponential
+                  backoff:
+                    initial_delay_ms: 500
+                    multiplier: 2.5
+                    max_delay_ms: 30000
+                    jitter: true
+                filter:
+                  conditions:
+                    - field: data.status
+                      operator: eq
+                      value: shipped
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook created. The `secret` field is only returned in this response.
+          content:
+            application/json:
+              example:
+                id: wh_abc123
+                url: https://your-app.com/webhooks/pets
+                events:
+                  - order.placed
+                  - order.shipped
+                status: active
+                secret: whsec_abc123xyz...
+                created_at: "2025-01-10T08:00:00Z"
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /webhooks/{webhookId}:
+    delete:
+      operationId: deleteWebhook
+      summary: Delete a webhook
+      description: Permanently remove a webhook subscription. The endpoint will stop receiving events immediately.
+      tags:
+        - Webhooks
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          description: Unique identifier of the webhook subscription.
+          schema:
+            type: string
+            example: wh_abc123
+      responses:
+        '204':
+          description: Webhook deleted successfully.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -262,8 +568,50 @@ components:
       schema:
         type: string
         format: uuid
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 
   schemas:
+    # -------------------------------------------------------------------------
+    # Shared / reusable schemas
+    # -------------------------------------------------------------------------
+
+    Address:
+      type: object
+      required:
+        - street
+        - city
+        - country
+      description: A physical mailing address.
+      properties:
+        street:
+          type: string
+          description: Street address line 1.
+          example: 123 Main St
+        street2:
+          type: string
+          description: Optional second line (apartment, suite, unit, etc.)
+          example: Apt 4B
+        city:
+          type: string
+          description: City or town name.
+          example: San Francisco
+        state:
+          type: string
+          description: State, province, or region code.
+          example: CA
+        postal_code:
+          type: string
+          description: Postal or ZIP code.
+          example: "94105"
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2 country code.
+          example: US
+
+    # -------------------------------------------------------------------------
+    # Pet schemas
+    # -------------------------------------------------------------------------
+
     Pet:
       type: object
       required:
@@ -275,12 +623,15 @@ components:
         id:
           type: string
           format: uuid
-          description: Unique identifier.
+          description: Unique identifier for the pet, assigned by the server.
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
         name:
           type: string
+          description: The pet's display name. Between 1 and 100 characters.
           example: Buddy
         species:
           type: string
+          description: The pet's species.
           enum:
             - dog
             - cat
@@ -290,13 +641,16 @@ components:
           example: dog
         breed:
           type: string
+          description: Breed or variety. Free-form string — most relevant for dogs and cats.
           example: Golden Retriever
         age:
           type: integer
           minimum: 0
+          description: Age of the pet in years.
           example: 3
         status:
           type: string
+          description: Current availability status. Newly created pets default to `available`.
           enum:
             - available
             - pending
@@ -304,6 +658,7 @@ components:
           example: available
         tags:
           type: array
+          description: Free-form tag strings for filtering and search (e.g. `friendly`, `trained`, `indoor`).
           items:
             type: string
           example:
@@ -312,9 +667,13 @@ components:
         created_at:
           type: string
           format: date-time
+          description: ISO 8601 timestamp when the pet was added to the store.
+          example: "2025-01-15T10:30:00Z"
         updated_at:
           type: string
           format: date-time
+          description: ISO 8601 timestamp of the most recent update.
+          example: "2025-01-15T10:30:00Z"
 
     CreatePetRequest:
       type: object
@@ -324,24 +683,138 @@ components:
       properties:
         name:
           type: string
+          description: The pet's display name. Between 1 and 100 characters.
           example: Buddy
         species:
           type: string
+          description: The pet's species. Must be one of the allowed values.
           enum:
             - dog
             - cat
             - bird
             - fish
             - other
+          example: dog
         breed:
           type: string
+          description: Breed or variety. Optional free-form string.
+          example: Golden Retriever
         age:
           type: integer
           minimum: 0
+          description: Age of the pet in years. Must be `0` or greater.
+          example: 3
         tags:
           type: array
+          description: Optional array of tag strings for filtering and search.
           items:
             type: string
+          example:
+            - friendly
+            - trained
+
+    # -------------------------------------------------------------------------
+    # Order schemas
+    # -------------------------------------------------------------------------
+
+    CreateOrderRequest:
+      type: object
+      required:
+        - pet_id
+      properties:
+        pet_id:
+          type: string
+          format: uuid
+          description: Identifier of the pet to order. The pet must have `available` status.
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Number of units to order. Defaults to `1`.
+          example: 1
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+          description: Destination address for the shipment. Can be updated after the order is placed.
+        payment:
+          type: object
+          description: Payment method to charge for this order.
+          properties:
+            type:
+              type: string
+              enum:
+                - card
+                - bank_transfer
+                - wallet
+              description: Payment instrument type.
+              example: card
+            card:
+              type: object
+              description: Card details. Required when `type` is `card`.
+              properties:
+                brand:
+                  type: string
+                  enum:
+                    - visa
+                    - mastercard
+                    - amex
+                    - discover
+                  description: Card network brand.
+                  example: visa
+                last4:
+                  type: string
+                  description: Last 4 digits of the card number.
+                  example: "4242"
+                exp_month:
+                  type: integer
+                  description: Expiration month (1–12).
+                  example: 12
+                exp_year:
+                  type: integer
+                  description: Expiration year (4-digit).
+                  example: 2028
+                cardholder_name:
+                  type: string
+                  description: Name as it appears on the card.
+                  example: Jane Doe
+                billing_address:
+                  $ref: '#/components/schemas/Address'
+                  description: Billing address associated with this card.
+            bank_transfer:
+              type: object
+              description: Bank account details. Required when `type` is `bank_transfer`.
+              properties:
+                account_number:
+                  type: string
+                  description: Masked account number (last 4 digits).
+                  example: "****6789"
+                routing_number:
+                  type: string
+                  description: Bank routing number.
+                  example: "021000021"
+                account_type:
+                  type: string
+                  enum:
+                    - checking
+                    - savings
+                  description: Bank account type.
+                  example: checking
+                bank_name:
+                  type: string
+                  description: Name of the financial institution.
+                  example: Chase Bank
+        notes:
+          type: string
+          description: Optional delivery or handling instructions.
+          example: Leave at front door
+        metadata:
+          type: object
+          description: Arbitrary key-value pairs for application-specific use. Values must be strings.
+          additionalProperties:
+            type: string
+          example:
+            order_source: mobile_app
+            campaign_id: summer_2025
 
     Order:
       type: object
@@ -354,37 +827,337 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier for the order, assigned by the server.
+          example: c3d4e5f6-a7b8-9012-cdef-123456789012
         pet_id:
           type: string
           format: uuid
+          description: Identifier of the pet being ordered.
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
         quantity:
           type: integer
           minimum: 1
           default: 1
+          description: Number of units ordered. Defaults to `1`.
+          example: 1
         status:
           type: string
+          description: Current status of the order.
           enum:
             - placed
             - approved
+            - shipped
             - delivered
             - cancelled
           example: placed
         created_at:
           type: string
           format: date-time
+          description: ISO 8601 timestamp when the order was placed.
+          example: "2025-01-15T11:00:00Z"
+        fulfillment:
+          type: object
+          description: Shipping and fulfillment details. Present once the order has been processed.
+          properties:
+            status:
+              type: string
+              enum:
+                - pending
+                - processing
+                - shipped
+                - out_for_delivery
+                - delivered
+                - failed
+              description: Current fulfillment status.
+              example: shipped
+            carrier:
+              type: string
+              description: Name of the shipping carrier.
+              example: FedEx
+            tracking_number:
+              type: string
+              description: Carrier-issued tracking number.
+              example: "7489234584279825"
+            estimated_delivery:
+              type: string
+              format: date
+              description: Estimated delivery date (ISO 8601).
+              example: "2025-01-20"
+            shipping_address:
+              $ref: '#/components/schemas/Address'
+              description: Destination address for this shipment.
+            items:
+              type: array
+              description: Breakdown of items included in this shipment.
+              items:
+                type: object
+                properties:
+                  pet_id:
+                    type: string
+                    format: uuid
+                    description: Identifier of the pet in this shipment.
+                    example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                  quantity:
+                    type: integer
+                    description: Number of units of this pet included.
+                    example: 1
+        payment_details:
+          type: object
+          description: Financial breakdown of the order. Present after payment is processed.
+          properties:
+            subtotal:
+              type: integer
+              description: Item subtotal in cents (before tax and fees).
+              example: 29999
+            tax:
+              type: integer
+              description: Tax amount in cents.
+              example: 2700
+            shipping_fee:
+              type: integer
+              description: Shipping cost in cents.
+              example: 999
+            total:
+              type: integer
+              description: Total amount charged in cents.
+              example: 33698
+            currency:
+              type: string
+              description: ISO 4217 currency code.
+              example: USD
+            fee:
+              type: object
+              description: Platform fee breakdown.
+              properties:
+                amount:
+                  type: integer
+                  description: Total platform fee in cents.
+                  example: 300
+                rate:
+                  type: number
+                  description: Effective fee rate as a decimal (e.g., `0.01` = 1%).
+                  example: 0.01
+                breakdown:
+                  type: array
+                  description: Itemized fee components.
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                        description: Human-readable fee component name.
+                        example: Processing fee
+                      amount:
+                        type: integer
+                        description: Fee amount for this component in cents.
+                        example: 150
+                      rate:
+                        type: number
+                        description: Rate for this component as a decimal.
+                        example: 0.005
+        timeline:
+          type: array
+          description: Chronological history of order status changes.
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+                description: The order status recorded at this point in time.
+                example: placed
+              timestamp:
+                type: string
+                format: date-time
+                description: ISO 8601 timestamp when this status was recorded.
+                example: "2025-01-15T11:00:00Z"
+              actor:
+                type: object
+                description: Identity of who triggered this status change.
+                properties:
+                  type:
+                    type: string
+                    enum:
+                      - customer
+                      - system
+                      - admin
+                    description: Actor category.
+                    example: customer
+                  id:
+                    type: string
+                    description: Unique identifier of the actor, if available.
+                    example: usr_abc123
+                  name:
+                    type: string
+                    description: Display name of the actor.
+                    example: Jane Doe
+              note:
+                type: string
+                description: Optional human-readable note about this transition.
+                example: Order confirmed and payment captured.
 
-    CreateOrderRequest:
+    # -------------------------------------------------------------------------
+    # Webhook schemas
+    # -------------------------------------------------------------------------
+
+    CreateWebhookRequest:
       type: object
       required:
-        - pet_id
+        - url
+        - events
       properties:
-        pet_id:
+        url:
           type: string
-          format: uuid
-        quantity:
-          type: integer
-          minimum: 1
-          default: 1
+          format: uri
+          description: HTTPS endpoint that will receive webhook payloads. Must use `https://`.
+          example: https://your-app.com/webhooks/pets
+        events:
+          type: array
+          description: List of event types to subscribe to.
+          items:
+            type: string
+            enum:
+              - pet.created
+              - pet.updated
+              - pet.deleted
+              - order.placed
+              - order.shipped
+              - order.delivered
+          example:
+            - order.placed
+            - order.shipped
+        description:
+          type: string
+          description: Optional human-readable label for this webhook.
+          example: Production order notifications
+        config:
+          type: object
+          description: Advanced delivery and retry configuration.
+          properties:
+            timeout_ms:
+              type: integer
+              description: HTTP request timeout for delivery attempts in milliseconds.
+              default: 5000
+              example: 3000
+            max_retries:
+              type: integer
+              description: Maximum number of retry attempts before marking the delivery as failed.
+              default: 3
+              example: 5
+            retry_policy:
+              type: object
+              description: Controls the backoff strategy between retry attempts.
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - exponential
+                    - linear
+                    - fixed
+                  description: Backoff algorithm. `exponential` multiplies the delay on each attempt; `linear` adds a fixed increment; `fixed` uses a constant interval.
+                  example: exponential
+                backoff:
+                  type: object
+                  description: Numeric parameters for the backoff algorithm.
+                  properties:
+                    initial_delay_ms:
+                      type: integer
+                      description: Delay before the first retry in milliseconds.
+                      default: 1000
+                      example: 500
+                    multiplier:
+                      type: number
+                      description: Factor by which the delay is multiplied on each attempt. Only applies when `type` is `exponential`.
+                      default: 2
+                      example: 2.5
+                    max_delay_ms:
+                      type: integer
+                      description: Maximum delay between retries in milliseconds. Prevents unbounded growth.
+                      default: 60000
+                      example: 30000
+                    jitter:
+                      type: boolean
+                      description: When `true`, adds a random offset to each delay to prevent thundering herd issues.
+                      default: true
+                      example: true
+            filter:
+              type: object
+              description: Optional payload filtering rules. The webhook fires only when all conditions are met.
+              properties:
+                conditions:
+                  type: array
+                  description: List of field conditions. All conditions must be satisfied (logical AND).
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        description: Dot-notation path to a field in the event payload (e.g. `data.status`).
+                        example: data.status
+                      operator:
+                        type: string
+                        enum:
+                          - eq
+                          - neq
+                          - contains
+                          - starts_with
+                        description: Comparison operator applied to `field` and `value`.
+                        example: eq
+                      value:
+                        type: string
+                        description: Value to compare the field against.
+                        example: shipped
+
+    Webhook:
+      type: object
+      required:
+        - id
+        - url
+        - events
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the webhook subscription.
+          example: wh_abc123
+        url:
+          type: string
+          format: uri
+          description: HTTPS endpoint registered to receive events.
+          example: https://your-app.com/webhooks/pets
+        events:
+          type: array
+          description: Event types this webhook is subscribed to.
+          items:
+            type: string
+          example:
+            - order.placed
+            - order.shipped
+        status:
+          type: string
+          enum:
+            - active
+            - disabled
+            - failing
+          description: Current delivery status of the webhook.
+          example: active
+        secret:
+          type: string
+          description: HMAC signing secret for payload verification. Only returned at creation time.
+          example: whsec_abc123xyz...
+        description:
+          type: string
+          description: Human-readable label for this webhook.
+          example: Production order notifications
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the webhook was registered.
+          example: "2025-01-10T08:00:00Z"
+
+    # -------------------------------------------------------------------------
+    # Error schema
+    # -------------------------------------------------------------------------
 
     Error:
       type: object
@@ -394,9 +1167,11 @@ components:
       properties:
         code:
           type: string
+          description: Machine-readable error code.
           example: not_found
         message:
           type: string
+          description: Human-readable description of the error.
           example: The requested resource was not found.
 
   responses:
@@ -404,24 +1179,36 @@ components:
       description: The request was malformed or missing required fields.
       content:
         application/json:
+          example:
+            code: bad_request
+            message: "Required field 'species' is missing."
           schema:
             $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Authentication is required or the provided credentials are invalid.
       content:
         application/json:
+          example:
+            code: unauthorized
+            message: Invalid or missing API key.
           schema:
             $ref: '#/components/schemas/Error'
     NotFound:
       description: The requested resource was not found.
       content:
         application/json:
+          example:
+            code: not_found
+            message: The requested resource was not found.
           schema:
             $ref: '#/components/schemas/Error'
     UnprocessableEntity:
       description: The request body failed validation.
       content:
         application/json:
+          example:
+            code: validation_error
+            message: "Field 'species' must be one of: dog, cat, bird, fish, other."
           schema:
             $ref: '#/components/schemas/Error'
 

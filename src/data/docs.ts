@@ -8,6 +8,8 @@ import docsNavigationConfig from '../../docs.json' assert { type: 'json' }
 // Public interfaces (consumed by components, pages, and stores)
 // ---------------------------------------------------------------------------
 
+export type DocPageMode = 'default' | 'wide' | 'custom' | 'center'
+
 export interface DocEntry {
   id: string
   title: string
@@ -21,6 +23,9 @@ export interface DocEntry {
   timeEstimate: string
   lastUpdated: string
   openapi?: OpenApiReference
+  noindex?: boolean
+  hidden?: boolean
+  mode?: DocPageMode
 }
 
 export interface OpenApiReference {
@@ -31,6 +36,7 @@ export interface OpenApiReference {
 
 export interface NavigationSection {
   title: string
+  icon?: string
   items: Array<NavigationItem>
 }
 
@@ -64,6 +70,8 @@ export interface SearchableDoc {
 
 interface DocsJsonNavigationGroup {
   group: string
+  icon?: string
+  hidden?: boolean
   pages: Array<string | DocsJsonNavigationGroup>
 }
 
@@ -85,12 +93,92 @@ export interface DocsJsonApiConfig {
 interface DocsJsonTab {
   tab: string
   href?: string
+  hidden?: boolean
   groups?: Array<DocsJsonNavigationGroup>
   api?: DocsJsonApiConfig
 }
 
+export interface DocsJsonRedirect {
+  source: string
+  destination: string
+  permanent?: boolean
+}
+
+export interface DocsJsonBanner {
+  content: string
+  dismissible?: boolean
+}
+
+export interface DocsJsonNavLink {
+  label: string
+  href: string
+  type?: 'github'
+}
+
+export interface DocsJsonNavbar {
+  links?: Array<DocsJsonNavLink>
+  primary?: { label: string; href: string }
+}
+
+export interface DocsJsonFooterColumn {
+  heading: string
+  items: Array<{ label: string; href: string }>
+}
+
+export interface DocsJsonFooter {
+  socials?: Record<string, string>
+  links?: Array<DocsJsonFooterColumn>
+}
+
+export interface DocsJsonSeo {
+  /** "navigable" (default) excludes hidden pages; "all" indexes them too */
+  indexing?: 'navigable' | 'all'
+}
+
+export interface DocsJsonScript {
+  src: string
+  strategy?: 'beforeInteractive' | 'afterInteractive' | 'lazyOnload'
+}
+
+export interface DocsJsonFontConfig {
+  /** Google Font family name, e.g. "Plus Jakarta Sans" */
+  family: string
+  /** Weight values to load, e.g. ["400", "500", "600", "700"]. Defaults to ["400","500","600","700"]. */
+  weight?: string[]
+}
+
+export interface DocsJsonFonts {
+  /** Font applied to body text and the overall UI */
+  body?: DocsJsonFontConfig
+  /** Font applied to h1–h6 headings. Defaults to the body font when omitted. */
+  heading?: DocsJsonFontConfig
+}
+
+export interface DocsJsonFeedback {
+  /** POST endpoint to receive feedback votes. Request body: { page, vote, url } */
+  endpoint?: string
+  /** Show thumbs up/down widget. Defaults to true. */
+  thumbsRating?: boolean
+}
+
+export type StructuralTheme = 'default' | 'maple' | 'sharp' | 'minimal'
+
 interface DocsJsonConfig {
   tabs: Array<DocsJsonTab>
+  redirects?: Array<DocsJsonRedirect>
+  banner?: DocsJsonBanner
+  navbar?: DocsJsonNavbar
+  footer?: DocsJsonFooter
+  seo?: DocsJsonSeo
+  customScripts?: Array<DocsJsonScript>
+  fonts?: DocsJsonFonts
+  feedback?: DocsJsonFeedback
+  /**
+   * Structural theme controlling border radius, sidebar active style, and nav
+   * tab appearance. Independent of brand colors.
+   * Values: "default" | "maple" | "sharp" | "minimal"
+   */
+  theme?: StructuralTheme
   ai?: {
     chat?: boolean
     /** Label shown on the FAB and in the chat header. Defaults to "DoxAI". */
@@ -123,6 +211,9 @@ interface FrontmatterData {
   timeEstimate?: string
   lastUpdated?: string
   openapi?: string
+  hidden?: boolean
+  noindex?: boolean
+  mode?: 'default' | 'wide' | 'custom' | 'center'
 }
 
 const frontmatterCache = new Map<string, FrontmatterData>()
@@ -187,17 +278,6 @@ function slugifyId(value: string) {
     .replace(/[^a-z0-9/]+/g, '-')
     .replace(/(^-|-$)+/g, '')
     .replace(/\//g, '-')
-}
-
-function normalizeHref(pageId: string) {
-  if (/^https?:\/\//i.test(pageId)) {
-    return pageId
-  }
-  const slugSegments = pageId
-    .split('/')
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-  return slugSegments.length ? `/${slugSegments.join('/')}` : '/'
 }
 
 // ---------------------------------------------------------------------------
@@ -317,6 +397,8 @@ function buildNavigationSections(
   ancestors: Array<string> = [],
   locale?: string,
 ): Array<NavigationSection> {
+  if (group.hidden) return []
+
   const titleSegments = [...ancestors, group.group].filter(Boolean)
   const title = titleSegments.length ? titleSegments.join(' • ') : 'General'
 
@@ -330,7 +412,7 @@ function buildNavigationSections(
     }
 
     if (bufferedItems.length) {
-      sections.push({ title, items: bufferedItems })
+      sections.push({ title, icon: group.icon, items: bufferedItems })
       bufferedItems = []
     }
 
@@ -338,7 +420,7 @@ function buildNavigationSections(
   })
 
   if (bufferedItems.length) {
-    sections.push({ title, items: bufferedItems })
+    sections.push({ title, icon: group.icon, items: bufferedItems })
   }
 
   return sections
@@ -352,19 +434,21 @@ export function getSidebarCollections(locale?: string): Array<SidebarCollection>
     return sidebarCollectionsCache.get(cacheKey)!
   }
 
-  const collections = docsConfig.tabs.map((tab) => {
-    const id = slugifyId(tab.tab) || tab.tab.toLowerCase()
-    const groups = tab.groups ?? []
-    const sections = groups.flatMap((group) => buildNavigationSections(group, [], locale))
+  const collections = docsConfig.tabs
+    .filter((tab) => !tab.hidden)
+    .map((tab) => {
+      const id = slugifyId(tab.tab) || tab.tab.toLowerCase()
+      const groups = tab.groups ?? []
+      const sections = groups.flatMap((group) => buildNavigationSections(group, [], locale))
 
-    return {
-      id,
-      label: tab.tab,
-      sections,
-      href: tab.href,
-      api: tab.api,
-    }
-  })
+      return {
+        id,
+        label: tab.tab,
+        sections,
+        href: tab.href,
+        api: tab.api,
+      }
+    })
 
   sidebarCollectionsCache.set(cacheKey, collections)
   return collections
@@ -445,6 +529,42 @@ export function getAiConfig(): { chat?: boolean; label?: string; icon?: string }
 
 export function getI18nConfig(): { defaultLocale: string; locales: Array<{ code: string; label: string }> } | null {
   return docsConfig.i18n ?? null
+}
+
+export function getBannerConfig(): DocsJsonBanner | null {
+  return docsConfig.banner ?? null
+}
+
+export function getNavbarConfig(): DocsJsonNavbar | null {
+  return docsConfig.navbar ?? null
+}
+
+export function getFooterConfig(): DocsJsonFooter | null {
+  return docsConfig.footer ?? null
+}
+
+export function getFeedbackConfig(): DocsJsonFeedback {
+  return docsConfig.feedback ?? { thumbsRating: true }
+}
+
+export function getFontsConfig(): DocsJsonFonts {
+  return docsConfig.fonts ?? {}
+}
+
+export function getRedirectsConfig(): Array<DocsJsonRedirect> {
+  return docsConfig.redirects ?? []
+}
+
+export function getCustomScriptsConfig(): Array<DocsJsonScript> {
+  return docsConfig.customScripts ?? []
+}
+
+export function getSeoConfig(): DocsJsonSeo {
+  return docsConfig.seo ?? {}
+}
+
+export function getStructuralTheme(): StructuralTheme {
+  return docsConfig.theme ?? 'default'
 }
 
 // ---------------------------------------------------------------------------

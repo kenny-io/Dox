@@ -47,9 +47,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       )
     : {}
 
+  const isNoindex = doc.noindex || doc.hidden
+
   return {
     title: doc.title,
     description: doc.description,
+    ...(isNoindex ? { robots: { index: false, follow: false } } : {}),
     alternates: {
       canonical: `${siteUrl}${primaryHref}`,
       ...(i18n ? { languages: alternateLanguages } : {}),
