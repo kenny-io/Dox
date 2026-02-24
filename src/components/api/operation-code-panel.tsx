@@ -11,61 +11,58 @@ export function OperationCodePanel({ controller }: OperationCodePanelProps) {
   const { preparedRequest, response } = controller
 
   return (
-    <div className="space-y-6">
-      <CodeBlock title="cURL" subtitle="Request" lines={preparedRequest.curlLines} disabled={!preparedRequest.isServerConfigured} />
-      <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground/60">Response</p>
-          {response && 'status' in response ? (
-            <span
-              className={cn(
-                'rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide',
-                response.status >= 200 && response.status < 300 ? 'bg-accent/10 text-accent' : 'bg-rose-500/10 text-rose-400',
-              )}
-            >
-              {response.status}
-            </span>
-          ) : null}
+    <div className="space-y-4">
+      {/* Request — styled like RequestExample */}
+      <div className="overflow-hidden rounded-2xl border border-border/40">
+        <div className="flex items-center justify-between border-b border-border/30 bg-muted/60 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-blue-400" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-foreground/60">Request</span>
+            <span className="text-[10px] uppercase tracking-widest text-foreground/40">cURL</span>
+          </div>
+          <button
+            type="button"
+            disabled={!preparedRequest.isServerConfigured || !preparedRequest.curlLines.length}
+            onClick={() => navigator.clipboard.writeText(preparedRequest.curlLines.join('\n'))}
+            className="flex items-center gap-1.5 rounded-full border border-border/40 px-3 py-1 text-xs text-foreground/60 transition hover:text-foreground disabled:opacity-40"
+          >
+            <Copy className="h-3 w-3" />
+            Copy
+          </button>
         </div>
-        {response && 'body' in response ? (
-          <ResponseBody body={response.body} />
-        ) : (
-          <div className="rounded-xl border border-dashed border-border/40 p-4 text-sm text-foreground/60">Send a request to preview the response.</div>
-        )}
+        <pre className="scrollbar-hide max-h-[280px] overflow-auto bg-background/70 p-4 text-xs leading-relaxed text-foreground/80">
+          {preparedRequest.curlLines.length
+            ? preparedRequest.curlLines.join('\n')
+            : 'Configure a server URL to preview the generated curl command.'}
+        </pre>
+      </div>
+
+      {/* Response — styled like ResponseExample */}
+      <div className="overflow-hidden rounded-2xl border border-border/40">
+        <div className="flex items-center justify-between border-b border-border/30 bg-muted/60 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-400" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-foreground/60">Response</span>
+            {response && 'status' in response ? (
+              <span className={cn(
+                'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                response.status >= 200 && response.status < 300
+                  ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
+                  : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400',
+              )}>
+                {response.status}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="min-h-[80px] bg-background/70 p-4">
+          {response && 'body' in response ? (
+            <ResponseBody body={response.body} />
+          ) : (
+            <p className="text-xs text-foreground/50">Send a request to preview the response.</p>
+          )}
+        </div>
       </div>
     </div>
   )
 }
-
-interface CodeBlockProps {
-  title: string
-  subtitle: string
-  lines: Array<string>
-  disabled?: boolean
-}
-
-function CodeBlock({ title, subtitle, lines, disabled }: CodeBlockProps) {
-  return (
-    <div className="space-y-3 rounded-2xl border border-border/40 bg-background/40 p-4">
-      <div className="flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground/60">
-          <p>{subtitle}</p>
-          <p className="text-[11px] text-foreground/40">{title}</p>
-        </div>
-        <button
-          type="button"
-          disabled={disabled || !lines.length}
-          onClick={() => navigator.clipboard.writeText(lines.join('\n'))}
-          className="rounded-full border border-border/40 px-3 py-1 text-xs text-foreground/70 transition hover:text-foreground disabled:opacity-50"
-        >
-          <Copy className="mr-2 inline h-3 w-3" />
-          Copy
-        </button>
-      </div>
-      <pre className="scrollbar-hide max-h-[320px] overflow-auto rounded-xl border border-border/30 bg-background/70 p-4 text-xs leading-relaxed text-foreground/80">
-        {lines.length ? lines.join('\n') : 'Configure a server URL to preview the generated curl command.'}
-      </pre>
-    </div>
-  )
-}
-

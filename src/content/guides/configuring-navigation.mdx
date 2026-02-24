@@ -102,3 +102,52 @@ To add a new sidebar section, add a group object to the relevant tab:
 ## Reordering
 
 Pages appear in the sidebar in the exact order listed in the `pages` array. Groups appear in the order they're defined in the `groups` array. Tabs appear left-to-right in the order defined in the `tabs` array.
+
+## Group icons
+
+Add an `icon` field to any group to display an icon next to the group heading in the sidebar:
+
+```json
+{
+  "group": "Getting Started",
+  "icon": "book-open",
+  "pages": ["introduction", "quickstart"]
+}
+```
+
+Available icon names:
+
+| Name | Icon |
+| --- | --- |
+| `book-open` | Book / documentation |
+| `code-simple` | Code brackets |
+| `grid-round` | Grid / overview |
+| `link-simple` | Link / URL |
+| `wrench` | Tools / settings |
+| `party-horn` | Features / celebration |
+| `telegram` | Send / messaging |
+| `envelope` | Email |
+| `x-twitter` | X / Twitter |
+| `message` | Chat / message |
+
+## Hiding groups and tabs
+
+Set `hidden: true` on a group or tab to exclude it from the sidebar while keeping its pages accessible by URL:
+
+```json
+{
+  "group": "Internal",
+  "hidden": true,
+  "pages": ["internal/roadmap", "internal/notes"]
+}
+```
+
+```json
+{
+  "tab": "Staff Only",
+  "hidden": true,
+  "groups": [...]
+}
+```
+
+Hidden pages are still reachable by direct URL — they just won't appear in navigation or sitemaps. See [SEO & Visibility](/guides/seo-and-visibility) for more control over indexing.

@@ -3,7 +3,15 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { Callout } from '@/components/mdx/callout'
 import { Note } from '@/components/mdx/note'
 import { Code, CodeGroup, Pre } from '@/components/mdx/code-blocks'
-import { Accordion, Card, CardGroup, Columns, Frame, Icon, Tooltip } from '@/components/mdx/rich-content'
+import {
+  Accordion, Badge, Card, CardGroup, Color, Columns, Frame, Icon, Panel,
+  Prompt, PromptAssistant, PromptUser, RequestExample, ResponseExample,
+  Tile, TileGroup, Tooltip, Update,
+} from '@/components/mdx/rich-content'
+import { Tree, Folder, File } from '@/components/mdx/file-tree'
+import { ResponseField, ParamField, Expandable } from '@/components/mdx/api-fields'
+import { Mermaid } from '@/components/mdx/mermaid'
+import { View } from '@/components/mdx/view'
 import { Steps, Step } from '@/components/mdx/steps'
 import { Tabs, Tab } from '@/components/mdx/content-tabs'
 import { HeadingAnchor } from '@/components/mdx/heading-anchor'
@@ -52,8 +60,8 @@ const components: MDXComponents = {
   Info: (props) => <Note type="info" {...props} />,
   Warning: (props) => <Note type="warning" {...props} />,
   Error: (props) => <Note type="danger" {...props} />,
-  Note: (props) => <Note {...props} />,
-  Tip: (props) => <Note {...props} />,
+  Note: (props) => <Note type="note" {...props} />,
+  Tip: (props) => <Note type="tip" {...props} />,
   // Callout: safety net for migrated content that uses <Callout type="...">
   Callout: ({ type, children }: { type?: string; children?: ReactNode }) => {
     if (!children) return null
@@ -77,6 +85,26 @@ const components: MDXComponents = {
   Step: (props) => <Step {...props} />,
   Tabs: (props) => <Tabs {...props} />,
   Tab: (props) => <Tab {...props} />,
+  // Phase 1 additions
+  Badge: (props) => <Badge {...props} />,
+  Update: (props) => <Update {...props} />,
+  RequestExample: (props) => <RequestExample {...props} />,
+  ResponseExample: (props) => <ResponseExample {...props} />,
+  Panel: (props) => <Panel {...props} />,
+  Tile: (props) => <Tile {...props} />,
+  TileGroup: (props) => <TileGroup {...props} />,
+  Prompt: (props) => <Prompt {...props} />,
+  PromptUser: (props) => <PromptUser {...props} />,
+  PromptAssistant: (props) => <PromptAssistant {...props} />,
+  Color: (props) => <Color {...props} />,
+  Tree: (props) => <Tree {...props} />,
+  Folder: (props) => <Folder {...props} />,
+  File: (props) => <File {...props} />,
+  ResponseField: (props) => <ResponseField {...props} />,
+  ParamField: (props) => <ParamField {...props} />,
+  Expandable: (props) => <Expandable {...props} />,
+  Mermaid: (props) => <Mermaid {...(props as { children: string })} />,
+  View: (props) => <View {...props} />,
   table: ({ className, ...props }) => (
     <div className="my-6 overflow-x-auto rounded-2xl border border-border">
       <table className={cn('w-full text-sm', className)} {...props} />

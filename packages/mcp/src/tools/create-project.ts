@@ -8,6 +8,8 @@ export const createProjectSchema = z.object({
   brandPreset: z.enum(['primary', 'secondary']).optional().default('primary').describe('Brand color preset'),
   repoUrl: z.string().optional().describe('GitHub repository URL (optional)'),
   install: z.boolean().optional().default(true).describe('Whether to run npm install after scaffolding'),
+  enableAiChat: z.boolean().optional().default(true).describe('Enable AI chat in docs.json (default true)'),
+  i18nLocales: z.array(z.object({ code: z.string(), label: z.string() })).optional().describe('Secondary locales to enable (e.g. [{code:"es",label:"Español"}])'),
 })
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>
@@ -31,6 +33,8 @@ export async function handleCreateProject(input: CreateProjectInput): Promise<st
     brandPreset,
     repoUrl,
     doInstall: install,
+    enableAiChat: input.enableAiChat ?? true,
+    i18nLocales: input.i18nLocales,
   })
 
   const dirName = result.projectDir.split('/').pop() ?? projectDir
@@ -46,7 +50,9 @@ export async function handleCreateProject(input: CreateProjectInput): Promise<st
     '',
     'Key files to edit:',
     '  • src/data/site.ts   — name, links, branding',
-    '  • docs.json          — navigation structure',
+    '  • docs.json          — navigation, AI chat config',
     '  • src/content/*.mdx  — your documentation',
+    '',
+    ...(input.enableAiChat !== false ? ['🤖 AI chat is enabled. Set ANTHROPIC_API_KEY in .env.local.'] : []),
   ].join('\n')
 }

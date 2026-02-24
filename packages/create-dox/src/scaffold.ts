@@ -11,6 +11,7 @@ export interface ScaffoldOptions {
   brandPreset: string
   repoUrl: string
   doInstall: boolean
+  i18nLocales?: Array<{ code: string; label: string }>
 }
 
 export interface ScaffoldResult {
@@ -25,6 +26,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
     brandPreset,
     repoUrl,
     doInstall,
+    i18nLocales,
   } = options
 
   const targetDir = resolve(projectDir)
@@ -43,7 +45,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   await downloadTemplate(targetDir)
 
   // 2. Write starter content
-  writeStarterContent(targetDir, projectName, slug)
+  writeStarterContent(targetDir, projectName, slug, i18nLocales)
 
   // 3. Update site config
   updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl)

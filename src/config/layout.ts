@@ -13,8 +13,8 @@ export const layout = {
   tocWidth: 'w-64',
   stackGap: 'space-y-6',
   denseStackGap: 'space-y-4',
-  panel: 'rounded-2xl border border-border/60 bg-muted/30',
-  panelMuted: 'rounded-2xl border border-border/40 bg-muted/50',
+  panel: 'rounded-[var(--theme-radius-lg)] border border-border/60 bg-muted/30',
+  panelMuted: 'rounded-[var(--theme-radius-lg)] border border-border/40 bg-muted/50',
 }
 
 export const typography = {

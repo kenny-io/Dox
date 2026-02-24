@@ -15,6 +15,7 @@ export interface DocsJsonTab {
   tab: string
   href?: string
   groups?: Array<DocsJsonNavigationGroup>
+  api?: { source: string }
 }
 
 export interface DocsJsonConfig {
@@ -201,21 +202,33 @@ function convertMintTabs(tabs: unknown[], docsDir: string): DocsJsonConfig | nul
     if (typeof page === 'string') return normalizePageRef(page, docsDir)
     if (page !== null && typeof page === 'object' && 'group' in page && 'pages' in page) {
       const p = page as Record<string, unknown>
-      return {
-        group: String(p.group),
-        pages: ((p.pages as unknown[]) ?? []).map(convertPageRef),
+      const pages: (string | DocsJsonNavigationGroup)[] = []
+      // Handle Mintlify's "root" property — the group's own landing page
+      if (typeof p.root === 'string') {
+        pages.push(normalizePageRef(p.root, docsDir))
       }
+      pages.push(...((p.pages as unknown[]) ?? []).map(convertPageRef))
+      const group: DocsJsonNavigationGroup = { group: String(p.group), pages }
+      if (typeof p.icon === 'string') (group as unknown as Record<string, unknown>).icon = p.icon
+      return group
     }
     return String(page)
   }
 
   const resultTabs: DocsJsonTab[] = (tabs as Record<string, unknown>[]).map((item) => {
-    if (item.href) return { tab: String(item.tab), href: String(item.href) }
-    const groups = ((item.groups ?? []) as Record<string, unknown>[]).map((g) => ({
-      group: String(g.group),
-      pages: ((g.pages ?? []) as unknown[]).map(convertPageRef),
-    }))
-    return { tab: String(item.tab), groups }
+    const tabName = String(item.tab)
+    if (item.href) return { tab: tabName, href: String(item.href) }
+    // Dox has its own changelog system — always convert to href-based tab
+    if (tabName.toLowerCase() === 'changelog') return { tab: 'Changelog', href: '/changelog' }
+    const groups = ((item.groups ?? []) as Record<string, unknown>[]).map((g) => {
+      const group: DocsJsonNavigationGroup = {
+        group: String(g.group),
+        pages: ((g.pages ?? []) as unknown[]).map(convertPageRef),
+      }
+      if (typeof g.icon === 'string') (group as unknown as Record<string, unknown>).icon = g.icon
+      return group
+    })
+    return { tab: tabName, groups }
   })
 
   if (!resultTabs.some((t) => t.tab === 'Changelog')) {
@@ -226,9 +239,19 @@ function convertMintTabs(tabs: unknown[], docsDir: string): DocsJsonConfig | nul
 
 function parseMintConfig(config: Record<string, unknown>, docsDir: string): DocsJsonConfig | null {
   const nav = config.navigation
-  // v3: navigation is an object with a tabs array
+  // v3: navigation is an object
   if (nav && typeof nav === 'object' && !Array.isArray(nav)) {
-    const v3Tabs = (nav as Record<string, unknown>).tabs
+    const navObj = nav as Record<string, unknown>
+    // v3 with i18n: navigation.languages is an array of { language, tabs }
+    if (Array.isArray(navObj.languages) && navObj.languages.length > 0) {
+      // Pick English (or first) language variant
+      const langs = navObj.languages as Record<string, unknown>[]
+      const enLang = langs.find((l) => l.language === 'en') ?? langs[0]
+      const langTabs = enLang.tabs
+      if (Array.isArray(langTabs) && langTabs.length > 0) return convertMintTabs(langTabs, docsDir)
+    }
+    // v3 without i18n: navigation.tabs directly
+    const v3Tabs = navObj.tabs
     if (Array.isArray(v3Tabs) && v3Tabs.length > 0) return convertMintTabs(v3Tabs, docsDir)
   }
   // v1/v2: navigation is a top-level array

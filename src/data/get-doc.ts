@@ -5,7 +5,7 @@ import path from 'node:path'
 import type { ComponentType } from 'react'
 import { compileMDX } from 'next-mdx-remote/rsc'
 import type { DocEntry, OpenApiReference } from '@/data/docs'
-import { deriveTitleFromSlug } from '@/data/docs'
+import { deriveTitleFromSlug, getI18nConfig } from '@/data/docs'
 import { remarkPlugins } from '@/mdx/remark'
 import { rehypePlugins } from '@/mdx/rehype'
 import { useMDXComponents as getMDXComponents } from '@/components/mdx/mdx-components'
@@ -20,20 +20,29 @@ interface DocFrontmatter {
   timeEstimate?: string
   lastUpdated?: string
   openapi?: string
+  noindex?: boolean
+  hidden?: boolean
+  mode?: 'default' | 'wide' | 'custom' | 'center'
 }
 
 const localDocsRoot = path.join(process.cwd(), 'src/content')
 
-const dynamicDocCache = new Map<string, Promise<DocEntry | null>>()
+export interface DocSourceResult {
+  filePath: string
+  isFallback: boolean
+  isStale: boolean
+}
 
-export async function getDocFromParams(slugSegments?: Array<string>) {
+const dynamicDocCache = new Map<string, Promise<(DocEntry & { isFallback: boolean; isStale: boolean }) | null>>()
+
+export async function getDocFromParams(slugSegments?: Array<string>, locale?: string) {
   const normalized = Array.isArray(slugSegments) ? slugSegments.filter(Boolean) : []
   const slugKey = normalized.join('/')
 
-  const cacheKey = slugKey
+  const cacheKey = locale ? `${locale}:${slugKey}` : slugKey
   let pending = dynamicDocCache.get(cacheKey)
   if (!pending) {
-    pending = loadDocFromFilesystem(normalized)
+    pending = loadDocFromFilesystem(normalized, locale)
     dynamicDocCache.set(cacheKey, pending)
   }
 
@@ -42,24 +51,84 @@ export async function getDocFromParams(slugSegments?: Array<string>) {
 
 async function loadDocFromFilesystem(
   slugSegments: Array<string>,
-): Promise<DocEntry | null> {
+  locale?: string,
+): Promise<(DocEntry & { isFallback: boolean; isStale: boolean }) | null> {
   const slugPath = slugSegments.join('/')
-  const candidate = await findDocSource(slugPath)
+  const candidate = await findDocSource(slugPath, locale)
   if (!candidate) {
     return null
   }
-  return compileDocEntry(candidate, slugSegments)
+  return compileDocEntry(candidate.filePath, slugSegments, candidate.isFallback, candidate.isStale)
 }
 
-async function findDocSource(slugPath: string) {
+async function findDocSource(slugPath: string, locale?: string): Promise<DocSourceResult | null> {
   const normalized = slugPath || 'introduction'
-  const candidates = normalized.endsWith('.mdx') ? [normalized] : [`${normalized}.mdx`, `${normalized}/index.mdx`]
+  const i18n = getI18nConfig()
+  const defaultLocale = i18n?.defaultLocale ?? 'en'
+  const isDefault = !locale || locale === defaultLocale
 
-  for (const candidate of candidates) {
-    const filePath = path.join(localDocsRoot, candidate)
+  if (isDefault) {
+    const candidates = normalized.endsWith('.mdx')
+      ? [normalized]
+      : [`${normalized}.mdx`, `${normalized}/index.mdx`]
+
+    for (const candidate of candidates) {
+      const filePath = path.join(localDocsRoot, candidate)
+      try {
+        await fs.access(filePath)
+        return { filePath, isFallback: false, isStale: false }
+      } catch {
+        // continue
+      }
+    }
+    return null
+  }
+
+  // Secondary locale: try translated file first, then fall back to primary
+  const localeCandidates = normalized.endsWith('.mdx')
+    ? [path.join(localDocsRoot, locale, normalized)]
+    : [
+        path.join(localDocsRoot, locale, `${normalized}.mdx`),
+        path.join(localDocsRoot, locale, `${normalized}/index.mdx`),
+      ]
+
+  const primaryCandidates = normalized.endsWith('.mdx')
+    ? [path.join(localDocsRoot, normalized)]
+    : [
+        path.join(localDocsRoot, `${normalized}.mdx`),
+        path.join(localDocsRoot, `${normalized}/index.mdx`),
+      ]
+
+  for (const localeFilePath of localeCandidates) {
     try {
-      await fs.access(filePath)
-      return filePath
+      await fs.access(localeFilePath)
+      // Translation file exists — check staleness against primary
+      let isStale = false
+      for (const primaryPath of primaryCandidates) {
+        try {
+          const [localeStat, primaryStat] = await Promise.all([
+            fs.stat(localeFilePath),
+            fs.stat(primaryPath),
+          ])
+          if (primaryStat.mtime > localeStat.mtime) {
+            isStale = true
+          }
+          break
+        } catch {
+          // primary not found, can't check staleness
+        }
+      }
+      return { filePath: localeFilePath, isFallback: false, isStale }
+    } catch {
+      // continue
+    }
+  }
+
+  // Fall back to primary
+  for (const primaryPath of primaryCandidates) {
+    try {
+      await fs.access(primaryPath)
+      return { filePath: primaryPath, isFallback: true, isStale: false }
     } catch {
       // continue
     }
@@ -68,7 +137,12 @@ async function findDocSource(slugPath: string) {
   return null
 }
 
-async function compileDocEntry(filePath: string, slugSegments: Array<string>): Promise<DocEntry | null> {
+async function compileDocEntry(
+  filePath: string,
+  slugSegments: Array<string>,
+  isFallback: boolean,
+  isStale: boolean,
+): Promise<(DocEntry & { isFallback: boolean; isStale: boolean }) | null> {
   const source = await fs.readFile(filePath, 'utf8')
   const { cleanedSource, snippetInjectors } = extractSnippetComponents(source)
   const resolvedSnippetComponents: Record<string, ComponentType<Record<string, unknown>>> = {}
@@ -110,6 +184,11 @@ async function compileDocEntry(filePath: string, slugSegments: Array<string>): P
     timeEstimate: frontmatter?.timeEstimate ?? '5 min',
     lastUpdated: frontmatter?.lastUpdated ?? new Date().toISOString().slice(0, 10),
     openapi: openapi ?? undefined,
+    noindex: frontmatter?.noindex,
+    hidden: frontmatter?.hidden,
+    mode: frontmatter?.mode,
+    isFallback,
+    isStale,
   }
 }
 
@@ -170,4 +249,3 @@ function parseOpenApiReference(raw?: string): OpenApiReference | null {
     path,
   }
 }
-

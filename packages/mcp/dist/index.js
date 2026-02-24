@@ -54,6 +54,7 @@ That's it \u2014 you're ready to go!
 `
 };
 var STARTER_DOCS_JSON = `{
+  "ai": { "chat": true },
   "tabs": [
     {
       "tab": "Overview",
@@ -106,7 +107,7 @@ async function downloadTemplate(targetDir) {
     })
   );
 }
-function writeStarterContent(targetDir, projectName, slug) {
+function writeStarterContent(targetDir, projectName, slug, enableAiChat = true, i18nLocales) {
   const contentDir = join(targetDir, "src", "content");
   if (existsSync(contentDir)) {
     const entries = readdirSync(contentDir);
@@ -120,7 +121,21 @@ function writeStarterContent(targetDir, projectName, slug) {
     const content = template.replace(/\{NAME\}/g, projectName).replace(/\{SLUG\}/g, slug);
     writeFileSync(join(contentDir, filename), content, "utf8");
   }
-  writeFileSync(join(targetDir, "docs.json"), STARTER_DOCS_JSON, "utf8");
+  let docsJson = STARTER_DOCS_JSON.trimEnd();
+  if (!enableAiChat) {
+    docsJson = docsJson.replace('  "ai": { "chat": true },\n', "");
+  }
+  if (i18nLocales && i18nLocales.length > 0) {
+    const allLocales = [{ code: "en", label: "English" }, ...i18nLocales];
+    const i18nBlock = JSON.stringify(
+      { defaultLocale: "en", locales: allLocales },
+      null,
+      2
+    ).split("\n").map((line, idx) => idx === 0 ? line : "  " + line).join("\n");
+    docsJson = docsJson.replace(/^(\{)/, `$1
+  "i18n": ${i18nBlock},`);
+  }
+  writeFileSync(join(targetDir, "docs.json"), docsJson + "\n", "utf8");
 }
 function updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl) {
   const siteFile = join(targetDir, "src", "data", "site.ts");
@@ -214,7 +229,7 @@ function initGit(targetDir) {
   }
 }
 async function scaffold(options) {
-  const { projectDir, projectName, description, brandPreset, repoUrl, doInstall } = options;
+  const { projectDir, projectName, description, brandPreset, repoUrl, doInstall, enableAiChat = true, i18nLocales } = options;
   const targetDir = resolve(projectDir);
   if (existsSync(targetDir) && readdirSync(targetDir).length > 0) {
     throw new Error(`Directory "${targetDir}" already exists and is not empty.`);
@@ -222,7 +237,7 @@ async function scaffold(options) {
   mkdirSync(targetDir, { recursive: true });
   const slug = slugify(projectName);
   await downloadTemplate(targetDir);
-  writeStarterContent(targetDir, projectName, slug);
+  writeStarterContent(targetDir, projectName, slug, enableAiChat, i18nLocales);
   updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl);
   patchApiReferenceGuard(targetDir);
   patchTopBarNavigation(targetDir);
@@ -239,7 +254,9 @@ var createProjectSchema = z.object({
   description: z.string().optional().describe("Short description of the project"),
   brandPreset: z.enum(["primary", "secondary"]).optional().default("primary").describe("Brand color preset"),
   repoUrl: z.string().optional().describe("GitHub repository URL (optional)"),
-  install: z.boolean().optional().default(true).describe("Whether to run npm install after scaffolding")
+  install: z.boolean().optional().default(true).describe("Whether to run npm install after scaffolding"),
+  enableAiChat: z.boolean().optional().default(true).describe("Enable AI chat in docs.json (default true)"),
+  i18nLocales: z.array(z.object({ code: z.string(), label: z.string() })).optional().describe('Secondary locales to enable (e.g. [{code:"es",label:"Espa\xF1ol"}])')
 });
 async function handleCreateProject(input) {
   const { projectDir, brandPreset = "primary", install = true } = input;
@@ -253,7 +270,9 @@ async function handleCreateProject(input) {
     description,
     brandPreset,
     repoUrl,
-    doInstall: install
+    doInstall: install,
+    enableAiChat: input.enableAiChat ?? true,
+    i18nLocales: input.i18nLocales
   });
   const dirName = result.projectDir.split("/").pop() ?? projectDir;
   return [
@@ -267,8 +286,10 @@ async function handleCreateProject(input) {
     "",
     "Key files to edit:",
     "  \u2022 src/data/site.ts   \u2014 name, links, branding",
-    "  \u2022 docs.json          \u2014 navigation structure",
-    "  \u2022 src/content/*.mdx  \u2014 your documentation"
+    "  \u2022 docs.json          \u2014 navigation, AI chat config",
+    "  \u2022 src/content/*.mdx  \u2014 your documentation",
+    "",
+    ...input.enableAiChat !== false ? ["\u{1F916} AI chat is enabled. Set ANTHROPIC_API_KEY in .env.local."] : []
   ].join("\n");
 }
 
@@ -1178,6 +1199,9 @@ function detectNavFromConfig(cloneDir, docsDir, platform) {
 function mergeDocsJson(existing, incoming) {
   const existingTabNames = new Set(existing.tabs.map((t) => t.tab));
   const merged = { tabs: [...existing.tabs.filter((t) => t.tab !== "Changelog")] };
+  if (existing.ai || incoming.ai) {
+    merged.ai = { ...incoming.ai, ...existing.ai };
+  }
   for (const tab of incoming.tabs) {
     if (tab.tab === "Changelog") continue;
     if (existingTabNames.has(tab.tab)) {
@@ -1685,6 +1709,188 @@ async function handleLintProject(input) {
   return lines.join("\n").trimEnd();
 }
 
+// src/tools/translate-docs.ts
+import { z as z11 } from "zod";
+import { readFileSync as readFileSync11, writeFileSync as writeFileSync7, existsSync as existsSync11, mkdirSync as mkdirSync4 } from "fs";
+import { join as join12, dirname as dirname3 } from "path";
+import matter7 from "gray-matter";
+import Anthropic2 from "@anthropic-ai/sdk";
+import pLimit2 from "p-limit";
+var translateDocsSchema = z11.object({
+  projectDir: z11.string().describe("Path to the Dox project directory"),
+  locale: z11.string().describe('Target locale code, e.g. "es", "fr"'),
+  pages: z11.array(z11.string()).optional().describe("Page IDs to translate (omit for all pages)"),
+  force: z11.boolean().optional().default(false).describe("Overwrite existing translation files"),
+  apiKey: z11.string().optional().describe("Anthropic API key (falls back to ANTHROPIC_API_KEY env var)"),
+  model: z11.string().optional().default("claude-sonnet-4-6").describe("Claude model to use for translation")
+});
+function readDocsJson2(projectDir) {
+  const docsPath = join12(projectDir, "docs.json");
+  const raw = readFileSync11(docsPath, "utf8");
+  return JSON.parse(raw);
+}
+function collectPageIds(pages) {
+  const ids = [];
+  for (const page of pages) {
+    if (typeof page === "string") {
+      ids.push(page);
+    } else if (page && typeof page === "object" && "pages" in page) {
+      ids.push(...collectPageIds(page.pages));
+    }
+  }
+  return ids;
+}
+function getAllPageIds(config) {
+  const ids = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const tab of config.tabs) {
+    if (!tab.groups && tab.href) {
+      const pageId = tab.href.replace(/^\//, "");
+      if (pageId && !seen.has(pageId)) {
+        seen.add(pageId);
+        ids.push(pageId);
+      }
+      continue;
+    }
+    if (!tab.groups) continue;
+    for (const group of tab.groups) {
+      for (const id of collectPageIds(group.pages)) {
+        if (!seen.has(id)) {
+          seen.add(id);
+          ids.push(id);
+        }
+      }
+    }
+  }
+  return ids;
+}
+function findSourceFile(projectDir, pageId) {
+  const contentRoot = join12(projectDir, "src", "content");
+  const candidates = [
+    join12(contentRoot, `${pageId}.mdx`),
+    join12(contentRoot, `${pageId}/index.mdx`)
+  ];
+  return candidates.find((p) => existsSync11(p)) ?? null;
+}
+var TRANSLATION_SYSTEM_PROMPT = `You are a professional documentation translator. You will receive an MDX documentation file and translate it into the target language.
+
+CRITICAL RULES \u2014 follow exactly:
+1. Translate ALL prose text, headings, and paragraphs.
+2. Translate frontmatter fields: title, description, and keywords values.
+3. DO NOT translate or modify MDX component names (e.g. <Note>, <Warning>, <Steps>, <Step>, <CodeGroup>, <Tabs>, <Tab>, <Card>, <Accordion>, <Columns>).
+4. DO NOT translate component prop names or prop values that are identifiers.
+5. DO NOT translate content inside code blocks (\`\`\` ... \`\`\`).
+6. DO NOT translate inline code spans (\`...\`).
+7. DO NOT translate URLs, file paths, or import statements.
+8. Preserve ALL whitespace, blank lines, and indentation exactly as in the original.
+9. Preserve ALL frontmatter YAML structure exactly \u2014 only translate the string values.
+10. Output ONLY the translated MDX file content \u2014 no preamble, no explanation, no markdown fences.`;
+async function translatePage(sourceContent, targetLocaleLabel, targetLocaleCode, model, client) {
+  const message = await client.messages.create({
+    model,
+    max_tokens: 8192,
+    system: TRANSLATION_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: `Translate the following MDX documentation file to ${targetLocaleLabel} (locale code: ${targetLocaleCode}). Output ONLY the translated MDX content.
+
+${sourceContent}`
+      }
+    ]
+  });
+  const text = message.content.filter((block) => block.type === "text").map((block) => block.text).join("");
+  return text.trim();
+}
+async function handleTranslateDocs(input) {
+  const { projectDir, locale, pages, force = false, model = "claude-sonnet-4-6" } = input;
+  const apiKey = input.apiKey ?? process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("Anthropic API key required. Set ANTHROPIC_API_KEY or pass apiKey.");
+  }
+  const config = readDocsJson2(projectDir);
+  if (!config.i18n) {
+    throw new Error('No i18n config found in docs.json. Add an "i18n" block first.');
+  }
+  const targetLocale = config.i18n.locales.find((l) => l.code === locale);
+  if (!targetLocale) {
+    const available = config.i18n.locales.map((l) => l.code).join(", ");
+    throw new Error(`Locale "${locale}" not found in docs.json. Available: ${available}`);
+  }
+  if (locale === config.i18n.defaultLocale) {
+    throw new Error(`Cannot translate to the default locale "${locale}".`);
+  }
+  const allPageIds = getAllPageIds(config);
+  const targetPageIds = pages ?? allPageIds;
+  const contentRoot = join12(projectDir, "src", "content");
+  const toTranslate = [];
+  const skipped = [];
+  for (const pageId of targetPageIds) {
+    const sourceFile = findSourceFile(projectDir, pageId);
+    if (!sourceFile) {
+      skipped.push(`${pageId} (source not found)`);
+      continue;
+    }
+    const relativeFromContent = sourceFile.slice(contentRoot.length + 1);
+    const targetFile = join12(contentRoot, locale, relativeFromContent);
+    if (existsSync11(targetFile) && !force) {
+      skipped.push(`${pageId} (already translated)`);
+      continue;
+    }
+    toTranslate.push({ pageId, sourceFile, targetFile });
+  }
+  if (toTranslate.length === 0) {
+    return `Nothing to translate. ${skipped.length} page(s) skipped.`;
+  }
+  const client = new Anthropic2({ apiKey });
+  const limit = pLimit2(3);
+  const results = [];
+  await Promise.all(
+    toTranslate.map(
+      ({ pageId, sourceFile, targetFile }) => limit(async () => {
+        try {
+          const sourceContent = readFileSync11(sourceFile, "utf8");
+          const parsed = matter7(sourceContent);
+          if (!parsed.data.title) {
+            console.warn(`[translate] ${pageId}: missing title in frontmatter`);
+          }
+          const translated = await translatePage(sourceContent, targetLocale.label, locale, model, client);
+          mkdirSync4(dirname3(targetFile), { recursive: true });
+          writeFileSync7(targetFile, translated + "\n", "utf8");
+          results.push({ pageId, success: true });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          results.push({ pageId, success: false, error: msg });
+        }
+      })
+    )
+  );
+  const succeeded = results.filter((r) => r.success);
+  const failed = results.filter((r) => !r.success);
+  const lines = [
+    `\u2705 Translation to ${targetLocale.label} (${locale}) complete!`,
+    "",
+    `  ${succeeded.length}/${toTranslate.length} pages translated successfully`
+  ];
+  if (succeeded.length > 0) {
+    lines.push("", "Translated pages:");
+    for (const r of succeeded) {
+      lines.push(`  \u2713 ${r.pageId}`);
+    }
+  }
+  if (failed.length > 0) {
+    lines.push("", "Failed:");
+    for (const r of failed) {
+      lines.push(`  \u2717 ${r.pageId}: ${r.error}`);
+    }
+  }
+  if (skipped.length > 0) {
+    lines.push("", `${skipped.length} page(s) skipped`);
+  }
+  lines.push("", `Files written to: ${contentRoot}/${locale}/`);
+  return lines.join("\n");
+}
+
 // src/server.ts
 function createServer() {
   const server = new McpServer({
@@ -1815,6 +2021,19 @@ function createServer() {
     async (input) => {
       try {
         const text = await handleLintProject(input);
+        return { content: [{ type: "text", text }] };
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : String(err));
+      }
+    }
+  );
+  server.tool(
+    "translate_docs",
+    "Translate Dox documentation pages to a secondary locale using Claude AI",
+    translateDocsSchema.shape,
+    async (input) => {
+      try {
+        const text = await handleTranslateDocs(input);
         return { content: [{ type: "text", text }] };
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : String(err));

@@ -53,6 +53,7 @@ That's it — you're ready to go!
 }
 
 const STARTER_DOCS_JSON = `{
+  "ai": { "chat": true },
   "tabs": [
     {
       "tab": "Overview",
@@ -147,9 +148,12 @@ function success(projectDir, projectName) {
   console.log('')
   console.log('  📝 Key files to edit:')
   console.log('    • src/data/site.ts        — name, links, branding')
-  console.log('    • docs.json               — navigation structure')
+  console.log('    • docs.json               — navigation, AI chat config')
   console.log('    • src/content/*.mdx        — your documentation')
   console.log('    • openapi.yaml            — API spec (optional)')
+  console.log('')
+  console.log('  🤖 AI chat is enabled by default. Set ANTHROPIC_API_KEY in .env.local.')
+  console.log('     Disable it by removing "ai" from docs.json.')
   console.log('')
   console.log('  Happy documenting! 🚀')
   console.log('')
