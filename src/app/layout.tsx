@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/app/providers'
 import { siteConfig } from '@/data/site'
+import { getI18nConfig } from '@/data/docs'
 import { cn } from '@/lib/utils'
 import { toHslValue } from '@/lib/colors'
 import { buildOgImageUrl } from '@/lib/og'
@@ -76,9 +77,11 @@ const brandStyle: Record<string, string> = {
   '--brand-sidebar-active-text-dark': toHslValue(siteConfig.brand.dark.sidebarActiveText),
 }
 
+const defaultLang = getI18nConfig()?.defaultLocale ?? 'en'
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning style={brandStyle}>
+    <html lang={defaultLang} suppressHydrationWarning style={brandStyle}>
       <body className={cn('min-h-screen bg-background font-sans text-foreground antialiased', fontSans.variable, fontMono.variable)}>
         <Providers>{children}</Providers>
         <AnalyticsProvider />

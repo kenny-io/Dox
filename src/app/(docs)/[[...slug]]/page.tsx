@@ -1,13 +1,17 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { DocLayout } from '@/components/docs/doc-layout'
-import { getDocEntries } from '@/data/docs'
+import { getDocEntries, getI18nConfig } from '@/data/docs'
 import { getDocFromParams } from '@/data/get-doc'
 import { getApiOperationByKey } from '@/data/api-reference'
 import { DocHeader } from '@/components/docs/doc-header'
 import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
 import { buildOgImageUrl } from '@/lib/og'
+
+function localizedHref(href: string, code: string, defaultLocale: string) {
+  return code === defaultLocale ? href : `/${code}${href}`
+}
 
 interface PageProps {
   params: Promise<{ slug?: Array<string> }>
@@ -27,15 +31,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {}
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
+  const i18n = getI18nConfig()
+
   const ogImageUrl = buildOgImageUrl({
     title: doc.title,
     description: doc.description,
     group: doc.group,
   })
 
+  const alternateLanguages = i18n
+    ? Object.fromEntries(
+        i18n.locales.map((l) => [l.code, `${siteUrl}${localizedHref(primaryHref, l.code, i18n.defaultLocale)}`]),
+      )
+    : {}
+
   return {
     title: doc.title,
     description: doc.description,
+    alternates: {
+      canonical: `${siteUrl}${primaryHref}`,
+      ...(i18n ? { languages: alternateLanguages } : {}),
+    },
     openGraph: {
       title: doc.title,
       description: doc.description,

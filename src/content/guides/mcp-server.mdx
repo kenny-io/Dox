@@ -235,3 +235,30 @@ Check my docs project for any issues
 |-----------|----------|-------------|
 | `projectDir` | Yes | Path to the Dox project |
 | `fix` | No | Auto-add orphan pages to the nav (default: `false`) |
+
+---
+
+### Internationalization
+
+#### `translate_docs`
+
+Translates documentation pages to a secondary locale using Claude AI. Requires an `i18n` block in the project's `docs.json`. Translated MDX files are written to `src/content/{locale}/` and committed to your repo.
+
+```
+Translate my docs to Spanish
+```
+
+```
+Translate only the introduction and quickstart pages to French
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `projectDir` | Yes | Path to the Dox project |
+| `locale` | Yes | Target locale code, e.g. `"es"`, `"fr"` |
+| `pages` | No | Array of page IDs to translate (omit for all pages) |
+| `force` | No | Overwrite existing translation files (default: `false`) |
+| `apiKey` | No | Anthropic API key (falls back to `ANTHROPIC_API_KEY`) |
+| `model` | No | Claude model to use (default: `claude-sonnet-4-6`) |
+
+See [Multi-Language Support](/guides/multi-language) for full setup instructions.

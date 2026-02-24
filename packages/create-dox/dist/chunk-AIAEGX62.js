@@ -3,18 +3,18 @@ import {
   initGit,
   installDeps,
   scaffold
-} from "./chunk-QJJKSAOE.js";
+} from "./chunk-XNHT35R5.js";
 
 // src/migrate/index.ts
-import { mkdirSync, copyFileSync, readFileSync as readFileSync3, writeFileSync, existsSync as existsSync3, mkdtempSync, rmSync } from "fs";
-import { join as join3, dirname, resolve } from "path";
+import { mkdirSync as mkdirSync2, copyFileSync as copyFileSync2, readFileSync as readFileSync3, writeFileSync, existsSync as existsSync3, mkdtempSync, rmSync } from "fs";
+import { join as join3, dirname as dirname2, resolve } from "path";
 import { tmpdir } from "os";
 import pLimit from "p-limit";
 
 // src/migrate/github.ts
 import { execSync } from "child_process";
-import { readdirSync, statSync } from "fs";
-import { join, relative, extname, basename } from "path";
+import { existsSync, readdirSync, statSync, copyFileSync, mkdirSync } from "fs";
+import { join, relative, extname, basename, dirname } from "path";
 var OPENAPI_FILENAMES = [
   "openapi.json",
   "openapi.yaml",
@@ -159,7 +159,9 @@ function derivePageId(relPath) {
   }
   return [...dirs, base].map(slugifySegment).join("/");
 }
-function scanDir(dir, baseDir, primaryOnly, results) {
+var I18N_DIR_PREFIXES = /* @__PURE__ */ new Set(["fr", "es", "de", "ja", "ko", "zh", "pt", "it", "ru", "ar", "nl", "pl", "tr", "vi", "th", "id", "hi", "uk", "cs", "sv", "da", "fi", "no", "he", "ro", "hu", "el", "bg", "sk", "sl", "hr", "lt", "lv", "et", "ms", "fil", "bn", "ta", "te", "mr", "gu", "kn", "ml", "pa", "ur", "fa", "sw"]);
+var ASSET_DIRS = /* @__PURE__ */ new Set(["images", "img", "assets", "static", "public", "media"]);
+function scanDir(dir, baseDir, primaryOnly, results, skipDirs) {
   let entries;
   try {
     entries = readdirSync(dir);
@@ -168,6 +170,8 @@ function scanDir(dir, baseDir, primaryOnly, results) {
   }
   for (const entry of entries) {
     if (entry.startsWith("_") || entry.startsWith(".") || entry === "node_modules") continue;
+    if (ASSET_DIRS.has(entry.toLowerCase())) continue;
+    if (skipDirs && skipDirs.has(entry.toLowerCase())) continue;
     const fullPath = join(dir, entry);
     let stat;
     try {
@@ -176,7 +180,7 @@ function scanDir(dir, baseDir, primaryOnly, results) {
       continue;
     }
     if (stat.isDirectory()) {
-      scanDir(fullPath, baseDir, primaryOnly, results);
+      scanDir(fullPath, baseDir, primaryOnly, results, skipDirs);
     } else {
       const ext = extname(entry).toLowerCase();
       const validExt = primaryOnly ? MD_EXTENSIONS.has(ext) : ALL_DOC_EXTENSIONS.has(ext);
@@ -187,14 +191,61 @@ function scanDir(dir, baseDir, primaryOnly, results) {
     }
   }
 }
-function findDocFiles(cloneDir, docsDir) {
+function findDocFiles(cloneDir, docsDir, skipI18n = false) {
   const baseDir = docsDir ? join(cloneDir, docsDir) : cloneDir;
+  const skipDirs = skipI18n ? I18N_DIR_PREFIXES : void 0;
   const primaryResults = [];
-  scanDir(baseDir, baseDir, true, primaryResults);
+  scanDir(baseDir, baseDir, true, primaryResults, skipDirs);
   if (primaryResults.length > 0) return primaryResults;
   const allResults = [];
-  scanDir(baseDir, baseDir, false, allResults);
+  scanDir(baseDir, baseDir, false, allResults, skipDirs);
   return allResults;
+}
+var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set([".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp", ".avif"]);
+var ASSET_EXTENSIONS = /* @__PURE__ */ new Set([...IMAGE_EXTENSIONS, ".mp4", ".webm", ".mp3", ".pdf"]);
+function scanAssets(dir, baseDir, results) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.startsWith(".") || entry === "node_modules") continue;
+    const fullPath = join(dir, entry);
+    let stat;
+    try {
+      stat = statSync(fullPath);
+    } catch {
+      continue;
+    }
+    if (stat.isDirectory()) {
+      scanAssets(fullPath, baseDir, results);
+    } else {
+      const ext = extname(entry).toLowerCase();
+      if (!ASSET_EXTENSIONS.has(ext)) continue;
+      results.push({ absPath: fullPath, relPath: relative(baseDir, fullPath) });
+    }
+  }
+}
+function copyStaticAssets(cloneDir, docsDir, targetPublicDir) {
+  const baseDir = docsDir ? join(cloneDir, docsDir) : cloneDir;
+  const assetRoots = [];
+  for (const name of ASSET_DIRS) {
+    const candidate = join(baseDir, name);
+    if (existsSync(candidate)) assetRoots.push(candidate);
+  }
+  if (assetRoots.length === 0) return 0;
+  const assets = [];
+  for (const root of assetRoots) {
+    scanAssets(root, baseDir, assets);
+  }
+  for (const asset of assets) {
+    const dest = join(targetPublicDir, asset.relPath);
+    mkdirSync(dirname(dest), { recursive: true });
+    copyFileSync(asset.absPath, dest);
+  }
+  return assets.length;
 }
 
 // src/migrate/importer.ts
@@ -521,20 +572,30 @@ function convertMintTabs(tabs, docsDir) {
     if (typeof page === "string") return normalizePageRef(page, docsDir);
     if (page !== null && typeof page === "object" && "group" in page && "pages" in page) {
       const p = page;
-      return {
-        group: String(p.group),
-        pages: (p.pages ?? []).map(convertPageRef)
-      };
+      const pages = [];
+      if (typeof p.root === "string") {
+        pages.push(normalizePageRef(p.root, docsDir));
+      }
+      pages.push(...(p.pages ?? []).map(convertPageRef));
+      const group = { group: String(p.group), pages };
+      if (typeof p.icon === "string") group.icon = p.icon;
+      return group;
     }
     return String(page);
   }
   const resultTabs = tabs.map((item) => {
-    if (item.href) return { tab: String(item.tab), href: String(item.href) };
-    const groups = (item.groups ?? []).map((g) => ({
-      group: String(g.group),
-      pages: (g.pages ?? []).map(convertPageRef)
-    }));
-    return { tab: String(item.tab), groups };
+    const tabName = String(item.tab);
+    if (item.href) return { tab: tabName, href: String(item.href) };
+    if (tabName.toLowerCase() === "changelog") return { tab: "Changelog", href: "/changelog" };
+    const groups = (item.groups ?? []).map((g) => {
+      const group = {
+        group: String(g.group),
+        pages: (g.pages ?? []).map(convertPageRef)
+      };
+      if (typeof g.icon === "string") group.icon = g.icon;
+      return group;
+    });
+    return { tab: tabName, groups };
   });
   if (!resultTabs.some((t) => t.tab === "Changelog")) {
     resultTabs.push({ tab: "Changelog", href: "/changelog" });
@@ -544,7 +605,14 @@ function convertMintTabs(tabs, docsDir) {
 function parseMintConfig(config, docsDir) {
   const nav = config.navigation;
   if (nav && typeof nav === "object" && !Array.isArray(nav)) {
-    const v3Tabs = nav.tabs;
+    const navObj = nav;
+    if (Array.isArray(navObj.languages) && navObj.languages.length > 0) {
+      const langs = navObj.languages;
+      const enLang = langs.find((l) => l.language === "en") ?? langs[0];
+      const langTabs = enLang.tabs;
+      if (Array.isArray(langTabs) && langTabs.length > 0) return convertMintTabs(langTabs, docsDir);
+    }
+    const v3Tabs = navObj.tabs;
     if (Array.isArray(v3Tabs) && v3Tabs.length > 0) return convertMintTabs(v3Tabs, docsDir);
   }
   if (!Array.isArray(nav) || nav.length === 0) return null;
@@ -724,16 +792,26 @@ function mergeDocsJson(existing, incoming) {
   return merged;
 }
 function injectApiTab(config, specFilename) {
-  const apiTab = { tab: "API Reference", api: { source: `/${specFilename}` } };
-  const tabs = config.tabs.filter((t) => {
-    if (t.tab.toLowerCase().includes("api")) return false;
-    return true;
-  });
-  const changelogIdx = tabs.findIndex((t) => t.tab === "Changelog");
-  if (changelogIdx >= 0) {
-    tabs.splice(changelogIdx, 0, apiTab);
+  const tabs = [...config.tabs];
+  const existingApiIdx = tabs.findIndex((t) => t.tab.toLowerCase().includes("api"));
+  if (existingApiIdx >= 0) {
+    const existing = tabs[existingApiIdx];
+    if (existing.groups && existing.groups.length > 0) {
+      tabs[existingApiIdx] = {
+        ...existing,
+        api: { source: `/${specFilename}` }
+      };
+    } else {
+      tabs[existingApiIdx] = { tab: existing.tab, api: { source: `/${specFilename}` } };
+    }
   } else {
-    tabs.push(apiTab);
+    const apiTab = { tab: "API Reference", api: { source: `/${specFilename}` } };
+    const changelogIdx = tabs.findIndex((t) => t.tab === "Changelog");
+    if (changelogIdx >= 0) {
+      tabs.splice(changelogIdx, 0, apiTab);
+    } else {
+      tabs.push(apiTab);
+    }
   }
   return { ...config, tabs };
 }
@@ -766,15 +844,25 @@ async function migrateDocs(opts) {
   \u{1F4E6} Cloning ${source.owner}/${source.repo}...`);
   try {
     await cloneRepo(source, cloneDir);
-    const docsDir = opts.docsDir ?? (source.docsDir || detectDocsDir(cloneDir));
-    const docFiles = findDocFiles(cloneDir, docsDir);
+    const platform = detectPlatform(cloneDir);
+    let docsDir;
+    if (opts.docsDir) {
+      docsDir = opts.docsDir;
+    } else if (source.docsDir) {
+      docsDir = source.docsDir;
+    } else if (platform === "mintlify") {
+      docsDir = "";
+    } else {
+      docsDir = detectDocsDir(cloneDir);
+    }
+    const hasI18n = platform === "mintlify";
+    const docFiles = findDocFiles(cloneDir, docsDir, hasI18n);
     const docsDirLabel = docsDir ? `${docsDir}/` : "repo root";
     console.log(`  \u{1F4C4} Found ${docFiles.length} files in ${docsDirLabel}`);
     if (docFiles.length === 0) {
       console.warn("  \u26A0  No doc files found. Check the URL and try again.");
       return { pagesWritten: 0, projectDir };
     }
-    const platform = detectPlatform(cloneDir);
     const detectedNav = detectNavFromConfig(cloneDir, docsDir, platform);
     const openApiSpec = detectOpenApiSpec(cloneDir);
     if (openApiSpec) {
@@ -817,7 +905,7 @@ async function migrateDocs(opts) {
     let pagesWritten = 0;
     for (const page of deduped) {
       const filePath = join3(contentDir, `${page.pageId}.mdx`);
-      mkdirSync(dirname(filePath), { recursive: true });
+      mkdirSync2(dirname2(filePath), { recursive: true });
       const mdx = [
         "---",
         `title: "${page.frontmatter.title.replace(/"/g, '\\"')}"`,
@@ -830,11 +918,15 @@ async function migrateDocs(opts) {
       writeFileSync(filePath, mdx, "utf8");
       pagesWritten++;
     }
+    const publicDir = join3(projectDir, "public");
+    mkdirSync2(publicDir, { recursive: true });
+    const assetCount = copyStaticAssets(cloneDir, docsDir, publicDir);
+    if (assetCount > 0) {
+      console.log(`  \u{1F5BC}  Copied ${assetCount} static assets \u2192 public/`);
+    }
     let finalNav = detectedNav ?? buildNavStructure(deduped);
     if (openApiSpec) {
-      const publicDir = join3(projectDir, "public");
-      mkdirSync(publicDir, { recursive: true });
-      copyFileSync(openApiSpec.absPath, join3(publicDir, openApiSpec.filename));
+      copyFileSync2(openApiSpec.absPath, join3(publicDir, openApiSpec.filename));
       console.log(`  \u{1F4CB} Copied ${openApiSpec.filename} \u2192 public/${openApiSpec.filename}`);
       finalNav = injectApiTab(finalNav, openApiSpec.filename);
     }

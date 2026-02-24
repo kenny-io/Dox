@@ -8,6 +8,8 @@ import { MobileNav } from '@/components/navigation/mobile-nav'
 import { CommandSearch } from '@/components/search/command-search'
 import { ThemeSwitch } from '@/components/theme/theme-switch'
 import { VersionSwitcher } from '@/components/docs/version-switcher'
+import { LocaleSwitcher } from '@/components/layout/locale-switcher'
+import type { I18nConfig } from '@/components/layout/site-shell'
 import { shell } from '@/config/layout'
 import { cn } from '@/lib/utils'
 import { siteConfig } from '@/data/site'
@@ -35,6 +37,9 @@ interface TopBarProps {
   onCollectionChange: (id: SidebarCollection['id']) => void
   activeSections: SidebarCollection['sections']
   searchIndex: Array<SearchableDoc>
+  i18nConfig?: I18nConfig | null
+  currentLocale?: string
+  currentPath?: string
 }
 
 export function TopBar({
@@ -43,6 +48,9 @@ export function TopBar({
   onCollectionChange,
   activeSections,
   searchIndex,
+  i18nConfig,
+  currentLocale,
+  currentPath,
 }: TopBarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -89,6 +97,14 @@ export function TopBar({
               </Link>
             ) : null}
             <VersionSwitcher />
+            {i18nConfig && i18nConfig.locales.length >= 2 ? (
+              <LocaleSwitcher
+                locales={i18nConfig.locales}
+                currentLocale={currentLocale ?? i18nConfig.defaultLocale}
+                currentPath={currentPath ?? '/'}
+                defaultLocale={i18nConfig.defaultLocale}
+              />
+            ) : null}
             <ThemeSwitch />
           </div>
         </div>

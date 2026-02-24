@@ -27,7 +27,12 @@ export interface MigrateResult {
 
 function mergeDocsJson(existing: DocsJsonConfig, incoming: DocsJsonConfig): DocsJsonConfig {
   const existingTabNames = new Set(existing.tabs.map((t) => t.tab))
-  const merged = { tabs: [...existing.tabs.filter((t) => t.tab !== 'Changelog')] }
+  const merged: DocsJsonConfig = { tabs: [...existing.tabs.filter((t) => t.tab !== 'Changelog')] }
+
+  // Preserve AI config from either source (existing takes priority)
+  if (existing.ai || incoming.ai) {
+    merged.ai = { ...incoming.ai, ...existing.ai }
+  }
 
   for (const tab of incoming.tabs) {
     if (tab.tab === 'Changelog') continue

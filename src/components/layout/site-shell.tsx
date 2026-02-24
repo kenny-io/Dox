@@ -8,10 +8,20 @@ import { layout, shell } from '@/config/layout'
 import type { SidebarCollection, SearchableDoc } from '@/data/docs'
 import { useSidebarCollectionsStore } from './sidebar-store'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-function collectionContainsPath(collection: SidebarCollection, pathname: string) {
+export interface I18nConfig {
+  defaultLocale: string
+  locales: Array<{ code: string; label: string }>
+}
+
+function collectionContainsPath(collection: SidebarCollection, pathname: string, currentPath?: string) {
   if (collection.href && matchesPath(collection.href, pathname)) {
+    return true
+  }
+  // API collections own all /api/* routes — check both full pathname and locale-stripped path
+  // so the API tab is recognised on /es/api/... before the locale hydration completes.
+  if (collection.api && (matchesPath('/api', pathname) || matchesPath('/api', currentPath ?? pathname))) {
     return true
   }
   return collection.sections.some((section) =>
@@ -44,28 +54,48 @@ function normalizePath(value: string) {
 interface SiteShellProps {
   children: React.ReactNode
   searchIndex: Array<SearchableDoc>
+  i18nConfig?: I18nConfig | null
 }
 
-export function SiteShell({ children, searchIndex }: SiteShellProps) {
+export function SiteShell({ children, searchIndex, i18nConfig }: SiteShellProps) {
   const collections = useSidebarCollectionsStore((state) => state.collections)
   const pathname = usePathname()
   const router = useRouter()
+
+  // Derive currentLocale and strip locale prefix from pathname
+  let currentLocale = i18nConfig?.defaultLocale ?? 'en'
+  let currentPath = pathname
+  if (i18nConfig) {
+    for (const locale of i18nConfig.locales) {
+      if (locale.code === i18nConfig.defaultLocale) continue
+      if (pathname === `/${locale.code}` || pathname.startsWith(`/${locale.code}/`)) {
+        currentLocale = locale.code
+        currentPath = pathname.slice(locale.code.length + 1) || '/'
+        break
+      }
+    }
+  }
   const navigableCollections = collections.filter((collection) => collection.sections.length > 0)
   const matchedCollection =
-    navigableCollections.find((collection) => collectionContainsPath(collection, pathname)) ??
+    navigableCollections.find((collection) => collectionContainsPath(collection, pathname, currentPath)) ??
     navigableCollections[0] ??
     collections[0]
+  // Manual override: set when user clicks a tab, cleared when pathname moves to a different collection
   const [selectedCollectionId, setSelectedCollectionId] = useState<SidebarCollection['id'] | null>(null)
-  const selectedCollection =
-    selectedCollectionId && navigableCollections.find((collection) => collection.id === selectedCollectionId)
+
+  // Reset manual override whenever the user navigates to a page outside the selected collection
+  useEffect(() => {
+    if (!selectedCollectionId) return
+    const selected = navigableCollections.find((c) => c.id === selectedCollectionId)
+    if (selected && !collectionContainsPath(selected, pathname)) {
+      setSelectedCollectionId(null)
+    }
+  }, [pathname])
+
   const activeCollection = (() => {
-    if (selectedCollection) {
-      if (collectionContainsPath(selectedCollection, pathname)) {
-        return selectedCollection
-      }
-      if (selectedCollection.href && matchesPath(selectedCollection.href, pathname)) {
-        return selectedCollection
-      }
+    if (selectedCollectionId) {
+      const selected = navigableCollections.find((c) => c.id === selectedCollectionId)
+      if (selected) return selected
     }
     return matchedCollection
   })()
@@ -103,6 +133,9 @@ export function SiteShell({ children, searchIndex }: SiteShellProps) {
             }}
             activeSections={activeCollection.sections}
             searchIndex={searchIndex}
+            i18nConfig={i18nConfig ?? null}
+            currentLocale={currentLocale}
+            currentPath={currentPath}
           />
           <main className="flex-1 py-6 sm:py-8 lg:py-10">
             <PageContainer className={layout.pageGap}>{children}</PageContainer>
