@@ -187,20 +187,22 @@ const customScripts = getCustomScriptsConfig()
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang={defaultLang} suppressHydrationWarning style={brandStyle} data-theme={structuralTheme}>
-      {/* Google Fonts for custom body/heading fonts set in docs.json */}
-      {googleFontUrls.length > 0 && (
-        <>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          {googleFontUrls.map((url) => (
-            <link key={url} rel="stylesheet" href={url} />
-          ))}
-        </>
-      )}
-      {/* CSS variable overrides for custom fonts */}
-      {fontOverrides && <style>{`:root { ${fontOverrides} }`}</style>}
-      {/* CSS variable overrides for structural theme (radius, sidebar, nav tabs) */}
-      {themeVars && <style>{`:root { ${themeVars} }`}</style>}
+      <head>
+        {/* Google Fonts for custom body/heading fonts set in docs.json */}
+        {googleFontUrls.length > 0 && (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            {googleFontUrls.map((url) => (
+              <link key={url} rel="stylesheet" href={url} />
+            ))}
+          </>
+        )}
+        {/* CSS variable overrides for custom fonts */}
+        {fontOverrides && <style>{`:root { ${fontOverrides} }`}</style>}
+        {/* CSS variable overrides for structural theme (radius, sidebar, nav tabs) */}
+        {themeVars && <style>{`:root { ${themeVars} }`}</style>}
+      </head>
       <body className={cn('min-h-screen bg-background font-sans text-foreground antialiased', fontSans.variable, fontMono.variable)}>
         {bannerConfig && <SiteBanner banner={bannerConfig} />}
         <Providers>{children}</Providers>
