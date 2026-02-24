@@ -1743,12 +1743,15 @@ function collectPageIds(pages) {
 function getAllPageIds(config) {
   const ids = [];
   const seen = /* @__PURE__ */ new Set();
+  const hrefOnlyPages = [];
   for (const tab of config.tabs) {
+    if (tab.api && !tab.groups) continue;
     if (!tab.groups && tab.href) {
       const pageId = tab.href.replace(/^\//, "");
       if (pageId && !seen.has(pageId)) {
         seen.add(pageId);
         ids.push(pageId);
+        hrefOnlyPages.push({ tab: tab.tab, pageId });
       }
       continue;
     }
@@ -1762,7 +1765,7 @@ function getAllPageIds(config) {
       }
     }
   }
-  return ids;
+  return { ids, hrefOnlyPages };
 }
 function findSourceFile(projectDir, pageId) {
   const contentRoot = join12(projectDir, "src", "content");
@@ -1820,7 +1823,7 @@ async function handleTranslateDocs(input) {
   if (locale === config.i18n.defaultLocale) {
     throw new Error(`Cannot translate to the default locale "${locale}".`);
   }
-  const allPageIds = getAllPageIds(config);
+  const { ids: allPageIds, hrefOnlyPages } = getAllPageIds(config);
   const targetPageIds = pages ?? allPageIds;
   const contentRoot = join12(projectDir, "src", "content");
   const toTranslate = [];
@@ -1872,6 +1875,10 @@ async function handleTranslateDocs(input) {
     "",
     `  ${succeeded.length}/${toTranslate.length} pages translated successfully`
   ];
+  if (hrefOnlyPages.length > 0 && !pages) {
+    const labels = hrefOnlyPages.map(({ tab, pageId }) => `${tab} (${pageId}.mdx)`).join(", ");
+    lines.push("", `\u2139  Standalone tab page(s) included: ${labels}`);
+  }
   if (succeeded.length > 0) {
     lines.push("", "Translated pages:");
     for (const r of succeeded) {

@@ -31,6 +31,7 @@ interface DocsJsonConfig {
     tab: string
     href?: string
     groups?: Array<NavGroup>
+    api?: object
   }>
   i18n?: {
     defaultLocale: string
@@ -56,20 +57,25 @@ function collectPageIds(pages: Array<string | NavGroup>): Array<string> {
   return ids
 }
 
-function getAllPageIds(config: DocsJsonConfig): Array<string> {
+function getAllPageIds(config: DocsJsonConfig): { ids: Array<string>; hrefOnlyPages: Array<{ tab: string; pageId: string }> } {
   const ids: Array<string> = []
   const seen = new Set<string>()
+  const hrefOnlyPages: Array<{ tab: string; pageId: string }> = []
+
   for (const tab of config.tabs) {
-    // Tab with a direct href and no groups (e.g. Changelog) — derive page ID from the href
+    // Skip API-only tabs — their content is auto-generated from the OpenAPI spec
+    if (tab.api && !tab.groups) continue
+    // Tab with a direct href and no groups (e.g. Changelog) — include as a standalone page
     if (!tab.groups && tab.href) {
       const pageId = tab.href.replace(/^\//, '')
       if (pageId && !seen.has(pageId)) {
         seen.add(pageId)
         ids.push(pageId)
+        hrefOnlyPages.push({ tab: tab.tab, pageId })
       }
       continue
     }
-    if (!tab.groups) continue // also skips API tabs (they have no groups)
+    if (!tab.groups) continue
     for (const group of tab.groups) {
       for (const id of collectPageIds(group.pages)) {
         if (!seen.has(id)) {
@@ -79,7 +85,7 @@ function getAllPageIds(config: DocsJsonConfig): Array<string> {
       }
     }
   }
-  return ids
+  return { ids, hrefOnlyPages }
 }
 
 function findSourceFile(projectDir: string, pageId: string): string | null {
@@ -156,7 +162,7 @@ export async function handleTranslateDocs(input: TranslateDocsInput): Promise<st
     throw new Error(`Cannot translate to the default locale "${locale}".`)
   }
 
-  const allPageIds = getAllPageIds(config)
+  const { ids: allPageIds, hrefOnlyPages } = getAllPageIds(config)
   const targetPageIds = pages ?? allPageIds
   const contentRoot = join(projectDir, 'src', 'content')
 
@@ -223,6 +229,11 @@ export async function handleTranslateDocs(input: TranslateDocsInput): Promise<st
     '',
     `  ${succeeded.length}/${toTranslate.length} pages translated successfully`,
   ]
+
+  if (hrefOnlyPages.length > 0 && !pages) {
+    const labels = hrefOnlyPages.map(({ tab, pageId }) => `${tab} (${pageId}.mdx)`).join(', ')
+    lines.push('', `ℹ  Standalone tab page(s) included: ${labels}`)
+  }
 
   if (succeeded.length > 0) {
     lines.push('', 'Translated pages:')

@@ -48,10 +48,15 @@ function collectPageIds(pages: Array<string | NavGroup>): Array<string> {
   return ids
 }
 
-function getAllPageIds(config: DocsJsonConfig): { ids: Array<string>; skippedApiTabs: Array<string> } {
+function getAllPageIds(config: DocsJsonConfig): {
+  ids: Array<string>
+  skippedApiTabs: Array<string>
+  hrefOnlyPages: Array<{ tab: string; pageId: string }>
+} {
   const ids: Array<string> = []
   const seen = new Set<string>()
   const skippedApiTabs: Array<string> = []
+  const hrefOnlyPages: Array<{ tab: string; pageId: string }> = []
 
   for (const tab of config.tabs) {
     if (tab.api) {
@@ -64,6 +69,7 @@ function getAllPageIds(config: DocsJsonConfig): { ids: Array<string>; skippedApi
       if (pageId && !seen.has(pageId)) {
         seen.add(pageId)
         ids.push(pageId)
+        hrefOnlyPages.push({ tab: tab.tab, pageId })
       }
       continue
     }
@@ -77,7 +83,7 @@ function getAllPageIds(config: DocsJsonConfig): { ids: Array<string>; skippedApi
       }
     }
   }
-  return { ids, skippedApiTabs }
+  return { ids, skippedApiTabs, hrefOnlyPages }
 }
 
 function findSourceFile(projectDir: string, pageId: string): string | null {
@@ -204,11 +210,17 @@ export async function runTranslateCommand(
     process.exit(1)
   }
 
-  const { ids: allPageIds, skippedApiTabs } = getAllPageIds(config)
+  const { ids: allPageIds, skippedApiTabs, hrefOnlyPages } = getAllPageIds(config)
 
   if (skippedApiTabs.length > 0) {
     console.log(`  ℹ  Skipping API reference tab(s): ${skippedApiTabs.join(', ')}`)
     console.log('     API reference pages are auto-generated from your OpenAPI spec and cannot be translated as MDX files.')
+    console.log('')
+  }
+
+  if (hrefOnlyPages.length > 0) {
+    const labels = hrefOnlyPages.map(({ tab, pageId }) => `${tab} (${pageId}.mdx)`).join(', ')
+    console.log(`  ℹ  Including standalone tab page(s): ${labels}`)
     console.log('')
   }
 

@@ -300,6 +300,7 @@ function getAllPageIds(config) {
   const ids = [];
   const seen = /* @__PURE__ */ new Set();
   const skippedApiTabs = [];
+  const hrefOnlyPages = [];
   for (const tab of config.tabs) {
     if (tab.api) {
       skippedApiTabs.push(tab.tab);
@@ -310,6 +311,7 @@ function getAllPageIds(config) {
       if (pageId && !seen.has(pageId)) {
         seen.add(pageId);
         ids.push(pageId);
+        hrefOnlyPages.push({ tab: tab.tab, pageId });
       }
       continue;
     }
@@ -323,7 +325,7 @@ function getAllPageIds(config) {
       }
     }
   }
-  return { ids, skippedApiTabs };
+  return { ids, skippedApiTabs, hrefOnlyPages };
 }
 function findSourceFile(projectDir, pageId) {
   const contentRoot = join3(projectDir, "src", "content");
@@ -416,10 +418,15 @@ async function runTranslateCommand(locale, pages, force, apiKey, model, yes, pro
     console.error("\n  \u274C Anthropic API key required. Set ANTHROPIC_API_KEY or pass --api-key.");
     process.exit(1);
   }
-  const { ids: allPageIds, skippedApiTabs } = getAllPageIds(config);
+  const { ids: allPageIds, skippedApiTabs, hrefOnlyPages } = getAllPageIds(config);
   if (skippedApiTabs.length > 0) {
     console.log(`  \u2139  Skipping API reference tab(s): ${skippedApiTabs.join(", ")}`);
     console.log("     API reference pages are auto-generated from your OpenAPI spec and cannot be translated as MDX files.");
+    console.log("");
+  }
+  if (hrefOnlyPages.length > 0) {
+    const labels = hrefOnlyPages.map(({ tab, pageId }) => `${tab} (${pageId}.mdx)`).join(", ");
+    console.log(`  \u2139  Including standalone tab page(s): ${labels}`);
     console.log("");
   }
   const targetPageIds = pages ?? allPageIds;
