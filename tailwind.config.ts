@@ -15,6 +15,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-heading)', 'var(--font-sans)', 'Inter', 'sans-serif'],
         mono: ['var(--font-mono)', 'IBM Plex Mono', 'monospace'],
       },
       fontSize: {
@@ -188,6 +189,9 @@ const config: Config = {
             },
             'blockquote p:last-of-type::after': {
               content: 'close-quote',
+            },
+            'h1, h2, h3, h4, h5, h6': {
+              fontFamily: 'var(--font-heading)',
             },
             h1: {
               color: 'var(--tw-prose-headings)',

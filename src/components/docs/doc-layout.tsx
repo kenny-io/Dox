@@ -1,5 +1,5 @@
 import type { DocEntry } from '@/data/docs'
-import { getBreadcrumbs, getPrevNextLinks } from '@/data/docs'
+import { getBreadcrumbs, getPrevNextLinks, getFeedbackConfig } from '@/data/docs'
 import { DocBreadcrumbs } from '@/components/docs/doc-breadcrumbs'
 import { DocHeader } from '@/components/docs/doc-header'
 import { DocPagination } from '@/components/docs/doc-pagination'
@@ -17,7 +17,56 @@ interface DocLayoutProps {
 export function DocLayout({ doc, children }: DocLayoutProps) {
   const { prev, next } = getPrevNextLinks(doc.href)
   const breadcrumbs = getBreadcrumbs(doc.href)
+  const mode = doc.mode ?? 'default'
+  const feedbackConfig = getFeedbackConfig()
+  const feedbackEndpoint = feedbackConfig.endpoint
 
+  // custom mode: render children directly, no shell chrome
+  if (mode === 'custom') {
+    return <>{children}</>
+  }
+
+  // center mode: single centered column, no sidebar-style TOC
+  if (mode === 'center') {
+    return (
+      <article className="mx-auto w-full max-w-2xl">
+        <ContentStack>
+          <div className="not-prose space-y-4">
+            <DocBreadcrumbs items={breadcrumbs} />
+            <DocHeader doc={doc} />
+          </div>
+          <Prose className="flex-auto w-full">{children}</Prose>
+          <div className="not-prose space-y-6">
+            <Feedback endpoint={feedbackEndpoint} />
+            <EditOnGithub pageId={doc.id} />
+            <DocPagination prev={prev} next={next} />
+          </div>
+        </ContentStack>
+      </article>
+    )
+  }
+
+  // wide mode: no TOC column, full-width content
+  if (mode === 'wide') {
+    return (
+      <article className="flex-1">
+        <ContentStack>
+          <div className="not-prose space-y-4">
+            <DocBreadcrumbs items={breadcrumbs} />
+            <DocHeader doc={doc} />
+          </div>
+          <Prose className="flex-auto w-full">{children}</Prose>
+          <div className="not-prose space-y-6">
+            <Feedback endpoint={feedbackEndpoint} />
+            <EditOnGithub pageId={doc.id} />
+            <DocPagination prev={prev} next={next} />
+          </div>
+        </ContentStack>
+      </article>
+    )
+  }
+
+  // default: two-column with TOC
   return (
     <MainColumns>
       <article className="flex-1">
@@ -28,7 +77,7 @@ export function DocLayout({ doc, children }: DocLayoutProps) {
           </div>
           <Prose className="flex-auto w-full">{children}</Prose>
           <div className="not-prose space-y-6">
-            <Feedback />
+            <Feedback endpoint={feedbackEndpoint} />
             <EditOnGithub pageId={doc.id} />
             <DocPagination prev={prev} next={next} />
           </div>
@@ -40,4 +89,3 @@ export function DocLayout({ doc, children }: DocLayoutProps) {
     </MainColumns>
   )
 }
-

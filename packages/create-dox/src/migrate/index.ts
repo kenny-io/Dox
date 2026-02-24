@@ -2,7 +2,7 @@ import { mkdirSync, copyFileSync, readFileSync, writeFileSync, existsSync, mkdte
 import { join, dirname, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import pLimit from 'p-limit'
-import { parseGitHubUrl, cloneRepo, detectDocsDir, findDocFiles, detectOpenApiSpec } from './github.js'
+import { parseGitHubUrl, cloneRepo, detectDocsDir, findDocFiles, detectOpenApiSpec, copyStaticAssets } from './github.js'
 import { importFile, type ImportedPage } from './importer.js'
 import { buildNavStructure, detectNavFromConfig, detectPlatform, type DocsJsonConfig } from './nav-builder.js'
 import { scaffold } from '../scaffold.js'
@@ -70,19 +70,34 @@ function mergeDocsJson(existing: DocsJsonConfig, incoming: DocsJsonConfig): Docs
 }
 
 function injectApiTab(config: DocsJsonConfig, specFilename: string): DocsJsonConfig {
-  const apiTab = { tab: 'API Reference', api: { source: `/${specFilename}` } }
-  // Remove any existing API Reference tab (was groups-based from Mintlify nav detection)
-  const tabs = config.tabs.filter((t) => {
-    if (t.tab.toLowerCase().includes('api')) return false
-    return true
-  })
-  // Insert before Changelog
-  const changelogIdx = tabs.findIndex((t) => t.tab === 'Changelog')
-  if (changelogIdx >= 0) {
-    tabs.splice(changelogIdx, 0, apiTab)
+  const tabs = [...config.tabs]
+
+  // Find any existing API tab from nav detection (may have groups with MDX pages)
+  const existingApiIdx = tabs.findIndex((t) => t.tab.toLowerCase().includes('api'))
+
+  if (existingApiIdx >= 0) {
+    const existing = tabs[existingApiIdx]
+    // If the existing API tab has groups with MDX pages, keep them and add the spec source
+    if (existing.groups && existing.groups.length > 0) {
+      tabs[existingApiIdx] = {
+        ...existing,
+        api: { source: `/${specFilename}` },
+      }
+    } else {
+      // No groups — replace with pure spec-based tab
+      tabs[existingApiIdx] = { tab: existing.tab, api: { source: `/${specFilename}` } }
+    }
   } else {
-    tabs.push(apiTab)
+    // No existing API tab — insert before Changelog
+    const apiTab = { tab: 'API Reference', api: { source: `/${specFilename}` } }
+    const changelogIdx = tabs.findIndex((t) => t.tab === 'Changelog')
+    if (changelogIdx >= 0) {
+      tabs.splice(changelogIdx, 0, apiTab)
+    } else {
+      tabs.push(apiTab)
+    }
   }
+
   return { ...config, tabs }
 }
 
@@ -122,11 +137,26 @@ export async function migrateDocs(opts: MigrateOptions): Promise<MigrateResult> 
   try {
     await cloneRepo(source, cloneDir)
 
-    // Step 4: Detect docs dir
-    const docsDir = opts.docsDir ?? (source.docsDir || detectDocsDir(cloneDir))
+    // Step 4: Detect platform early — it affects docsDir detection
+    const platform = detectPlatform(cloneDir)
 
-    // Step 5: Find doc files
-    const docFiles = findDocFiles(cloneDir, docsDir)
+    // Step 5: Detect docs dir
+    // For Mintlify, page refs are relative to repo root, so docsDir should be ''
+    let docsDir: string
+    if (opts.docsDir) {
+      docsDir = opts.docsDir
+    } else if (source.docsDir) {
+      docsDir = source.docsDir
+    } else if (platform === 'mintlify') {
+      // Mintlify repos have docs at the root — don't guess a subdirectory
+      docsDir = ''
+    } else {
+      docsDir = detectDocsDir(cloneDir)
+    }
+
+    // Step 6: Find doc files (skip i18n directories for Mintlify)
+    const hasI18n = platform === 'mintlify'
+    const docFiles = findDocFiles(cloneDir, docsDir, hasI18n)
     const docsDirLabel = docsDir ? `${docsDir}/` : 'repo root'
     console.log(`  📄 Found ${docFiles.length} files in ${docsDirLabel}`)
 
@@ -135,8 +165,7 @@ export async function migrateDocs(opts: MigrateOptions): Promise<MigrateResult> 
       return { pagesWritten: 0, projectDir }
     }
 
-    // Step 6: Detect platform + nav config
-    const platform = detectPlatform(cloneDir)
+    // Step 6b: Detect nav config from platform config file
     const detectedNav = detectNavFromConfig(cloneDir, docsDir, platform)
 
     // Step 6b: Detect OpenAPI spec in the source repo
@@ -209,11 +238,17 @@ export async function migrateDocs(opts: MigrateOptions): Promise<MigrateResult> 
       pagesWritten++
     }
 
-    // Step 9b: Copy OpenAPI spec to public/ and inject API tab into nav
+    // Step 9b: Copy static assets (images, media) from source repo
+    const publicDir = join(projectDir, 'public')
+    mkdirSync(publicDir, { recursive: true })
+    const assetCount = copyStaticAssets(cloneDir, docsDir, publicDir)
+    if (assetCount > 0) {
+      console.log(`  🖼  Copied ${assetCount} static assets → public/`)
+    }
+
+    // Step 9c: Copy OpenAPI spec to public/ and inject API tab into nav
     let finalNav = detectedNav ?? buildNavStructure(deduped)
     if (openApiSpec) {
-      const publicDir = join(projectDir, 'public')
-      mkdirSync(publicDir, { recursive: true })
       copyFileSync(openApiSpec.absPath, join(publicDir, openApiSpec.filename))
       console.log(`  📋 Copied ${openApiSpec.filename} → public/${openApiSpec.filename}`)
       finalNav = injectApiTab(finalNav, openApiSpec.filename)

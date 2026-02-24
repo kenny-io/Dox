@@ -98,7 +98,7 @@ var STARTER_DOCS_JSON = `{
   ]
 }
 `;
-function writeStarterContent(targetDir, projectName, slug) {
+function writeStarterContent(targetDir, projectName, slug, i18nLocales) {
   const contentDir = join(targetDir, "src", "content");
   if (existsSync(contentDir)) {
     const entries = readdirSync(contentDir);
@@ -113,7 +113,18 @@ function writeStarterContent(targetDir, projectName, slug) {
     const content = template.replace(/\{NAME\}/g, projectName).replace(/\{SLUG\}/g, slug);
     writeFileSync(join(contentDir, filename), content, "utf8");
   }
-  writeFileSync(join(targetDir, "docs.json"), STARTER_DOCS_JSON, "utf8");
+  let docsJson = STARTER_DOCS_JSON.trimEnd();
+  if (i18nLocales && i18nLocales.length > 0) {
+    const allLocales = [{ code: "en", label: "English" }, ...i18nLocales];
+    const i18nBlock = JSON.stringify(
+      { defaultLocale: "en", locales: allLocales },
+      null,
+      2
+    ).split("\n").map((line, idx) => idx === 0 ? line : "  " + line).join("\n");
+    docsJson = docsJson.replace(/^(\{)/, `$1
+  "i18n": ${i18nBlock},`);
+  }
+  writeFileSync(join(targetDir, "docs.json"), docsJson + "\n", "utf8");
 }
 function updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl) {
   const siteFile = join(targetDir, "src", "data", "site.ts");
@@ -290,7 +301,8 @@ async function scaffold(options) {
     description,
     brandPreset,
     repoUrl,
-    doInstall
+    doInstall,
+    i18nLocales
   } = options;
   const targetDir = resolve(projectDir);
   if (existsSync2(targetDir) && readdirSync2(targetDir).length > 0) {
@@ -299,7 +311,7 @@ async function scaffold(options) {
   mkdirSync2(targetDir, { recursive: true });
   const slug = slugify(projectName);
   await downloadTemplate(targetDir);
-  writeStarterContent(targetDir, projectName, slug);
+  writeStarterContent(targetDir, projectName, slug, i18nLocales);
   updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl);
   patchApiReferenceGuard(targetDir);
   patchTopBarNavigation(targetDir);

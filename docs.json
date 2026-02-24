@@ -1,11 +1,72 @@
 {
+  "theme": "sharp",
   "ai": { "chat": true },
+  "navbar": {
+    "links": [
+      { "label": "GitHub", "href": "https://github.com/your-org/dox", "type": "github" }
+    ],
+    "primary": { "label": "Get started", "href": "/quickstart" }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/your-org/dox",
+      "twitter": "https://twitter.com/doxdocs",
+      "discord": "https://discord.gg/dox"
+    },
+    "links": [
+      {
+        "heading": "Documentation",
+        "items": [
+          { "label": "Quick Start", "href": "/quickstart" },
+          { "label": "Guides", "href": "/guides/getting-started" },
+          { "label": "Components", "href": "/components/badge" },
+          { "label": "API Reference", "href": "/api" }
+        ]
+      },
+      {
+        "heading": "Customize",
+        "items": [
+          { "label": "Branding & Theming", "href": "/guides/branding-and-theming" },
+          { "label": "Navbar & Footer", "href": "/guides/navbar-and-footer" },
+          { "label": "Navigation", "href": "/guides/configuring-navigation" }
+        ]
+      },
+      {
+        "heading": "Tooling",
+        "items": [
+          { "label": "CLI Reference", "href": "/guides/cli-reference" },
+          { "label": "MCP Server", "href": "/guides/mcp-server" },
+          { "label": "Migrate from Mintlify", "href": "/guides/migrating" }
+        ]
+      }
+    ]
+  },
+  "fonts": {
+    "body": { "family": "Plus Jakarta Sans", "weight": ["400", "500", "600", "700"] },
+    "heading": { "family": "Outfit", "weight": ["600", "700"] }
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "endpoint": "/api/feedback"
+  },
+  "redirects": [
+    { "source": "/docs", "destination": "/", "permanent": false },
+    { "source": "/getting-started", "destination": "/quickstart", "permanent": true }
+  ],
+  "i18n": {
+    "defaultLocale": "en",
+    "locales": [
+      { "code": "en", "label": "English" },
+      { "code": "es", "label": "Español" }
+    ]
+  },
   "tabs": [
     {
       "tab": "Overview",
       "groups": [
         {
           "group": "Getting Started",
+          "icon": "book-open",
           "pages": [
             "introduction",
             "quickstart"
@@ -13,6 +74,7 @@
         },
         {
           "group": "Concepts",
+          "icon": "grid-round",
           "pages": [
             "authentication",
             "pagination"
@@ -20,6 +82,7 @@
         },
         {
           "group": "Features",
+          "icon": "party-horn",
           "pages": [
             "webhooks",
             "sdks"
@@ -27,6 +90,7 @@
         },
         {
           "group": "Project",
+          "icon": "wrench",
           "pages": [
             "errors",
             "customization",
@@ -40,6 +104,7 @@
       "groups": [
         {
           "group": "Setup",
+          "icon": "wrench",
           "pages": [
             "guides/getting-started",
             "guides/configuring-navigation"
@@ -47,6 +112,7 @@
         },
         {
           "group": "Content",
+          "icon": "book-open",
           "pages": [
             "guides/writing-content",
             "guides/api-reference-setup"
@@ -54,30 +120,48 @@
         },
         {
           "group": "Customize & Ship",
+          "icon": "grid-round",
           "pages": [
             "guides/branding-and-theming",
+            "guides/navbar-and-footer",
+            "guides/custom-fonts",
             "guides/og-images",
-            "guides/deploying"
+            "guides/deploying",
+            "guides/page-modes",
+            "guides/seo-and-visibility",
+            "guides/site-banner",
+            "guides/redirects",
+            "guides/custom-404",
+            "guides/custom-scripts"
           ]
         },
         {
           "group": "Tooling",
+          "icon": "code-simple",
           "pages": [
             "guides/cli-reference",
             "guides/mcp-server",
             "guides/migrating",
-            "guides/ai-features"
+            "guides/ai-features",
+            "guides/multi-language"
           ]
         }
       ]
     },
     {
       "tab": "API Reference",
+      "groups": [
+        {
+          "group": "Overview",
+          "pages": ["api/overview"]
+        }
+      ],
       "api": {
         "source": "openapi.yaml",
         "tagsOrder": [
           "Pets",
-          "Store"
+          "Store",
+          "Webhooks"
         ],
         "defaultGroup": "General",
         "overrides": {
@@ -100,6 +184,58 @@
           }
         }
       }
+    },
+    {
+      "tab": "Components",
+      "groups": [
+        {
+          "group": "Content",
+          "pages": [
+            "components/badge",
+            "components/callouts",
+            "components/code-blocks",
+            "components/panel",
+            "components/update"
+          ]
+        },
+        {
+          "group": "Layout",
+          "pages": [
+            "components/accordion",
+            "components/card",
+            "components/columns",
+            "components/frame",
+            "components/steps",
+            "components/tabs",
+            "components/tile"
+          ]
+        },
+        {
+          "group": "Media & Diagrams",
+          "pages": [
+            "components/mermaid",
+            "components/view",
+            "components/color"
+          ]
+        },
+        {
+          "group": "API Reference",
+          "pages": [
+            "components/param-field",
+            "components/response-field",
+            "components/expandable",
+            "components/request-response-example"
+          ]
+        },
+        {
+          "group": "Navigation",
+          "pages": [
+            "components/file-tree",
+            "components/tooltip",
+            "components/prompt"
+          ]
+        }
+      ]
     },
     {
       "tab": "Changelog",

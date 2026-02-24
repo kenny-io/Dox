@@ -1,9 +1,11 @@
 'use client'
 
+import type React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { NavigationSection } from '@/data/docs'
 import { Badge } from '@/components/ui/badge'
+import { Icon } from '@/components/mdx/rich-content'
 import { layout, typography } from '@/config/layout'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/layout/logo'
@@ -38,21 +40,23 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
     <aside
       className={cn('hidden shrink-0 border-r border-border/80 bg-background lg:block', layout.sidebarWidth, className)}
     >
-      <div className="sticky top-0 flex max-h-screen flex-col overflow-hidden">
-        <div className={cn('flex flex-1 flex-col gap-6 overflow-hidden', layout.sidebarPadding)}>
-          <div className="flex flex-col gap-3 px-1 pt-2">
-            <Link href="/" className="flex items-center gap-2">
-              <Logo showText={false} className="shrink-0" />
-              <span className="text-sm font-semibold text-foreground">{siteConfig.name} Docs</span>
-            </Link>
-          </div>
-          <div className="px-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-foreground/40 line-clamp-1">{title}</p>
-          </div>
-          <nav className="flex-1 space-y-6 overflow-y-auto overscroll-y-contain pr-1 pb-4">
+      <div className={cn('fixed top-0 flex h-screen flex-col', layout.sidebarWidth, layout.sidebarPadding)}>
+        <div className="flex shrink-0 flex-col gap-3 px-1 pt-2">
+          <Link href="/" className="flex items-center gap-2">
+            <Logo showText={false} className="shrink-0" />
+            <span className="text-sm font-semibold text-foreground">{siteConfig.name} Docs</span>
+          </Link>
+        </div>
+        <div className="shrink-0 px-1 pt-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-foreground/40 line-clamp-1">{title}</p>
+        </div>
+        <nav className="mt-6 min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-y-contain pb-4">
             {sections.map((section) => (
               <div key={section.title} className="space-y-3">
-                <p className={cn(typography.meta, 'px-1 uppercase tracking-wide text-foreground/70 line-clamp-2')}>{section.title}</p>
+                <p className={cn(typography.meta, 'flex items-center gap-1.5 px-1 uppercase tracking-wide text-foreground/70')}>
+                  {section.icon && <Icon icon={section.icon} className="h-3.5 w-3.5 shrink-0 text-foreground/50" />}
+                  <span className="truncate">{section.title}</span>
+                </p>
                 <div className="relative pl-4">
                   <span className="absolute inset-y-0 left-1 w-px rounded-full bg-border/70" />
                   <div className="space-y-1">
@@ -70,18 +74,20 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
                           href={item.href}
                           aria-current={active ? 'page' : undefined}
                           className={cn(
-                            'group relative block rounded-2xl px-3 py-2 text-left transition',
+                            'group relative block px-3 py-2 text-left transition',
+                            'rounded-[var(--theme-sidebar-item-radius)]',
                             active
-                              ? 'rounded-lg text-foreground shadow-none'
+                              ? 'text-foreground shadow-none'
                               : 'text-foreground/70 hover:bg-muted/40 hover:text-foreground',
                           )}
                           style={activeStyles}
                         >
                           <span
                             className={cn(
-                              'absolute -left-4 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full transition',
+                              'dox-sidebar-indicator absolute -left-4 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full transition',
                               active ? 'bg-accent' : 'bg-transparent group-hover:bg-border/80',
                             )}
+                            style={{ opacity: 'var(--theme-sidebar-indicator-opacity, 1)' } as React.CSSProperties}
                           />
                           <span
                             className={cn(
@@ -99,8 +105,7 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
                 </div>
               </div>
             ))}
-          </nav>
-        </div>
+        </nav>
       </div>
     </aside>
   )

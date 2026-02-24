@@ -1,6 +1,6 @@
 import { SiteShell } from '@/components/layout/site-shell'
 import { SidebarCollectionsHydrator } from '@/components/layout/sidebar-hydrator'
-import { getSearchableDocs, getSidebarCollections, getAiConfig } from '@/data/docs'
+import { getSearchableDocs, getSidebarCollections, getAiConfig, getI18nConfig, getNavbarConfig, getFooterConfig } from '@/data/docs'
 import type { NavigationSection } from '@/data/docs'
 import { buildApiNavigation } from '@/data/api-reference'
 import { DocsChat } from '@/components/docs/docs-chat'
@@ -25,7 +25,10 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
   const sidebarCollections = getSidebarCollections()
   const collections = sidebarCollections.map((collection) => {
     if (collection.api) {
-      return { ...collection, sections: apiSections }
+      // Merge MDX-based sections (from docs.json groups) with OpenAPI-generated sections
+      const mdxSections = collection.sections ?? []
+      const mergedSections = [...mdxSections, ...apiSections]
+      return { ...collection, sections: mergedSections }
     }
     if (!collection.href && collection.id === 'overview') {
       return { ...collection, href: '/' }
@@ -34,11 +37,14 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
   })
   const searchIndex = getSearchableDocs()
   const aiConfig = getAiConfig()
+  const i18nConfig = getI18nConfig()
+  const navbarConfig = getNavbarConfig()
+  const footerConfig = getFooterConfig()
 
   return (
     <>
       <SidebarCollectionsHydrator collections={collections} />
-      <SiteShell searchIndex={searchIndex}>
+      <SiteShell searchIndex={searchIndex} i18nConfig={i18nConfig} navbarConfig={navbarConfig} footerConfig={footerConfig}>
         {children}
       </SiteShell>
       {aiConfig.chat && <DocsChat label={aiConfig.label} icon={aiConfig.icon} />}

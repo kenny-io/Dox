@@ -25,7 +25,9 @@ export function ExamplePanel({ title, mediaType, example, examples = [] }: Examp
       <div className="space-y-6">
         {resolvedExamples.map((entry) => (
           <div key={entry.key} className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground/60">{entry.summary ?? entry.key}</p>
+            {(resolvedExamples.length > 1 || entry.summary) ? (
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground/60">{entry.summary ?? entry.key}</p>
+            ) : null}
             {entry.description ? <p className="text-sm text-foreground/70">{entry.description}</p> : null}
             <pre className="overflow-x-auto rounded-xl border border-border/60 bg-background/80 p-4 text-xs leading-relaxed text-foreground/80">
               {formatValue(entry.value)}

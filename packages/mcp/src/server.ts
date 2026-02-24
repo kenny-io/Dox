@@ -9,6 +9,7 @@ import { searchDocsSchema, handleSearchDocs } from './tools/search-docs.js'
 import { readPageSchema, handleReadPage } from './tools/read-page.js'
 import { getContextSchema, handleGetContext } from './tools/get-context.js'
 import { lintProjectSchema, handleLintProject } from './tools/lint-project.js'
+import { translateDocsSchema, handleTranslateDocs } from './tools/translate-docs.js'
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -159,6 +160,21 @@ export function createServer(): McpServer {
     async (input) => {
       try {
         const text = await handleLintProject(input)
+        return { content: [{ type: 'text', text }] }
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : String(err))
+      }
+    },
+  )
+
+  // Tool: translate_docs
+  server.tool(
+    'translate_docs',
+    'Translate Dox documentation pages to a secondary locale using Claude AI',
+    translateDocsSchema.shape,
+    async (input) => {
+      try {
+        const text = await handleTranslateDocs(input)
         return { content: [{ type: 'text', text }] }
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : String(err))

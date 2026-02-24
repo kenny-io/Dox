@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process'
-import { existsSync, readdirSync, statSync } from 'node:fs'
-import { join, relative, extname, basename } from 'node:path'
+import { existsSync, readdirSync, statSync, copyFileSync, mkdirSync } from 'node:fs'
+import { join, relative, extname, basename, dirname } from 'node:path'
 
 const OPENAPI_FILENAMES = [
   'openapi.json', 'openapi.yaml', 'openapi.yml',
@@ -199,7 +199,19 @@ function derivePageId(relPath: string): string {
   return [...dirs, base].map(slugifySegment).join('/')
 }
 
-function scanDir(dir: string, baseDir: string, primaryOnly: boolean, results: DocFile[]): void {
+// Well-known i18n directory prefixes used by Mintlify and other platforms
+const I18N_DIR_PREFIXES = new Set(['fr', 'es', 'de', 'ja', 'ko', 'zh', 'pt', 'it', 'ru', 'ar', 'nl', 'pl', 'tr', 'vi', 'th', 'id', 'hi', 'uk', 'cs', 'sv', 'da', 'fi', 'no', 'he', 'ro', 'hu', 'el', 'bg', 'sk', 'sl', 'hr', 'lt', 'lv', 'et', 'ms', 'fil', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur', 'fa', 'sw'])
+
+// Directories that contain static assets (images, etc.) rather than docs
+const ASSET_DIRS = new Set(['images', 'img', 'assets', 'static', 'public', 'media'])
+
+function scanDir(
+  dir: string,
+  baseDir: string,
+  primaryOnly: boolean,
+  results: DocFile[],
+  skipDirs?: Set<string>,
+): void {
   let entries: string[]
   try {
     entries = readdirSync(dir)
@@ -210,6 +222,10 @@ function scanDir(dir: string, baseDir: string, primaryOnly: boolean, results: Do
   for (const entry of entries) {
     // Skip hidden, underscore-prefixed, and node_modules
     if (entry.startsWith('_') || entry.startsWith('.') || entry === 'node_modules') continue
+    // Skip asset directories — they don't contain doc files
+    if (ASSET_DIRS.has(entry.toLowerCase())) continue
+    // Skip i18n directories when requested
+    if (skipDirs && skipDirs.has(entry.toLowerCase())) continue
 
     const fullPath = join(dir, entry)
     let stat
@@ -220,7 +236,7 @@ function scanDir(dir: string, baseDir: string, primaryOnly: boolean, results: Do
     }
 
     if (stat.isDirectory()) {
-      scanDir(fullPath, baseDir, primaryOnly, results)
+      scanDir(fullPath, baseDir, primaryOnly, results, skipDirs)
     } else {
       const ext = extname(entry).toLowerCase()
       const validExt = primaryOnly ? MD_EXTENSIONS.has(ext) : ALL_DOC_EXTENSIONS.has(ext)
@@ -233,16 +249,78 @@ function scanDir(dir: string, baseDir: string, primaryOnly: boolean, results: Do
   }
 }
 
-export function findDocFiles(cloneDir: string, docsDir: string): DocFile[] {
+export function findDocFiles(cloneDir: string, docsDir: string, skipI18n = false): DocFile[] {
   const baseDir = docsDir ? join(cloneDir, docsDir) : cloneDir
+  const skipDirs = skipI18n ? I18N_DIR_PREFIXES : undefined
 
   // First try primary (md/mdx only)
   const primaryResults: DocFile[] = []
-  scanDir(baseDir, baseDir, true, primaryResults)
+  scanDir(baseDir, baseDir, true, primaryResults, skipDirs)
   if (primaryResults.length > 0) return primaryResults
 
   // Fall back to all doc extensions
   const allResults: DocFile[] = []
-  scanDir(baseDir, baseDir, false, allResults)
+  scanDir(baseDir, baseDir, false, allResults, skipDirs)
   return allResults
+}
+
+// ---------------------------------------------------------------------------
+// Static asset copying (images, media, etc.)
+// ---------------------------------------------------------------------------
+
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.bmp', '.avif'])
+const ASSET_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, '.mp4', '.webm', '.mp3', '.pdf'])
+
+function scanAssets(dir: string, baseDir: string, results: { absPath: string; relPath: string }[]): void {
+  let entries: string[]
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return
+  }
+
+  for (const entry of entries) {
+    if (entry.startsWith('.') || entry === 'node_modules') continue
+    const fullPath = join(dir, entry)
+    let stat
+    try {
+      stat = statSync(fullPath)
+    } catch {
+      continue
+    }
+
+    if (stat.isDirectory()) {
+      scanAssets(fullPath, baseDir, results)
+    } else {
+      const ext = extname(entry).toLowerCase()
+      if (!ASSET_EXTENSIONS.has(ext)) continue
+      results.push({ absPath: fullPath, relPath: relative(baseDir, fullPath) })
+    }
+  }
+}
+
+export function copyStaticAssets(cloneDir: string, docsDir: string, targetPublicDir: string): number {
+  const baseDir = docsDir ? join(cloneDir, docsDir) : cloneDir
+
+  // Scan known asset directories within the docs root
+  const assetRoots: string[] = []
+  for (const name of ASSET_DIRS) {
+    const candidate = join(baseDir, name)
+    if (existsSync(candidate)) assetRoots.push(candidate)
+  }
+
+  if (assetRoots.length === 0) return 0
+
+  const assets: { absPath: string; relPath: string }[] = []
+  for (const root of assetRoots) {
+    scanAssets(root, baseDir, assets)
+  }
+
+  for (const asset of assets) {
+    const dest = join(targetPublicDir, asset.relPath)
+    mkdirSync(dirname(dest), { recursive: true })
+    copyFileSync(asset.absPath, dest)
+  }
+
+  return assets.length
 }
