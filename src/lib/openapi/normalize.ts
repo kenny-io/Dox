@@ -131,7 +131,7 @@ function normalizeOperation(options: NormalizeOperationOptions): NormalizedOpera
   const operationParameters = extractParameters(options.rawOperation.parameters)
   const { groupedParameters, parameterPrefill } = normalizeParameters([...pathLevelParameters, ...operationParameters], options.resolveRef)
   const { body: requestBody, sample: requestBodySample } = normalizeRequestBody(options.rawOperation.requestBody, options.resolveRef)
-  const responses = normalizeResponses(options.rawOperation.responses)
+  const responses = normalizeResponses(options.rawOperation.responses, options.resolveRef)
   const security = normalizeSecurity(options.rawOperation.security ?? options.documentSecurity)
 
   const operationServers = normalizeServers(options.rawOperation.servers)
@@ -256,7 +256,7 @@ function normalizeRequestBody(
   if (!raw || typeof raw !== 'object') {
     return { body: undefined, sample: undefined }
   }
-  const contents = normalizeContent((raw as RawObject).content)
+  const contents = normalizeContent((raw as RawObject).content, resolveRef)
   if (!contents.length) {
     return { body: undefined, sample: undefined }
   }
@@ -274,29 +274,96 @@ function normalizeRequestBody(
   }
 }
 
-function normalizeResponses(raw: unknown): Array<NormalizedResponse> {
+function normalizeResponses(raw: unknown, resolveRef: (ref: string) => RawObject | null): Array<NormalizedResponse> {
   if (!raw || typeof raw !== 'object') {
     return []
   }
   return Object.entries(raw as Record<string, RawObject>)
-    .map(([code, response]) => ({
-      code,
-      description: typeof response.description === 'string' ? response.description : undefined,
-      contents: normalizeContent(response.content),
-    }))
+    .map(([code, response]) => {
+      // Responses can also be $refs (e.g. '#/components/responses/NotFound')
+      const resolved = typeof response.$ref === 'string' ? (resolveRef(response.$ref) ?? response) : response
+      return {
+        code,
+        description: typeof resolved.description === 'string' ? resolved.description : undefined,
+        contents: normalizeContent(resolved.content, resolveRef),
+      }
+    })
     .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
 }
 
-function normalizeContent(raw: unknown): Array<NormalizedMediaType> {
+function normalizeContent(raw: unknown, resolveRef: (ref: string) => RawObject | null): Array<NormalizedMediaType> {
   if (!raw || typeof raw !== 'object') {
     return []
   }
-  return Object.entries(raw as Record<string, RawObject>).map(([mediaType, definition]) => ({
-    mediaType,
-    schema: typeof definition.schema === 'object' ? (definition.schema as Record<string, unknown>) : undefined,
-    example: definition.example,
-    examples: normalizeExamples(definition.examples),
-  }))
+  return Object.entries(raw as Record<string, RawObject>).map(([mediaType, definition]) => {
+    let schema = typeof definition.schema === 'object' ? (definition.schema as Record<string, unknown>) : undefined
+    // Deep-resolve all $refs in the schema tree so the renderer sees plain objects
+    if (schema) {
+      schema = deepResolveRefs(schema, resolveRef)
+    }
+    return {
+      mediaType,
+      schema,
+      example: definition.example,
+      examples: normalizeExamples(definition.examples),
+    }
+  })
+}
+
+/**
+ * Recursively walks a schema object and resolves every $ref pointer it finds,
+ * including refs inside properties, items, allOf/anyOf/oneOf members, and any
+ * further nesting. Circular references are broken by tracking visited $ref paths.
+ */
+function deepResolveRefs(
+  schema: Record<string, unknown>,
+  resolveRef: (ref: string) => RawObject | null,
+  seen = new Set<string>(),
+): Record<string, unknown> {
+  // If this node IS a $ref, resolve it first (then recurse into the result)
+  if (typeof schema.$ref === 'string') {
+    if (seen.has(schema.$ref)) {
+      // Break circular reference — return a placeholder
+      return { type: 'object', description: `[Circular: ${schema.$ref.split('/').pop()}]` }
+    }
+    const resolved = resolveRef(schema.$ref)
+    if (resolved) {
+      const childSeen = new Set(seen)
+      childSeen.add(schema.$ref)
+      return deepResolveRefs(resolved, resolveRef, childSeen)
+    }
+    return schema
+  }
+
+  const result: Record<string, unknown> = { ...schema }
+
+  // Resolve allOf / anyOf / oneOf members
+  for (const compositeKey of ['allOf', 'anyOf', 'oneOf'] as const) {
+    if (Array.isArray(schema[compositeKey])) {
+      result[compositeKey] = (schema[compositeKey] as unknown[]).map((item) =>
+        item && typeof item === 'object' ? deepResolveRefs(item as RawObject, resolveRef, seen) : item,
+      )
+    }
+  }
+
+  // Resolve each property schema
+  if (schema.properties && typeof schema.properties === 'object') {
+    const resolvedProps: Record<string, unknown> = {}
+    for (const [propKey, propSchema] of Object.entries(schema.properties as Record<string, unknown>)) {
+      resolvedProps[propKey] =
+        propSchema && typeof propSchema === 'object'
+          ? deepResolveRefs(propSchema as RawObject, resolveRef, seen)
+          : propSchema
+    }
+    result.properties = resolvedProps
+  }
+
+  // Resolve array items
+  if (schema.items && typeof schema.items === 'object') {
+    result.items = deepResolveRefs(schema.items as RawObject, resolveRef, seen)
+  }
+
+  return result
 }
 
 function normalizeExamples(raw: unknown): Array<{ key: string; summary?: string; description?: string; value: unknown }> {

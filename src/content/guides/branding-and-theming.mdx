@@ -148,6 +148,47 @@ export const siteConfig: SiteConfig = {
 
 Dox serves an RSS feed at `/changelog/rss.xml`. Users can subscribe to it in any RSS reader to get notified of updates. The feed entries are defined in `src/app/changelog/rss.xml/route.ts`.
 
+## Page feedback
+
+The "Was this page helpful?" widget is shown at the bottom of every doc page by default. To configure where feedback votes are sent, add a `feedback` block to `docs.json`:
+
+```json
+"feedback": {
+  "thumbsRating": true,
+  "endpoint": "/api/feedback"
+}
+```
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `endpoint` | `string` | `/api/feedback` | URL that receives a POST with `{ page, vote, url }` |
+| `thumbsRating` | `boolean` | `true` | Show or hide the widget |
+
+The built-in `/api/feedback` route logs votes to stdout. Replace it with your own storage logic in `src/app/api/feedback/route.ts` — write to a database, forward to Slack, send to PostHog, etc.
+
+## Structural themes
+
+Structural themes control the shape and density of the UI — border radius, sidebar active item style, and navigation tab appearance. They are independent of brand colors, so any color preset works with any structural theme.
+
+Set the theme in `docs.json`:
+
+```json
+{
+  "theme": "maple"
+}
+```
+
+| Theme | Character | Border radius | Sidebar active | Nav tabs |
+| --- | --- | --- | --- | --- |
+| `default` | Balanced | Medium (1 rem) | Left indicator + tinted background | Pill with underline accent |
+| `maple` | Warm, rounded | Large (1.25–2 rem) | Tinted background pill only | Full-width pill, no underline |
+| `sharp` | Technical, precise | Tight (0.25 rem) | Left indicator only, no background | Flat tabs, underline accent |
+| `minimal` | Content-first | None (0) | Text color change only | Text tabs, underline accent |
+
+<Note type="info" title="Tip">
+Structural themes and brand colors are orthogonal. You can use the `maple` theme with either the `primary` (green) or `secondary` (purple) brand preset.
+</Note>
+
 ## Layout tokens
 
 Fine-tune spacing and widths in `src/config/layout.ts`:

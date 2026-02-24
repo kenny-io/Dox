@@ -1,22 +1,28 @@
 import type { ReactNode } from 'react'
-import { AlertTriangle, Info, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, Info, Lightbulb, BookOpen, ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type NoteType = 'info' | 'warning' | 'danger'
+type NoteType = 'note' | 'tip' | 'info' | 'warning' | 'danger'
 
 const toneStyles: Record<NoteType, string> = {
-  info: 'border-accent/40 bg-accent/10 text-foreground dark:border-accent/30 dark:bg-accent/15 dark:text-foreground',
+  note: 'border-accent/40 bg-accent/10 text-foreground dark:border-accent/30 dark:bg-accent/15 dark:text-foreground',
+  tip: 'border-emerald-500/40 bg-emerald-50/80 text-emerald-900 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-100',
+  info: 'border-sky-500/40 bg-sky-50/80 text-sky-900 dark:border-sky-400/30 dark:bg-sky-500/10 dark:text-sky-100',
   warning: 'border-amber-500/40 bg-amber-50/80 text-amber-900 dark:border-amber-300/30 dark:bg-amber-500/10 dark:text-amber-100',
   danger: 'border-rose-500/40 bg-rose-50/80 text-rose-900 dark:border-rose-300/30 dark:bg-rose-500/10 dark:text-rose-100',
 }
 
 const toneAccent: Record<NoteType, string> = {
-  info: 'text-accent',
+  note: 'text-accent',
+  tip: 'text-emerald-600 dark:text-emerald-300',
+  info: 'text-sky-600 dark:text-sky-300',
   warning: 'text-amber-600 dark:text-amber-200',
   danger: 'text-rose-600 dark:text-rose-200',
 }
 
 const toneIcon: Record<NoteType, typeof Info> = {
+  note: BookOpen,
+  tip: Lightbulb,
   info: Info,
   warning: AlertTriangle,
   danger: ShieldAlert,

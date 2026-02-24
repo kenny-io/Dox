@@ -112,10 +112,10 @@ interface CardGroupProps {
 }
 
 const columnClassnames: Record<number, string> = {
-  1: 'md:grid-cols-1',
-  2: 'md:grid-cols-2',
-  3: 'md:grid-cols-3',
-  4: 'md:grid-cols-4',
+  1: 'grid-cols-1',
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-2 lg:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
 }
 
 export function CardGroup({ cols = 3, children }: CardGroupProps) {
@@ -178,6 +178,236 @@ export function Accordion({ title, children }: AccordionProps) {
       <summary className="cursor-pointer list-none text-base font-semibold text-foreground">{title}</summary>
       <div className="mt-3 space-y-2 text-sm text-foreground/80">{children}</div>
     </details>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Badge
+// ---------------------------------------------------------------------------
+
+type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info'
+
+interface BadgeProps {
+  variant?: BadgeVariant
+  children: ReactNode
+}
+
+const badgeVariantStyles: Record<BadgeVariant, string> = {
+  default: 'bg-muted text-foreground border-border/60',
+  success: 'bg-green-50 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/30',
+  warning: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
+  danger: 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30',
+  info: 'bg-accent/10 text-accent border-accent/30 dark:bg-accent/15 dark:text-accent dark:border-accent/30',
+}
+
+export function Badge({ variant = 'default', children }: BadgeProps) {
+  return (
+    <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium', badgeVariantStyles[variant])}>
+      {children}
+    </span>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Update (changelog entry)
+// ---------------------------------------------------------------------------
+
+interface UpdateProps {
+  label?: string
+  date?: string
+  children: ReactNode
+}
+
+export function Update({ label, date, children }: UpdateProps) {
+  return (
+    <div className="not-prose my-8 border-l-2 border-accent pl-6">
+      {(label || date) && (
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          {label && (
+            <span className="inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+              {label}
+            </span>
+          )}
+          {date && <time className="text-sm text-foreground/50">{date}</time>}
+        </div>
+      )}
+      <div className="prose prose-sm dark:prose-invert">{children}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// RequestExample / ResponseExample
+// ---------------------------------------------------------------------------
+
+interface RequestExampleProps {
+  children: ReactNode
+}
+
+export function RequestExample({ children }: RequestExampleProps) {
+  return (
+    <div className="not-prose my-6">
+      <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-border/40 bg-muted/60 px-4 py-2">
+        <span className="h-2 w-2 rounded-full bg-blue-400" />
+        <span className="text-xs font-semibold uppercase tracking-wide text-foreground/60">Request</span>
+      </div>
+      <div className="[&>*]:!rounded-t-none [&>*]:!border-t-0">{children}</div>
+    </div>
+  )
+}
+
+interface ResponseExampleProps {
+  children: ReactNode
+}
+
+export function ResponseExample({ children }: ResponseExampleProps) {
+  return (
+    <div className="not-prose my-6">
+      <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-border/40 bg-muted/60 px-4 py-2">
+        <span className="h-2 w-2 rounded-full bg-green-400" />
+        <span className="text-xs font-semibold uppercase tracking-wide text-foreground/60">Response</span>
+      </div>
+      <div className="[&>*]:!rounded-t-none [&>*]:!border-t-0">{children}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Panel
+// ---------------------------------------------------------------------------
+
+interface PanelProps {
+  title?: string
+  children: ReactNode
+}
+
+export function Panel({ title, children }: PanelProps) {
+  return (
+    <div className="not-prose my-6 rounded-2xl border border-border/40 bg-muted/30 px-5 py-4">
+      {title && <p className="mb-3 text-sm font-semibold text-foreground">{title}</p>}
+      <div className="prose prose-sm dark:prose-invert text-foreground/80">{children}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Tile / TileGroup
+// ---------------------------------------------------------------------------
+
+interface TileProps {
+  title?: string
+  href?: string
+  icon?: string
+  img?: string
+  children?: ReactNode
+}
+
+export function Tile({ title, href, icon, iconType, img, children }: TileProps & { iconType?: 'solid' | 'outline' }) {
+  const content = (
+    <article className="group flex h-full flex-col gap-4 rounded-2xl border border-border/40 bg-background/95 p-6 shadow-sm transition hover:border-accent/60 hover:shadow-md">
+      {img ? (
+        <div className="relative overflow-hidden rounded-xl border border-border/30 bg-muted">
+          <Image
+            src={img}
+            alt={title ?? ''}
+            width={1280}
+            height={720}
+            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+            className="h-40 w-full object-cover transition group-hover:scale-105"
+          />
+        </div>
+      ) : null}
+      <div className="flex items-center gap-3">
+        {icon ? <Icon icon={icon} iconType={iconType} className="h-6 w-6" /> : null}
+        {title ? <p className="text-lg font-semibold text-foreground">{title}</p> : null}
+      </div>
+      {children ? <div className="prose prose-sm text-foreground/70 dark:prose-invert">{children}</div> : null}
+    </article>
+  )
+
+  if (href) {
+    const external = isExternalLink(href)
+    return (
+      <Link href={href} className="block h-full" target={external ? '_blank' : undefined} rel={external ? 'noreferrer' : undefined}>
+        {content}
+      </Link>
+    )
+  }
+  return content
+}
+
+interface TileGroupProps {
+  cols?: number | string
+  children: ReactNode
+}
+
+export function TileGroup({ cols = 2, children }: TileGroupProps) {
+  const colCount = typeof cols === 'string' ? parseInt(cols, 10) : cols
+  const colClass = columnClassnames[colCount] ?? columnClassnames[2]
+  return <div className={cn('grid grid-cols-1 gap-8', colClass)}>{children}</div>
+}
+
+// ---------------------------------------------------------------------------
+// Prompt
+// ---------------------------------------------------------------------------
+
+interface PromptProps {
+  children: ReactNode
+}
+
+export function Prompt({ children }: PromptProps) {
+  return (
+    <div className="not-prose my-6 overflow-hidden rounded-2xl border border-border/40 bg-muted/20 font-mono text-sm">
+      {children}
+    </div>
+  )
+}
+
+interface PromptUserProps {
+  children: ReactNode
+}
+
+export function PromptUser({ children }: PromptUserProps) {
+  return (
+    <div className="flex gap-3 border-b border-border/30 bg-background px-4 py-3">
+      <span className="shrink-0 select-none font-semibold text-accent">$</span>
+      <span className="text-foreground/90">{children}</span>
+    </div>
+  )
+}
+
+interface PromptAssistantProps {
+  children: ReactNode
+}
+
+export function PromptAssistant({ children }: PromptAssistantProps) {
+  return (
+    <div className="px-4 py-3 text-foreground/70">
+      {children}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Color swatch
+// ---------------------------------------------------------------------------
+
+interface ColorProps {
+  hex: string
+  name?: string
+}
+
+export function Color({ hex, name }: ColorProps) {
+  return (
+    <div className="not-prose inline-flex flex-col items-start gap-2">
+      <div
+        className="h-12 w-24 rounded-lg border border-border/40 shadow-sm"
+        style={{ backgroundColor: hex }}
+        aria-label={name ?? hex}
+      />
+      {name && <span className="text-sm font-medium text-foreground">{name}</span>}
+      <code className="text-xs text-foreground/50">{hex}</code>
+    </div>
   )
 }
 

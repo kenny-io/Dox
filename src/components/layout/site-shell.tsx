@@ -5,7 +5,7 @@ import { TopBar } from '@/components/layout/top-bar'
 import { Sidebar } from '@/components/navigation/sidebar'
 import { PageContainer } from '@/components/layout/sections'
 import { layout, shell } from '@/config/layout'
-import type { SidebarCollection, SearchableDoc } from '@/data/docs'
+import type { SidebarCollection, SearchableDoc, DocsJsonNavbar, DocsJsonFooter } from '@/data/docs'
 import { useSidebarCollectionsStore } from './sidebar-store'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -55,9 +55,11 @@ interface SiteShellProps {
   children: React.ReactNode
   searchIndex: Array<SearchableDoc>
   i18nConfig?: I18nConfig | null
+  navbarConfig?: DocsJsonNavbar | null
+  footerConfig?: DocsJsonFooter | null
 }
 
-export function SiteShell({ children, searchIndex, i18nConfig }: SiteShellProps) {
+export function SiteShell({ children, searchIndex, i18nConfig, navbarConfig, footerConfig }: SiteShellProps) {
   const collections = useSidebarCollectionsStore((state) => state.collections)
   const pathname = usePathname()
   const router = useRouter()
@@ -136,11 +138,12 @@ export function SiteShell({ children, searchIndex, i18nConfig }: SiteShellProps)
             i18nConfig={i18nConfig ?? null}
             currentLocale={currentLocale}
             currentPath={currentPath}
+            navbarConfig={navbarConfig ?? null}
           />
           <main className="flex-1 py-6 sm:py-8 lg:py-10">
             <PageContainer className={layout.pageGap}>{children}</PageContainer>
           </main>
-          <Footer />
+          <Footer footerConfig={footerConfig ?? null} />
         </div>
       </div>
     </div>

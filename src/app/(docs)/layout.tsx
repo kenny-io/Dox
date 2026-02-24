@@ -1,6 +1,6 @@
 import { SiteShell } from '@/components/layout/site-shell'
 import { SidebarCollectionsHydrator } from '@/components/layout/sidebar-hydrator'
-import { getSearchableDocs, getSidebarCollections, getAiConfig, getI18nConfig } from '@/data/docs'
+import { getSearchableDocs, getSidebarCollections, getAiConfig, getI18nConfig, getNavbarConfig, getFooterConfig } from '@/data/docs'
 import type { NavigationSection } from '@/data/docs'
 import { buildApiNavigation } from '@/data/api-reference'
 import { DocsChat } from '@/components/docs/docs-chat'
@@ -38,11 +38,13 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
   const searchIndex = getSearchableDocs()
   const aiConfig = getAiConfig()
   const i18nConfig = getI18nConfig()
+  const navbarConfig = getNavbarConfig()
+  const footerConfig = getFooterConfig()
 
   return (
     <>
       <SidebarCollectionsHydrator collections={collections} />
-      <SiteShell searchIndex={searchIndex} i18nConfig={i18nConfig}>
+      <SiteShell searchIndex={searchIndex} i18nConfig={i18nConfig} navbarConfig={navbarConfig} footerConfig={footerConfig}>
         {children}
       </SiteShell>
       {aiConfig.chat && <DocsChat label={aiConfig.label} icon={aiConfig.icon} />}
