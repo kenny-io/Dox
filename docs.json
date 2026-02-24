@@ -1,5 +1,12 @@
 {
   "ai": { "chat": true },
+  "i18n": {
+    "defaultLocale": "en",
+    "locales": [
+      { "code": "en", "label": "English" },
+      { "code": "es", "label": "Español" }
+    ]
+  },
   "tabs": [
     {
       "tab": "Overview",
@@ -66,7 +73,8 @@
             "guides/cli-reference",
             "guides/mcp-server",
             "guides/migrating",
-            "guides/ai-features"
+            "guides/ai-features",
+            "guides/multi-language"
           ]
         }
       ]

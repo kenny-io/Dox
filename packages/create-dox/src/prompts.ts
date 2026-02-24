@@ -9,6 +9,7 @@ export interface ScaffoldAnswers {
   brandPreset: string
   repoUrl: string
   doInstall: boolean
+  i18nLocales?: Array<{ code: string; label: string }>
 }
 
 export async function gatherAnswers(
@@ -80,5 +81,30 @@ export async function gatherAnswers(
     doInstall = shouldInstall.toLowerCase() !== 'n'
   }
 
-  return { projectDir, projectName, description, brandPreset, repoUrl, doInstall }
+  // 7. Multi-language support?
+  let i18nLocales: Array<{ code: string; label: string }> | undefined
+  if (!useDefaults) {
+    const enableI18n = await input({
+      message: '  Enable multi-language support? (y/N):',
+      default: 'N',
+    })
+    if (enableI18n.toLowerCase() === 'y') {
+      const localesInput = await input({
+        message: '  Which locales? (comma-separated codes, e.g. es,fr,de):',
+        default: 'es',
+      })
+      const LOCALE_LABELS: Record<string, string> = {
+        en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch',
+        it: 'Italiano', pt: 'Português', ja: '日本語', ko: '한국어',
+        zh: '中文', ru: 'Русский', ar: 'العربية', nl: 'Nederlands',
+      }
+      const codes = localesInput.split(',').map((c) => c.trim()).filter(Boolean)
+      i18nLocales = codes.map((code) => ({
+        code,
+        label: LOCALE_LABELS[code] ?? code.toUpperCase(),
+      }))
+    }
+  }
+
+  return { projectDir, projectName, description, brandPreset, repoUrl, doInstall, i18nLocales }
 }

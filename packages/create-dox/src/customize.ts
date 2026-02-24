@@ -62,7 +62,12 @@ const STARTER_DOCS_JSON = `{
 }
 `
 
-export function writeStarterContent(targetDir: string, projectName: string, slug: string): void {
+export function writeStarterContent(
+  targetDir: string,
+  projectName: string,
+  slug: string,
+  i18nLocales?: Array<{ code: string; label: string }>,
+): void {
   const contentDir = join(targetDir, 'src', 'content')
 
   // Clear existing example content
@@ -84,8 +89,23 @@ export function writeStarterContent(targetDir: string, projectName: string, slug
     writeFileSync(join(contentDir, filename), content, 'utf8')
   }
 
-  // Write docs.json
-  writeFileSync(join(targetDir, 'docs.json'), STARTER_DOCS_JSON, 'utf8')
+  // Build docs.json with optional i18n block
+  let docsJson = STARTER_DOCS_JSON.trimEnd()
+  if (i18nLocales && i18nLocales.length > 0) {
+    const allLocales = [{ code: 'en', label: 'English' }, ...i18nLocales]
+    const i18nBlock = JSON.stringify(
+      { defaultLocale: 'en', locales: allLocales },
+      null,
+      2,
+    )
+      .split('\n')
+      .map((line, idx) => (idx === 0 ? line : '  ' + line))
+      .join('\n')
+    // Insert i18n block into docs.json before closing brace
+    docsJson = docsJson.replace(/^(\{)/, `$1\n  "i18n": ${i18nBlock},`)
+  }
+
+  writeFileSync(join(targetDir, 'docs.json'), docsJson + '\n', 'utf8')
 }
 
 export function updateSiteConfig(

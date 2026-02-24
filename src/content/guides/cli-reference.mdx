@@ -150,3 +150,44 @@ The CLI exits with code `1` if any errors are found, `0` if the project is clean
 | Flag | Description |
 |------|-------------|
 | `--fix` | Auto-add orphan pages to the last group of the first content tab |
+
+---
+
+## create-dox translate
+
+Translates documentation pages to a secondary locale using Claude AI. Requires an `i18n` block in `docs.json`.
+
+```bash
+npx create-dox translate --locale es
+```
+
+Translated files are written to `src/content/{locale}/` and committed to your repo — no runtime cost, full SSG.
+
+### Examples
+
+```bash
+# Translate all pages to Spanish
+npx create-dox translate --locale es
+
+# Translate specific pages only
+npx create-dox translate --locale fr --pages introduction,guides/getting-started
+
+# Overwrite existing translations
+npx create-dox translate --locale es --force
+
+# Pass API key explicitly
+npx create-dox translate --locale de --api-key sk-ant-...
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--locale <code>` | Target locale code — required (must be in `docs.json` i18n config) |
+| `--pages <ids>` | Comma-separated page IDs to translate (omit for all pages) |
+| `--force` | Overwrite existing translation files |
+| `--api-key <key>` | Anthropic API key (falls back to `ANTHROPIC_API_KEY` env var) |
+| `--model <id>` | Claude model to use (default: `claude-sonnet-4-6`) |
+| `--yes`, `-y` | Skip confirmation prompt |
+
+See [Multi-Language Support](/guides/multi-language) for full setup instructions.

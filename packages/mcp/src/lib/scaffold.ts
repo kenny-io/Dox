@@ -56,6 +56,7 @@ That's it — you're ready to go!
 }
 
 const STARTER_DOCS_JSON = `{
+  "ai": { "chat": true },
   "tabs": [
     {
       "tab": "Overview",
@@ -120,7 +121,13 @@ async function downloadTemplate(targetDir: string): Promise<void> {
   )
 }
 
-function writeStarterContent(targetDir: string, projectName: string, slug: string): void {
+function writeStarterContent(
+  targetDir: string,
+  projectName: string,
+  slug: string,
+  enableAiChat = true,
+  i18nLocales?: Array<{ code: string; label: string }>,
+): void {
   const contentDir = join(targetDir, 'src', 'content')
   if (existsSync(contentDir)) {
     const entries = readdirSync(contentDir)
@@ -134,7 +141,23 @@ function writeStarterContent(targetDir: string, projectName: string, slug: strin
     const content = template.replace(/\{NAME\}/g, projectName).replace(/\{SLUG\}/g, slug)
     writeFileSync(join(contentDir, filename), content, 'utf8')
   }
-  writeFileSync(join(targetDir, 'docs.json'), STARTER_DOCS_JSON, 'utf8')
+  let docsJson = STARTER_DOCS_JSON.trimEnd()
+  if (!enableAiChat) {
+    docsJson = docsJson.replace('  "ai": { "chat": true },\n', '')
+  }
+  if (i18nLocales && i18nLocales.length > 0) {
+    const allLocales = [{ code: 'en', label: 'English' }, ...i18nLocales]
+    const i18nBlock = JSON.stringify(
+      { defaultLocale: 'en', locales: allLocales },
+      null,
+      2,
+    )
+      .split('\n')
+      .map((line, idx) => (idx === 0 ? line : '  ' + line))
+      .join('\n')
+    docsJson = docsJson.replace(/^(\{)/, `$1\n  "i18n": ${i18nBlock},`)
+  }
+  writeFileSync(join(targetDir, 'docs.json'), docsJson + '\n', 'utf8')
 }
 
 function updateSiteConfig(
@@ -251,6 +274,8 @@ export interface ScaffoldOptions {
   brandPreset: string
   repoUrl: string
   doInstall: boolean
+  enableAiChat?: boolean
+  i18nLocales?: Array<{ code: string; label: string }>
 }
 
 export interface ScaffoldResult {
@@ -258,7 +283,7 @@ export interface ScaffoldResult {
 }
 
 export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult> {
-  const { projectDir, projectName, description, brandPreset, repoUrl, doInstall } = options
+  const { projectDir, projectName, description, brandPreset, repoUrl, doInstall, enableAiChat = true, i18nLocales } = options
   const targetDir = resolve(projectDir)
 
   if (existsSync(targetDir) && readdirSync(targetDir).length > 0) {
@@ -269,7 +294,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   const slug = slugify(projectName)
 
   await downloadTemplate(targetDir)
-  writeStarterContent(targetDir, projectName, slug)
+  writeStarterContent(targetDir, projectName, slug, enableAiChat, i18nLocales)
   updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl)
   patchApiReferenceGuard(targetDir)
   patchTopBarNavigation(targetDir)

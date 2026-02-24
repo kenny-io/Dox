@@ -34,7 +34,11 @@ export interface DocsJsonTab {
 
 export interface DocsJsonConfig {
   tabs: Array<DocsJsonTab>
-  ai?: { chat?: boolean }
+  ai?: { chat?: boolean; label?: string; icon?: string }
+  i18n?: {
+    defaultLocale: string
+    locales: Array<{ code: string; label: string }>
+  }
 }
 
 // ---------------------------------------------------------------------------

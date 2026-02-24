@@ -6,10 +6,23 @@ import { scaffold } from './scaffold.js'
 import { parseGitHubUrl } from './migrate/github.js'
 import { migrateDocs } from './migrate/index.js'
 import { runCheck } from './check.js'
+import { runTranslateCommand } from './translate.js'
 
 const args = process.argv.slice(2)
 const flags = args.filter((a) => a.startsWith('-'))
-const positional = args.filter((a) => !a.startsWith('-'))
+
+// Build positionals by skipping values consumed by named flags (e.g. --locale es)
+const positional: Array<string> = []
+for (let i = 0; i < args.length; i++) {
+  if (args[i].startsWith('-')) {
+    // If the next token doesn't start with '-', it's this flag's value — skip it
+    if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+      i++
+    }
+  } else {
+    positional.push(args[i])
+  }
+}
 
 function getFlagValue(flag: string): string | undefined {
   const idx = args.indexOf(flag)
@@ -107,6 +120,7 @@ async function runScaffoldCommand(): Promise<void> {
     brandPreset: answers.brandPreset,
     repoUrl: answers.repoUrl,
     doInstall: answers.doInstall,
+    i18nLocales: answers.i18nLocales,
   })
 
   success(result.projectDir, answers.projectName)
@@ -119,6 +133,29 @@ async function runCheckCommand(): Promise<void> {
   process.exit(exitCode)
 }
 
+async function runTranslateSubcommand(): Promise<void> {
+  const locale = getFlagValue('--locale')
+  if (!locale) {
+    console.error('\n  ❌ --locale is required.')
+    console.error('     Usage: create-dox translate --locale es [--pages page1,page2] [--force] [--api-key key]')
+    process.exit(1)
+  }
+
+  const pagesArg = getFlagValue('--pages')
+  const pages = pagesArg ? pagesArg.split(',').map((p) => p.trim()).filter(Boolean) : undefined
+  const force = flags.includes('--force')
+  const apiKey = getFlagValue('--api-key') ?? process.env.ANTHROPIC_API_KEY
+  const model = getFlagValue('--model') ?? 'claude-sonnet-4-6'
+  const yes = flags.includes('--yes') || flags.includes('-y')
+  const projectDir = resolve(positional[1] ?? '.')
+
+  logo()
+  console.log('  🌐 Dox Translate')
+  console.log('')
+
+  await runTranslateCommand(locale, pages, force, apiKey, model, yes, projectDir)
+}
+
 async function main(): Promise<void> {
   const subcommand = positional[0]
 
@@ -126,6 +163,8 @@ async function main(): Promise<void> {
     await runMigrateCommand()
   } else if (subcommand === 'check') {
     await runCheckCommand()
+  } else if (subcommand === 'translate') {
+    await runTranslateSubcommand()
   } else {
     logo()
     await runScaffoldCommand()

@@ -102,6 +102,10 @@ interface DocsJsonConfig {
      */
     icon?: string
   }
+  i18n?: {
+    defaultLocale: string
+    locales: Array<{ code: string; label: string }>
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -123,26 +127,38 @@ interface FrontmatterData {
 
 const frontmatterCache = new Map<string, FrontmatterData>()
 
-function readFrontmatter(pageId: string): FrontmatterData {
-  if (frontmatterCache.has(pageId)) {
-    return frontmatterCache.get(pageId)!
+function readFrontmatter(pageId: string, locale?: string): FrontmatterData {
+  const cacheKey = locale ? `${locale}:${pageId}` : pageId
+  if (frontmatterCache.has(cacheKey)) {
+    return frontmatterCache.get(cacheKey)!
   }
 
-  const candidates = [
+  const candidates: Array<string> = []
+
+  // Try locale-specific file first
+  if (locale) {
+    candidates.push(
+      path.join(CONTENT_ROOT, locale, `${pageId}.mdx`),
+      path.join(CONTENT_ROOT, locale, `${pageId}/index.mdx`),
+    )
+  }
+
+  // Fall back to primary
+  candidates.push(
     path.join(CONTENT_ROOT, `${pageId}.mdx`),
     path.join(CONTENT_ROOT, `${pageId}/index.mdx`),
-  ]
+  )
 
   for (const filePath of candidates) {
     if (fs.existsSync(filePath)) {
       const raw = fs.readFileSync(filePath, 'utf8')
       const { data } = matter(raw)
-      frontmatterCache.set(pageId, data as FrontmatterData)
+      frontmatterCache.set(cacheKey, data as FrontmatterData)
       return data as FrontmatterData
     }
   }
 
-  frontmatterCache.set(pageId, {})
+  frontmatterCache.set(cacheKey, {})
   return {}
 }
 
@@ -278,10 +294,15 @@ export function getSearchableDocs(): Array<SearchableDoc> {
 // Sidebar construction from docs.json
 // ---------------------------------------------------------------------------
 
-function resolveNavItem(pageId: string): NavigationItem {
-  const fm = readFrontmatter(pageId)
+function resolveNavItem(pageId: string, locale?: string): NavigationItem {
+  const fm = readFrontmatter(pageId, locale)
   const slug = pageId === 'introduction' ? [] : pageId.split('/').filter(Boolean)
-  const href = slug.length ? `/${slug.join('/')}` : '/'
+  const baseHref = slug.length ? `/${slug.join('/')}` : '/'
+  const href = locale
+    ? baseHref === '/'
+      ? `/${locale}`
+      : `/${locale}${baseHref}`
+    : baseHref
   return {
     id: slugifyId(pageId) || 'introduction',
     title: fm.title ?? deriveTitleFromSlug(pageId),
@@ -294,6 +315,7 @@ function resolveNavItem(pageId: string): NavigationItem {
 function buildNavigationSections(
   group: DocsJsonNavigationGroup,
   ancestors: Array<string> = [],
+  locale?: string,
 ): Array<NavigationSection> {
   const titleSegments = [...ancestors, group.group].filter(Boolean)
   const title = titleSegments.length ? titleSegments.join(' • ') : 'General'
@@ -303,7 +325,7 @@ function buildNavigationSections(
 
   group.pages.forEach((page) => {
     if (typeof page === 'string') {
-      bufferedItems.push(resolveNavItem(page))
+      bufferedItems.push(resolveNavItem(page, locale))
       return
     }
 
@@ -312,7 +334,7 @@ function buildNavigationSections(
       bufferedItems = []
     }
 
-    sections.push(...buildNavigationSections(page, titleSegments))
+    sections.push(...buildNavigationSections(page, titleSegments, locale))
   })
 
   if (bufferedItems.length) {
@@ -322,15 +344,18 @@ function buildNavigationSections(
   return sections
 }
 
-let _sidebarCollections: Array<SidebarCollection> | null = null
+const sidebarCollectionsCache = new Map<string, Array<SidebarCollection>>()
 
-export function getSidebarCollections(): Array<SidebarCollection> {
-  if (_sidebarCollections) return _sidebarCollections
+export function getSidebarCollections(locale?: string): Array<SidebarCollection> {
+  const cacheKey = locale ?? '__default__'
+  if (sidebarCollectionsCache.has(cacheKey)) {
+    return sidebarCollectionsCache.get(cacheKey)!
+  }
 
-  _sidebarCollections = docsConfig.tabs.map((tab) => {
+  const collections = docsConfig.tabs.map((tab) => {
     const id = slugifyId(tab.tab) || tab.tab.toLowerCase()
     const groups = tab.groups ?? []
-    const sections = groups.flatMap((group) => buildNavigationSections(group))
+    const sections = groups.flatMap((group) => buildNavigationSections(group, [], locale))
 
     return {
       id,
@@ -341,7 +366,8 @@ export function getSidebarCollections(): Array<SidebarCollection> {
     }
   })
 
-  return _sidebarCollections
+  sidebarCollectionsCache.set(cacheKey, collections)
+  return collections
 }
 
 // ---------------------------------------------------------------------------
@@ -415,6 +441,10 @@ export function getBreadcrumbs(currentHref: string): Array<BreadcrumbItem> {
 
 export function getAiConfig(): { chat?: boolean; label?: string; icon?: string } {
   return docsConfig.ai ?? {}
+}
+
+export function getI18nConfig(): { defaultLocale: string; locales: Array<{ code: string; label: string }> } | null {
+  return docsConfig.i18n ?? null
 }
 
 // ---------------------------------------------------------------------------
