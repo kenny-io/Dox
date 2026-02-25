@@ -74,31 +74,38 @@ const client = create({ apiKey: 'your-api-key' })
 That's it \u2014 you're ready to go!
 `
 };
-var STARTER_DOCS_JSON = `{
-  "tabs": [
+function buildStarterDocsJson({
+  enableAiChat,
+  repoUrl,
+  i18nLocales
+}) {
+  const config = {};
+  if (enableAiChat) {
+    config.ai = { chat: true };
+  }
+  if (repoUrl) {
+    config.navbar = {
+      links: [{ label: "GitHub", href: repoUrl, type: "github" }],
+      primary: { label: "Get started", href: "/quickstart" }
+    };
+  }
+  if (i18nLocales && i18nLocales.length > 0) {
+    config.i18n = {
+      defaultLocale: "en",
+      locales: [{ code: "en", label: "English" }, ...i18nLocales]
+    };
+  }
+  config.tabs = [
     {
-      "tab": "Overview",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": ["introduction", "quickstart"]
-        }
-      ]
+      tab: "Overview",
+      groups: [{ group: "Getting Started", pages: ["introduction", "quickstart"] }]
     },
-    {
-      "tab": "API Reference",
-      "api": {
-        "source": "openapi.yaml"
-      }
-    },
-    {
-      "tab": "Changelog",
-      "href": "/changelog"
-    }
-  ]
+    { tab: "API Reference", api: { source: "openapi.yaml" } },
+    { tab: "Changelog", href: "/changelog" }
+  ];
+  return JSON.stringify(config, null, 2) + "\n";
 }
-`;
-function writeStarterContent(targetDir, projectName, slug, i18nLocales) {
+function writeStarterContent(targetDir, projectName, slug, enableAiChat = true, repoUrl = "", i18nLocales) {
   const contentDir = join(targetDir, "src", "content");
   if (existsSync(contentDir)) {
     const entries = readdirSync(contentDir);
@@ -113,18 +120,11 @@ function writeStarterContent(targetDir, projectName, slug, i18nLocales) {
     const content = template.replace(/\{NAME\}/g, projectName).replace(/\{SLUG\}/g, slug);
     writeFileSync(join(contentDir, filename), content, "utf8");
   }
-  let docsJson = STARTER_DOCS_JSON.trimEnd();
-  if (i18nLocales && i18nLocales.length > 0) {
-    const allLocales = [{ code: "en", label: "English" }, ...i18nLocales];
-    const i18nBlock = JSON.stringify(
-      { defaultLocale: "en", locales: allLocales },
-      null,
-      2
-    ).split("\n").map((line, idx) => idx === 0 ? line : "  " + line).join("\n");
-    docsJson = docsJson.replace(/^(\{)/, `$1
-  "i18n": ${i18nBlock},`);
-  }
-  writeFileSync(join(targetDir, "docs.json"), docsJson + "\n", "utf8");
+  writeFileSync(
+    join(targetDir, "docs.json"),
+    buildStarterDocsJson({ enableAiChat, repoUrl: repoUrl || void 0, i18nLocales }),
+    "utf8"
+  );
 }
 function updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl) {
   const siteFile = join(targetDir, "src", "data", "site.ts");
@@ -302,6 +302,7 @@ async function scaffold(options) {
     brandPreset,
     repoUrl,
     doInstall,
+    enableAiChat = true,
     i18nLocales
   } = options;
   const targetDir = resolve(projectDir);
@@ -311,7 +312,7 @@ async function scaffold(options) {
   mkdirSync2(targetDir, { recursive: true });
   const slug = slugify(projectName);
   await downloadTemplate(targetDir);
-  writeStarterContent(targetDir, projectName, slug, i18nLocales);
+  writeStarterContent(targetDir, projectName, slug, enableAiChat, repoUrl, i18nLocales);
   updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl);
   patchApiReferenceGuard(targetDir);
   patchTopBarNavigation(targetDir);
