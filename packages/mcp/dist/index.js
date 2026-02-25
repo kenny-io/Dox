@@ -53,31 +53,37 @@ const client = create({ apiKey: 'your-api-key' })
 That's it \u2014 you're ready to go!
 `
 };
-var STARTER_DOCS_JSON = `{
-  "ai": { "chat": true },
-  "tabs": [
+function buildStarterDocsJson({
+  enableAiChat,
+  repoUrl,
+  i18nLocales
+}) {
+  const config = {};
+  if (enableAiChat) {
+    config.ai = { chat: true };
+  }
+  if (repoUrl) {
+    config.navbar = {
+      links: [{ label: "GitHub", href: repoUrl, type: "github" }],
+      primary: { label: "Get started", href: "/quickstart" }
+    };
+  }
+  if (i18nLocales && i18nLocales.length > 0) {
+    config.i18n = {
+      defaultLocale: "en",
+      locales: [{ code: "en", label: "English" }, ...i18nLocales]
+    };
+  }
+  config.tabs = [
     {
-      "tab": "Overview",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": ["introduction", "quickstart"]
-        }
-      ]
+      tab: "Overview",
+      groups: [{ group: "Getting Started", pages: ["introduction", "quickstart"] }]
     },
-    {
-      "tab": "API Reference",
-      "api": {
-        "source": "openapi.yaml"
-      }
-    },
-    {
-      "tab": "Changelog",
-      "href": "/changelog"
-    }
-  ]
+    { tab: "API Reference", api: { source: "openapi.yaml" } },
+    { tab: "Changelog", href: "/changelog" }
+  ];
+  return JSON.stringify(config, null, 2) + "\n";
 }
-`;
 function slugify(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
@@ -107,7 +113,7 @@ async function downloadTemplate(targetDir) {
     })
   );
 }
-function writeStarterContent(targetDir, projectName, slug, enableAiChat = true, i18nLocales) {
+function writeStarterContent(targetDir, projectName, slug, enableAiChat = true, repoUrl = "", i18nLocales) {
   const contentDir = join(targetDir, "src", "content");
   if (existsSync(contentDir)) {
     const entries = readdirSync(contentDir);
@@ -121,21 +127,11 @@ function writeStarterContent(targetDir, projectName, slug, enableAiChat = true, 
     const content = template.replace(/\{NAME\}/g, projectName).replace(/\{SLUG\}/g, slug);
     writeFileSync(join(contentDir, filename), content, "utf8");
   }
-  let docsJson = STARTER_DOCS_JSON.trimEnd();
-  if (!enableAiChat) {
-    docsJson = docsJson.replace('  "ai": { "chat": true },\n', "");
-  }
-  if (i18nLocales && i18nLocales.length > 0) {
-    const allLocales = [{ code: "en", label: "English" }, ...i18nLocales];
-    const i18nBlock = JSON.stringify(
-      { defaultLocale: "en", locales: allLocales },
-      null,
-      2
-    ).split("\n").map((line, idx) => idx === 0 ? line : "  " + line).join("\n");
-    docsJson = docsJson.replace(/^(\{)/, `$1
-  "i18n": ${i18nBlock},`);
-  }
-  writeFileSync(join(targetDir, "docs.json"), docsJson + "\n", "utf8");
+  writeFileSync(
+    join(targetDir, "docs.json"),
+    buildStarterDocsJson({ enableAiChat, repoUrl: repoUrl || void 0, i18nLocales }),
+    "utf8"
+  );
 }
 function updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl) {
   const siteFile = join(targetDir, "src", "data", "site.ts");
@@ -210,6 +206,18 @@ function patchApiReferenceGuard(targetDir) {
   );
   writeFileSync(filePath, source, "utf8");
 }
+function patchOpenApiFetch(targetDir) {
+  const filePath = join(targetDir, "src", "lib", "openapi", "fetch.ts");
+  if (!existsSync(filePath)) return;
+  let source = readFileSync(filePath, "utf8");
+  source = source.replace(
+    /const absolutePath = path\.isAbsolute\(filePath\) \? filePath : path\.resolve\(process\.cwd\(\), filePath\)/,
+    `const absolutePath = filePath.startsWith('/')
+    ? path.resolve(process.cwd(), 'public', filePath.slice(1))
+    : path.resolve(process.cwd(), filePath)`
+  );
+  writeFileSync(filePath, source, "utf8");
+}
 function updateEnvExample(targetDir) {
   const envFile = join(targetDir, ".env.example");
   if (existsSync(envFile)) {
@@ -237,10 +245,11 @@ async function scaffold(options) {
   mkdirSync(targetDir, { recursive: true });
   const slug = slugify(projectName);
   await downloadTemplate(targetDir);
-  writeStarterContent(targetDir, projectName, slug, enableAiChat, i18nLocales);
+  writeStarterContent(targetDir, projectName, slug, enableAiChat, repoUrl, i18nLocales);
   updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl);
   patchApiReferenceGuard(targetDir);
   patchTopBarNavigation(targetDir);
+  patchOpenApiFetch(targetDir);
   updateEnvExample(targetDir);
   if (doInstall) installDeps(targetDir);
   initGit(targetDir);

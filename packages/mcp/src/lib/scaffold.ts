@@ -55,31 +55,46 @@ That's it — you're ready to go!
 `,
 }
 
-const STARTER_DOCS_JSON = `{
-  "ai": { "chat": true },
-  "tabs": [
-    {
-      "tab": "Overview",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": ["introduction", "quickstart"]
-        }
-      ]
-    },
-    {
-      "tab": "API Reference",
-      "api": {
-        "source": "openapi.yaml"
-      }
-    },
-    {
-      "tab": "Changelog",
-      "href": "/changelog"
+function buildStarterDocsJson({
+  enableAiChat,
+  repoUrl,
+  i18nLocales,
+}: {
+  enableAiChat: boolean
+  repoUrl?: string
+  i18nLocales?: Array<{ code: string; label: string }>
+}): string {
+  const config: Record<string, unknown> = {}
+
+  if (enableAiChat) {
+    config.ai = { chat: true }
+  }
+
+  if (repoUrl) {
+    config.navbar = {
+      links: [{ label: 'GitHub', href: repoUrl, type: 'github' }],
+      primary: { label: 'Get started', href: '/quickstart' },
     }
+  }
+
+  if (i18nLocales && i18nLocales.length > 0) {
+    config.i18n = {
+      defaultLocale: 'en',
+      locales: [{ code: 'en', label: 'English' }, ...i18nLocales],
+    }
+  }
+
+  config.tabs = [
+    {
+      tab: 'Overview',
+      groups: [{ group: 'Getting Started', pages: ['introduction', 'quickstart'] }],
+    },
+    { tab: 'API Reference', api: { source: 'openapi.yaml' } },
+    { tab: 'Changelog', href: '/changelog' },
   ]
+
+  return JSON.stringify(config, null, 2) + '\n'
 }
-`
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -126,6 +141,7 @@ function writeStarterContent(
   projectName: string,
   slug: string,
   enableAiChat = true,
+  repoUrl = '',
   i18nLocales?: Array<{ code: string; label: string }>,
 ): void {
   const contentDir = join(targetDir, 'src', 'content')
@@ -141,23 +157,11 @@ function writeStarterContent(
     const content = template.replace(/\{NAME\}/g, projectName).replace(/\{SLUG\}/g, slug)
     writeFileSync(join(contentDir, filename), content, 'utf8')
   }
-  let docsJson = STARTER_DOCS_JSON.trimEnd()
-  if (!enableAiChat) {
-    docsJson = docsJson.replace('  "ai": { "chat": true },\n', '')
-  }
-  if (i18nLocales && i18nLocales.length > 0) {
-    const allLocales = [{ code: 'en', label: 'English' }, ...i18nLocales]
-    const i18nBlock = JSON.stringify(
-      { defaultLocale: 'en', locales: allLocales },
-      null,
-      2,
-    )
-      .split('\n')
-      .map((line, idx) => (idx === 0 ? line : '  ' + line))
-      .join('\n')
-    docsJson = docsJson.replace(/^(\{)/, `$1\n  "i18n": ${i18nBlock},`)
-  }
-  writeFileSync(join(targetDir, 'docs.json'), docsJson + '\n', 'utf8')
+  writeFileSync(
+    join(targetDir, 'docs.json'),
+    buildStarterDocsJson({ enableAiChat, repoUrl: repoUrl || undefined, i18nLocales }),
+    'utf8',
+  )
 }
 
 function updateSiteConfig(
@@ -241,6 +245,17 @@ function patchApiReferenceGuard(targetDir: string): void {
   writeFileSync(filePath, source, 'utf8')
 }
 
+function patchOpenApiFetch(targetDir: string): void {
+  const filePath = join(targetDir, 'src', 'lib', 'openapi', 'fetch.ts')
+  if (!existsSync(filePath)) return
+  let source = readFileSync(filePath, 'utf8')
+  source = source.replace(
+    /const absolutePath = path\.isAbsolute\(filePath\) \? filePath : path\.resolve\(process\.cwd\(\), filePath\)/,
+    `const absolutePath = filePath.startsWith('/')\n    ? path.resolve(process.cwd(), 'public', filePath.slice(1))\n    : path.resolve(process.cwd(), filePath)`,
+  )
+  writeFileSync(filePath, source, 'utf8')
+}
+
 function updateEnvExample(targetDir: string): void {
   const envFile = join(targetDir, '.env.example')
   if (existsSync(envFile)) {
@@ -294,10 +309,11 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   const slug = slugify(projectName)
 
   await downloadTemplate(targetDir)
-  writeStarterContent(targetDir, projectName, slug, enableAiChat, i18nLocales)
+  writeStarterContent(targetDir, projectName, slug, enableAiChat, repoUrl, i18nLocales)
   updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl)
   patchApiReferenceGuard(targetDir)
   patchTopBarNavigation(targetDir)
+  patchOpenApiFetch(targetDir)
   updateEnvExample(targetDir)
   if (doInstall) installDeps(targetDir)
   initGit(targetDir)

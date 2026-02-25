@@ -523,6 +523,45 @@ export function getBreadcrumbs(currentHref: string): Array<BreadcrumbItem> {
   return []
 }
 
+// ---------------------------------------------------------------------------
+// Nav context for agent API responses
+// ---------------------------------------------------------------------------
+
+export interface NavContext {
+  tab: string
+  group: string
+  prev: PrevNextLink | null
+  next: PrevNextLink | null
+  breadcrumb: Array<BreadcrumbItem>
+}
+
+export function getNavContext(pageId: string): NavContext {
+  const slug = pageId === 'introduction' ? [] : pageId.split('/').filter(Boolean)
+  const href = slug.length ? `/${slug.join('/')}` : '/'
+
+  const { prev, next } = getPrevNextLinks(href)
+  const breadcrumb = getBreadcrumbs(href)
+
+  // Find which tab and group this page belongs to
+  const collections = getSidebarCollections()
+  let tabName = ''
+  let groupName = ''
+
+  outer: for (const collection of collections) {
+    for (const section of collection.sections) {
+      if (section.items.some((item) => item.href === href)) {
+        tabName = collection.label
+        // Strip dot-separated ancestors — take the leaf group name
+        const parts = section.title.split(' • ')
+        groupName = parts[parts.length - 1] ?? section.title
+        break outer
+      }
+    }
+  }
+
+  return { tab: tabName, group: groupName, prev, next, breadcrumb }
+}
+
 export function getAiConfig(): { chat?: boolean; label?: string; icon?: string } {
   return docsConfig.ai ?? {}
 }

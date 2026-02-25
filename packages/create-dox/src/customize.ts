@@ -37,35 +37,53 @@ That's it — you're ready to go!
 `,
 }
 
-const STARTER_DOCS_JSON = `{
-  "tabs": [
-    {
-      "tab": "Overview",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": ["introduction", "quickstart"]
-        }
-      ]
-    },
-    {
-      "tab": "API Reference",
-      "api": {
-        "source": "openapi.yaml"
-      }
-    },
-    {
-      "tab": "Changelog",
-      "href": "/changelog"
+function buildStarterDocsJson({
+  enableAiChat,
+  repoUrl,
+  i18nLocales,
+}: {
+  enableAiChat: boolean
+  repoUrl?: string
+  i18nLocales?: Array<{ code: string; label: string }>
+}): string {
+  const config: Record<string, unknown> = {}
+
+  if (enableAiChat) {
+    config.ai = { chat: true }
+  }
+
+  if (repoUrl) {
+    config.navbar = {
+      links: [{ label: 'GitHub', href: repoUrl, type: 'github' }],
+      primary: { label: 'Get started', href: '/quickstart' },
     }
+  }
+
+  if (i18nLocales && i18nLocales.length > 0) {
+    config.i18n = {
+      defaultLocale: 'en',
+      locales: [{ code: 'en', label: 'English' }, ...i18nLocales],
+    }
+  }
+
+  config.tabs = [
+    {
+      tab: 'Overview',
+      groups: [{ group: 'Getting Started', pages: ['introduction', 'quickstart'] }],
+    },
+    { tab: 'API Reference', api: { source: 'openapi.yaml' } },
+    { tab: 'Changelog', href: '/changelog' },
   ]
+
+  return JSON.stringify(config, null, 2) + '\n'
 }
-`
 
 export function writeStarterContent(
   targetDir: string,
   projectName: string,
   slug: string,
+  enableAiChat = true,
+  repoUrl = '',
   i18nLocales?: Array<{ code: string; label: string }>,
 ): void {
   const contentDir = join(targetDir, 'src', 'content')
@@ -89,23 +107,11 @@ export function writeStarterContent(
     writeFileSync(join(contentDir, filename), content, 'utf8')
   }
 
-  // Build docs.json with optional i18n block
-  let docsJson = STARTER_DOCS_JSON.trimEnd()
-  if (i18nLocales && i18nLocales.length > 0) {
-    const allLocales = [{ code: 'en', label: 'English' }, ...i18nLocales]
-    const i18nBlock = JSON.stringify(
-      { defaultLocale: 'en', locales: allLocales },
-      null,
-      2,
-    )
-      .split('\n')
-      .map((line, idx) => (idx === 0 ? line : '  ' + line))
-      .join('\n')
-    // Insert i18n block into docs.json before closing brace
-    docsJson = docsJson.replace(/^(\{)/, `$1\n  "i18n": ${i18nBlock},`)
-  }
-
-  writeFileSync(join(targetDir, 'docs.json'), docsJson + '\n', 'utf8')
+  writeFileSync(
+    join(targetDir, 'docs.json'),
+    buildStarterDocsJson({ enableAiChat, repoUrl: repoUrl || undefined, i18nLocales }),
+    'utf8',
+  )
 }
 
 export function updateSiteConfig(
