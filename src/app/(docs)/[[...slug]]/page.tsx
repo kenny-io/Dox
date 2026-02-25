@@ -56,6 +56,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `${siteUrl}${primaryHref}`,
       ...(i18n ? { languages: alternateLanguages } : {}),
+      types: {
+        'application/json': `${siteUrl}${primaryHref}?format=json`,
+      },
     },
     openGraph: {
       title: doc.title,
@@ -79,6 +82,19 @@ export default async function DocsPage({ params }: PageProps) {
     notFound()
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    name: doc.title,
+    description: doc.description || undefined,
+    url: `${siteUrl}${primaryHref}`,
+    identifier: doc.id,
+    ...(doc.lastUpdated ? { dateModified: doc.lastUpdated } : {}),
+    isPartOf: { '@type': 'WebSite', url: siteUrl },
+  }
+
   if (doc.openapi) {
     const operationNode = await getApiOperationByKey(doc.openapi.method, doc.openapi.path, doc.openapi.specId)
     if (!operationNode) {
@@ -87,6 +103,7 @@ export default async function DocsPage({ params }: PageProps) {
 
     return (
       <div className="space-y-10">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <div className="not-prose">
           <DocHeader doc={doc} />
         </div>
@@ -101,6 +118,7 @@ export default async function DocsPage({ params }: PageProps) {
 
   return (
     <DocLayout doc={doc}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Content />
     </DocLayout>
   )
