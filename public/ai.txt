@@ -1,0 +1,22 @@
+# Dox AI Discovery File
+# This file describes how AI agents and automated tools can interact with this documentation site.
+
+Docs-Format: application/json, text/markdown
+Docs-API: /api/docs/{slug}
+Docs-Index: /api/docs-index
+Docs-OpenAPI: /openapi.yaml
+Docs-Locale-Default: en
+
+# Content negotiation
+# Accept: application/json  → structured JSON payload (title, headings, nav, code blocks)
+# Accept: text/markdown     → Markdown with YAML frontmatter
+# ?format=json              → explicit JSON override
+# ?format=md                → explicit Markdown override
+
+Allow: /
+Allow: /api/docs/
+Allow: /api/docs-index
+Disallow: /api/chat
+Disallow: /api/feedback
+Disallow: /api/try-it
+Crawl-Delay: 1

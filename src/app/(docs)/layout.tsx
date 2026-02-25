@@ -30,9 +30,6 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
       const mergedSections = [...mdxSections, ...apiSections]
       return { ...collection, sections: mergedSections }
     }
-    if (!collection.href && collection.id === 'overview') {
-      return { ...collection, href: '/' }
-    }
     return collection
   })
   const searchIndex = getSearchableDocs()
