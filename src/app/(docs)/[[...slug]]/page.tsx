@@ -20,7 +20,7 @@ interface PageProps {
 export async function generateStaticParams() {
   const docs = getDocEntries()
   return docs.map((doc) =>
-    doc.slug.length ? { slug: doc.slug } : {},
+    doc.slug.length ? { slug: doc.slug } : { slug: [] },
   )
 }
 
