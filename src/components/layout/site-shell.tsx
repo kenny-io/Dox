@@ -53,14 +53,16 @@ function normalizePath(value: string) {
 
 interface SiteShellProps {
   children: React.ReactNode
+  initialCollections: Array<SidebarCollection>
   searchIndex: Array<SearchableDoc>
   i18nConfig?: I18nConfig | null
   navbarConfig?: DocsJsonNavbar | null
   footerConfig?: DocsJsonFooter | null
 }
 
-export function SiteShell({ children, searchIndex, i18nConfig, navbarConfig, footerConfig }: SiteShellProps) {
-  const collections = useSidebarCollectionsStore((state) => state.collections)
+export function SiteShell({ children, initialCollections, searchIndex, i18nConfig, navbarConfig, footerConfig }: SiteShellProps) {
+  const hydratedCollections = useSidebarCollectionsStore((state) => state.collections)
+  const collections = hydratedCollections.length > 0 ? hydratedCollections : initialCollections
   const pathname = usePathname()
   const router = useRouter()
 
