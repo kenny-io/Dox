@@ -41,7 +41,13 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
   return (
     <>
       <SidebarCollectionsHydrator collections={collections} />
-      <SiteShell searchIndex={searchIndex} i18nConfig={i18nConfig} navbarConfig={navbarConfig} footerConfig={footerConfig}>
+      <SiteShell
+        initialCollections={collections}
+        searchIndex={searchIndex}
+        i18nConfig={i18nConfig}
+        navbarConfig={navbarConfig}
+        footerConfig={footerConfig}
+      >
         {children}
       </SiteShell>
       {aiConfig.chat && <DocsChat label={aiConfig.label} icon={aiConfig.icon} />}

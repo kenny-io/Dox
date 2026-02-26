@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3040'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -12,19 +12,19 @@ export default function robots(): MetadataRoute.Robots {
       },
       {
         userAgent: 'GPTBot',
-        allow: ['/api/docs/', '/api/docs-index'],
+        allow: ['/', '/llms.txt', '/llms-full.txt', '/api/docs', '/api/docs/', '/api/docs-index'],
       },
       {
         userAgent: 'OAI-SearchBot',
-        allow: ['/api/docs/', '/api/docs-index'],
+        allow: ['/', '/llms.txt', '/llms-full.txt', '/api/docs', '/api/docs/', '/api/docs-index'],
       },
       {
         userAgent: 'ClaudeBot',
-        allow: ['/api/docs/', '/api/docs-index'],
+        allow: ['/', '/llms.txt', '/llms-full.txt', '/api/docs', '/api/docs/', '/api/docs-index'],
       },
       {
         userAgent: 'GoogleOther',
-        allow: ['/api/docs/', '/api/docs-index'],
+        allow: ['/', '/llms.txt', '/llms-full.txt', '/api/docs', '/api/docs/', '/api/docs-index'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
