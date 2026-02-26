@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
 import { DocLayout } from '@/components/docs/doc-layout'
-import { apiReferenceConfig } from '@/config/api-reference'
+import { apiReferenceConfig, getOpenApiSpecUrl } from '@/config/api-reference'
 import { getAllApiOperationNodes, getApiOperationBySlug, getApiOperationNodes } from '@/data/api-reference'
 import { getDocEntries } from '@/data/docs'
 import { getDocFromParams } from '@/data/get-doc'
@@ -26,12 +26,23 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolved = await params
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const specUrl = getOpenApiSpecUrl(siteUrl)
 
   const node = await getApiOperationBySlug(resolved.slug)
   if (node) {
     return {
       title: node.operation.title,
       description: node.operation.description ?? `${node.operation.method} ${node.operation.path}`,
+      ...(specUrl
+        ? {
+            alternates: {
+              types: {
+                'application/vnd.oai.openapi': specUrl,
+              },
+            },
+          }
+        : {}),
     }
   }
 
@@ -45,6 +56,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ApiReferencePage({ params }: PageProps) {
   const resolved = await params
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const specUrl = getOpenApiSpecUrl(siteUrl)
 
   // No slug — redirect to the first MDX page in the API group if one exists,
   // otherwise fall through to the first OpenAPI operation.
@@ -63,8 +76,31 @@ export default async function ApiReferencePage({ params }: PageProps) {
   // OpenAPI operation match
   const node = await getApiOperationBySlug(resolved.slug)
   if (node) {
+    const pageUrl = `${siteUrl}${node.href}`
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'TechArticle',
+      name: node.operation.title,
+      description: node.operation.description ?? `${node.operation.method} ${node.operation.path}`,
+      url: pageUrl,
+      ...(specUrl ? { isBasedOn: specUrl } : {}),
+      about: {
+        '@type': 'WebAPI',
+        name: 'API Reference',
+      },
+    }
+
     return (
       <ApiLayout>
+        {specUrl ? (
+          <p className="text-sm text-foreground/60">
+            OpenAPI specification:{' '}
+            <a href={specUrl} className="underline decoration-border underline-offset-2 hover:text-foreground">
+              {specUrl}
+            </a>
+          </p>
+        ) : null}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <OperationPanel operation={node.operation} />
       </ApiLayout>
     )

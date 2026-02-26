@@ -15,6 +15,20 @@ https://api.example.com/v1
 
 There is no versioning in the path beyond `v1`. Breaking changes are communicated with a deprecation notice and a migration window.
 
+## OpenAPI specification
+
+You can fetch the full API specification directly from the docs site:
+
+- YAML: `/openapi.yaml`
+- JSON: `/openapi.json`
+
+For local development:
+
+```bash
+curl http://localhost:3040/openapi.yaml
+curl http://localhost:3040/openapi.json
+```
+
 ## Authentication
 
 The API supports two authentication methods. Include one of the following on every request.
