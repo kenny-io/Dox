@@ -41,7 +41,12 @@ export function OperationPanel({ operation }: OperationPanelProps) {
                 <div className="prose prose-neutral dark:prose-invert max-w-none text-base text-foreground/70">
                   <Markdown>{operation.description}</Markdown>
                 </div>
-              ) : null}
+              ) : (
+                <p className="text-base text-foreground/70">
+                  This endpoint handles {operation.method} requests for <code className="font-mono text-sm">{operation.path}</code>.
+                  Review the request parameters and response schema below.
+                </p>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border/30 bg-background/60 px-4 py-3">

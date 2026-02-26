@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
-import { apiReferenceConfig } from '@/config/api-reference'
+import { apiReferenceConfig, getOpenApiSpecUrl } from '@/config/api-reference'
 import { getAllApiOperationNodes, getApiOperationBySlug, getApiOperationNodes } from '@/data/api-reference'
 import { getI18nConfig } from '@/data/docs'
 
@@ -29,16 +29,29 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolved = await params
   if (!isValidSecondaryLocale(resolved.locale)) return {}
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const specUrl = getOpenApiSpecUrl(siteUrl)
   const node = await getApiOperationBySlug(resolved.slug)
   if (!node) return {}
   return {
     title: node.operation.title,
     description: node.operation.description ?? `${node.operation.method} ${node.operation.path}`,
+    ...(specUrl
+      ? {
+          alternates: {
+            types: {
+              'application/vnd.oai.openapi': specUrl,
+            },
+          },
+        }
+      : {}),
   }
 }
 
 export default async function LocaleApiReferencePage({ params }: PageProps) {
   const resolved = await params
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const specUrl = getOpenApiSpecUrl(siteUrl)
 
   if (!isValidSecondaryLocale(resolved.locale)) {
     notFound()
@@ -57,8 +70,31 @@ export default async function LocaleApiReferencePage({ params }: PageProps) {
     notFound()
   }
 
+  const pageUrl = `${siteUrl}/${resolved.locale}${node.href}`
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    name: node.operation.title,
+    description: node.operation.description ?? `${node.operation.method} ${node.operation.path}`,
+    url: pageUrl,
+    ...(specUrl ? { isBasedOn: specUrl } : {}),
+    about: {
+      '@type': 'WebAPI',
+      name: 'API Reference',
+    },
+  }
+
   return (
     <ApiLayout>
+      {specUrl ? (
+        <p className="text-sm text-foreground/60">
+          OpenAPI specification:{' '}
+          <a href={specUrl} className="underline decoration-border underline-offset-2 hover:text-foreground">
+            {specUrl}
+          </a>
+        </p>
+      ) : null}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <OperationPanel operation={node.operation} />
     </ApiLayout>
   )
