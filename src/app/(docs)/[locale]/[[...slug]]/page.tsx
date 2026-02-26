@@ -33,7 +33,7 @@ export async function generateStaticParams() {
   return secondaryLocales.flatMap(({ code }) =>
     docs.map((doc) => ({
       locale: code,
-      slug: doc.slug.length ? doc.slug : undefined,
+      slug: doc.slug.length ? doc.slug : [],
     })),
   )
 }
