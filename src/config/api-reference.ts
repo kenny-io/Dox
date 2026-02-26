@@ -1,4 +1,4 @@
-import type { ApiReferenceConfig, ApiSpecConfig } from '@/lib/openapi/types'
+import type { ApiReferenceConfig, ApiSpecConfig, ApiSpecSource } from '@/lib/openapi/types'
 import { getSidebarCollections } from '@/data/docs'
 import type { DocsJsonApiConfig } from '@/data/docs'
 
@@ -33,4 +33,32 @@ function buildSpecFromDocsJson(api: DocsJsonApiConfig): ApiSpecConfig {
 }
 
 export const apiReferenceConfig: ApiReferenceConfig = buildApiReferenceConfig()
+
+function normalizePublicSpecPath(path: string) {
+  if (path.startsWith('/')) {
+    return path
+  }
+  return `/${path}`
+}
+
+function resolveSourceUrl(source: ApiSpecSource, siteUrl: string): string | null {
+  if (source.type === 'url') {
+    return source.url
+  }
+  if (source.type === 'file') {
+    return `${siteUrl}${normalizePublicSpecPath(source.path)}`
+  }
+  return null
+}
+
+export function getOpenApiSpecUrl(siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'): string | null {
+  const spec = apiReferenceConfig.specs.find((entry) => entry.id === apiReferenceConfig.defaultSpecId)
+    ?? apiReferenceConfig.specs[0]
+
+  if (!spec) {
+    return null
+  }
+
+  return resolveSourceUrl(spec.source, siteUrl)
+}
 
