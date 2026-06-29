@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server'
+import { trackAnalyticsEvent } from '@/lib/analytics/store'
 
 /**
  * POST /api/feedback
  *
  * Receives page feedback votes from the Feedback component.
  * Body: { page: string, vote: "yes" | "no", url: string }
- *
- * Replace this handler with your own storage logic — write to a database,
- * forward to a webhook, send to PostHog, etc.
- *
- * To use an external endpoint instead, set `feedback.endpoint` in docs.json
- * to any URL and remove this route — the Feedback component will POST there directly.
  */
 export async function POST(request: Request) {
   try {
@@ -21,8 +16,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing page or vote' }, { status: 400 })
     }
 
-    // Default implementation: log to stdout (replace with your storage logic)
-    console.log('[feedback]', { page, vote, url, at: new Date().toISOString() })
+    if (vote === 'yes' || vote === 'no') {
+      trackAnalyticsEvent({
+        type: 'feedback',
+        path: url ?? page,
+        page,
+        vote,
+        visitorType: 'human',
+      })
+    }
 
     return NextResponse.json({ ok: true })
   } catch {

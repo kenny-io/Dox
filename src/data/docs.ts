@@ -189,6 +189,19 @@ interface DocsJsonConfig {
      * Defaults to "sparkles".
      */
     icon?: string
+    /** Custom system prompt for the AI assistant. Appended to the docs context instruction. */
+    systemPrompt?: string
+  }
+  /** Credentials applied to the API Try It playground from OpenAPI security scheme names. */
+  apiPlayground?: {
+    credentials?: Record<string, string>
+  }
+  /** Built-in analytics dashboard at /admin (requires DOX_ADMIN_PASSWORD env). */
+  admin?: {
+    enabled?: boolean
+  }
+  analytics?: {
+    enabled?: boolean
   }
   i18n?: {
     defaultLocale: string
@@ -562,8 +575,25 @@ export function getNavContext(pageId: string): NavContext {
   return { tab: tabName, group: groupName, prev, next, breadcrumb }
 }
 
-export function getAiConfig(): { chat?: boolean; label?: string; icon?: string } {
+export function getAiConfig(): {
+  chat?: boolean
+  label?: string
+  icon?: string
+  systemPrompt?: string
+} {
   return docsConfig.ai ?? {}
+}
+
+export function getApiPlaygroundCredentials(): Record<string, string> {
+  return docsConfig.apiPlayground?.credentials ?? {}
+}
+
+export function isAnalyticsEnabled(): boolean {
+  return docsConfig.analytics?.enabled !== false
+}
+
+export function isAdminDashboardEnabled(): boolean {
+  return docsConfig.admin?.enabled !== false
 }
 
 export function getI18nConfig(): { defaultLocale: string; locales: Array<{ code: string; label: string }> } | null {

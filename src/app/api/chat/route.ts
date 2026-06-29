@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { type NextRequest } from 'next/server'
+import { trackAnalyticsEvent } from '@/lib/analytics/store'
 import { getAiConfig } from '@/data/docs'
 import { siteConfig } from '@/data/site'
 import fs from 'node:fs'
@@ -111,20 +112,29 @@ export async function POST(request: NextRequest): Promise<Response> {
     return new Response('No messages provided.', { status: 400 })
   }
 
+  trackAnalyticsEvent({
+    type: 'chat_message',
+    path: '/api/chat',
+    visitorType: 'human',
+  })
+
   const docsContext = buildDocsContext()
 
   const client = new Anthropic({ apiKey })
 
-  const stream = client.messages.stream({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
-    system: `You are a helpful documentation assistant for ${siteConfig.name}.
+  const customPrompt = aiConfig.systemPrompt?.trim()
+  const system = `You are a helpful documentation assistant for ${siteConfig.name}.
 Answer questions based ONLY on the documentation provided below.
 If the answer isn't in the docs, say so clearly — don't guess.
 Keep answers concise. Use markdown formatting where helpful.
-
+${customPrompt ? `\nAdditional instructions:\n${customPrompt}\n` : ''}
 Documentation:
-${docsContext}`,
+${docsContext}`
+
+  const stream = client.messages.stream({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1024,
+    system,
     messages,
   })
 
