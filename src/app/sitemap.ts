@@ -30,6 +30,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
       lastModified: now,
     },
+    {
+      url: `${baseUrl}/llms.txt`,
+      changeFrequency: 'weekly',
+      priority: 0.4,
+      lastModified: now,
+    },
+    {
+      url: `${baseUrl}/ai.txt`,
+      changeFrequency: 'monthly',
+      priority: 0.3,
+      lastModified: now,
+    },
   ]
 
   return [...docPages, ...apiPages, ...staticPages]

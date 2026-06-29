@@ -1,12 +1,15 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { DocLayout } from '@/components/docs/doc-layout'
-import { getDocEntries, getI18nConfig } from '@/data/docs'
+import { getDocEntries, getI18nConfig, getNavContext } from '@/data/docs'
 import { getDocFromParams } from '@/data/get-doc'
 import { getApiOperationByKey } from '@/data/api-reference'
 import { DocHeader } from '@/components/docs/doc-header'
 import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
+import { JsonLdScript } from '@/components/seo/json-ld-script'
+import { buildAgentAlternateLinks } from '@/lib/agent-discovery'
+import { buildDocPageJsonLd } from '@/lib/json-ld'
 import { buildOgImageUrl } from '@/lib/og'
 
 function localizedHref(href: string, code: string, defaultLocale: string) {
@@ -56,9 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `${siteUrl}${primaryHref}`,
       ...(i18n ? { languages: alternateLanguages } : {}),
-      types: {
-        'application/json': `${siteUrl}${primaryHref}?format=json`,
-      },
+      types: buildAgentAlternateLinks(primaryHref),
     },
     openGraph: {
       title: doc.title,
@@ -84,16 +85,20 @@ export default async function DocsPage({ params }: PageProps) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
   const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'TechArticle',
-    name: doc.title,
-    description: doc.description || undefined,
-    url: `${siteUrl}${primaryHref}`,
-    identifier: doc.id,
-    ...(doc.lastUpdated ? { dateModified: doc.lastUpdated } : {}),
-    isPartOf: { '@type': 'WebSite', url: siteUrl },
-  }
+  const pageUrl = `${siteUrl}${primaryHref}`
+  const locale = getI18nConfig()?.defaultLocale ?? 'en'
+  const nav = getNavContext(doc.id)
+  const jsonLd = buildDocPageJsonLd({
+    siteUrl,
+    pageUrl,
+    id: doc.id,
+    title: doc.title,
+    description: doc.description,
+    keywords: doc.keywords,
+    lastUpdated: doc.lastUpdated,
+    locale,
+    breadcrumb: nav.breadcrumb,
+  })
 
   if (doc.openapi) {
     const operationNode = await getApiOperationByKey(doc.openapi.method, doc.openapi.path, doc.openapi.specId)
@@ -103,7 +108,7 @@ export default async function DocsPage({ params }: PageProps) {
 
     return (
       <div className="space-y-10">
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <JsonLdScript data={jsonLd} />
         <div className="not-prose">
           <DocHeader doc={doc} />
         </div>
@@ -118,9 +123,8 @@ export default async function DocsPage({ params }: PageProps) {
 
   return (
     <DocLayout doc={doc}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLdScript data={jsonLd} />
       <Content />
     </DocLayout>
   )
 }
-

@@ -8,6 +8,8 @@ import { getBannerConfig, getCustomScriptsConfig, getFontsConfig, getI18nConfig,
 import { cn } from '@/lib/utils'
 import { toHslValue } from '@/lib/colors'
 import { buildOgImageUrl } from '@/lib/og'
+import { buildSiteJsonLd } from '@/lib/json-ld'
+import { JsonLdScript } from '@/components/seo/json-ld-script'
 import { AnalyticsProvider } from '@/components/analytics/analytics-provider'
 import { SiteBanner } from '@/components/layout/site-banner'
 
@@ -183,11 +185,14 @@ const brandStyle: Record<string, string> = {
 const defaultLang = getI18nConfig()?.defaultLocale ?? 'en'
 const bannerConfig = getBannerConfig()
 const customScripts = getCustomScriptsConfig()
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const siteJsonLd = buildSiteJsonLd({ siteUrl, locale: defaultLang })
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang={defaultLang} suppressHydrationWarning style={brandStyle} data-theme={structuralTheme}>
       <head>
+        <JsonLdScript data={siteJsonLd} />
         {/* Google Fonts for custom body/heading fonts set in docs.json */}
         {googleFontUrls.length > 0 && (
           <>

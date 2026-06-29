@@ -2,9 +2,12 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
+import { JsonLdScript } from '@/components/seo/json-ld-script'
 import { apiReferenceConfig, getOpenApiSpecUrl } from '@/config/api-reference'
 import { getAllApiOperationNodes, getApiOperationBySlug, getApiOperationNodes } from '@/data/api-reference'
-import { getI18nConfig } from '@/data/docs'
+import { getBreadcrumbs, getI18nConfig } from '@/data/docs'
+import { buildAgentAlternateLinks } from '@/lib/agent-discovery'
+import { buildApiOperationJsonLd } from '@/lib/json-ld'
 
 interface PageProps {
   params: Promise<{ locale: string; slug?: Array<string> }>
@@ -36,15 +39,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: node.operation.title,
     description: node.operation.description ?? `${node.operation.method} ${node.operation.path}`,
-    ...(specUrl
-      ? {
-          alternates: {
-            types: {
-              'application/vnd.oai.openapi': specUrl,
-            },
-          },
-        }
-      : {}),
+    alternates: {
+      types: {
+        ...buildAgentAlternateLinks(node.href),
+        ...(specUrl ? { 'application/vnd.oai.openapi': specUrl } : {}),
+      },
+    },
   }
 }
 
@@ -71,18 +71,17 @@ export default async function LocaleApiReferencePage({ params }: PageProps) {
   }
 
   const pageUrl = `${siteUrl}/${resolved.locale}${node.href}`
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'TechArticle',
-    name: node.operation.title,
+  const jsonLd = buildApiOperationJsonLd({
+    siteUrl,
+    pageUrl,
+    title: node.operation.title,
     description: node.operation.description ?? `${node.operation.method} ${node.operation.path}`,
-    url: pageUrl,
-    ...(specUrl ? { isBasedOn: specUrl } : {}),
-    about: {
-      '@type': 'WebAPI',
-      name: 'API Reference',
-    },
-  }
+    specUrl: specUrl ?? undefined,
+    method: node.operation.method,
+    path: node.operation.path,
+    locale: resolved.locale,
+    breadcrumb: getBreadcrumbs(node.href),
+  })
 
   return (
     <ApiLayout>
@@ -94,7 +93,7 @@ export default async function LocaleApiReferencePage({ params }: PageProps) {
           </a>
         </p>
       ) : null}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLdScript data={jsonLd} />
       <OperationPanel operation={node.operation} />
     </ApiLayout>
   )

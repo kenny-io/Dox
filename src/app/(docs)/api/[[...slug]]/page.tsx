@@ -3,10 +3,13 @@ import { notFound, redirect } from 'next/navigation'
 import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
 import { DocLayout } from '@/components/docs/doc-layout'
+import { JsonLdScript } from '@/components/seo/json-ld-script'
 import { apiReferenceConfig, getOpenApiSpecUrl } from '@/config/api-reference'
 import { getAllApiOperationNodes, getApiOperationBySlug, getApiOperationNodes } from '@/data/api-reference'
-import { getDocEntries } from '@/data/docs'
+import { getBreadcrumbs, getDocEntries } from '@/data/docs'
 import { getDocFromParams } from '@/data/get-doc'
+import { buildAgentAlternateLinks } from '@/lib/agent-discovery'
+import { buildApiOperationJsonLd, buildDocPageJsonLd } from '@/lib/json-ld'
 
 interface PageProps {
   params: Promise<{ slug?: Array<string> }>
@@ -34,21 +37,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: node.operation.title,
       description: node.operation.description ?? `${node.operation.method} ${node.operation.path}`,
-      ...(specUrl
-        ? {
-            alternates: {
-              types: {
-                'application/vnd.oai.openapi': specUrl,
-              },
-            },
-          }
-        : {}),
+      alternates: {
+        types: {
+          ...buildAgentAlternateLinks(node.href),
+          ...(specUrl ? { 'application/vnd.oai.openapi': specUrl } : {}),
+        },
+      },
     }
   }
 
   const doc = await getDocFromParams(['api', ...(resolved.slug ?? [])])
   if (doc) {
-    return { title: doc.title, description: doc.description }
+    const primaryHref = doc.href
+    return {
+      title: doc.title,
+      description: doc.description,
+      alternates: {
+        types: buildAgentAlternateLinks(primaryHref),
+      },
+    }
   }
 
   return {}
@@ -77,18 +84,16 @@ export default async function ApiReferencePage({ params }: PageProps) {
   const node = await getApiOperationBySlug(resolved.slug)
   if (node) {
     const pageUrl = `${siteUrl}${node.href}`
-    const jsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'TechArticle',
-      name: node.operation.title,
+    const jsonLd = buildApiOperationJsonLd({
+      siteUrl,
+      pageUrl,
+      title: node.operation.title,
       description: node.operation.description ?? `${node.operation.method} ${node.operation.path}`,
-      url: pageUrl,
-      ...(specUrl ? { isBasedOn: specUrl } : {}),
-      about: {
-        '@type': 'WebAPI',
-        name: 'API Reference',
-      },
-    }
+      specUrl: specUrl ?? undefined,
+      method: node.operation.method,
+      path: node.operation.path,
+      breadcrumb: getBreadcrumbs(node.href),
+    })
 
     return (
       <ApiLayout>
@@ -100,7 +105,7 @@ export default async function ApiReferencePage({ params }: PageProps) {
             </a>
           </p>
         ) : null}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <JsonLdScript data={jsonLd} />
         <OperationPanel operation={node.operation} />
       </ApiLayout>
     )
@@ -112,9 +117,22 @@ export default async function ApiReferencePage({ params }: PageProps) {
     notFound()
   }
 
+  const pageUrl = `${siteUrl}${doc.href}`
+  const jsonLd = buildDocPageJsonLd({
+    siteUrl,
+    pageUrl,
+    id: doc.id,
+    title: doc.title,
+    description: doc.description,
+    keywords: doc.keywords,
+    lastUpdated: doc.lastUpdated,
+    breadcrumb: getBreadcrumbs(doc.href),
+  })
+
   const Content = doc.component
   return (
     <DocLayout doc={doc}>
+      <JsonLdScript data={jsonLd} />
       <Content />
     </DocLayout>
   )

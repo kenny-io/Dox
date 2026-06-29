@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { DocLayout } from '@/components/docs/doc-layout'
-import { getDocEntries, getI18nConfig } from '@/data/docs'
+import { getDocEntries, getI18nConfig, getNavContext } from '@/data/docs'
 import { getDocFromParams } from '@/data/get-doc'
 import { getApiOperationByKey } from '@/data/api-reference'
 import { DocHeader } from '@/components/docs/doc-header'
@@ -9,6 +9,9 @@ import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
 import { LocaleFallbackBanner } from '@/components/docs/locale-fallback-banner'
 import { LocaleStaleBanner } from '@/components/docs/locale-stale-banner'
+import { JsonLdScript } from '@/components/seo/json-ld-script'
+import { buildAgentAlternateLinks } from '@/lib/agent-discovery'
+import { buildDocPageJsonLd } from '@/lib/json-ld'
 import { buildOgImageUrl } from '@/lib/og'
 
 interface PageProps {
@@ -67,6 +70,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       alternates: {
         canonical: `${siteUrl}${primaryHref}`,
         ...(i18n ? { languages: alternateLanguages } : {}),
+        types: buildAgentAlternateLinks(primaryHref),
       },
       openGraph: {
         title: doc.title,
@@ -106,6 +110,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `${siteUrl}${primaryHref}`,
       languages: alternateLanguages,
+      types: buildAgentAlternateLinks(primaryHref),
     },
     openGraph: {
       title: doc.title,
@@ -123,6 +128,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LocaleDocsPage({ params }: PageProps) {
   const resolved = await params
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
   if (!isValidSecondaryLocale(resolved.locale)) {
     // This path was intercepted from [[...slug]] — treat locale segment as part of the slug
@@ -130,12 +136,27 @@ export default async function LocaleDocsPage({ params }: PageProps) {
     const doc = await getDocFromParams(allSlug)
     if (!doc) notFound()
 
+    const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
+    const pageUrl = `${siteUrl}${primaryHref}`
+    const jsonLd = buildDocPageJsonLd({
+      siteUrl,
+      pageUrl,
+      id: doc.id,
+      title: doc.title,
+      description: doc.description,
+      keywords: doc.keywords,
+      lastUpdated: doc.lastUpdated,
+      locale: getI18nConfig()?.defaultLocale ?? 'en',
+      breadcrumb: getNavContext(doc.id).breadcrumb,
+    })
+
     if (doc.openapi) {
       const operationNode = await getApiOperationByKey(doc.openapi.method, doc.openapi.path, doc.openapi.specId)
       if (!operationNode) notFound()
 
       return (
         <div className="space-y-10">
+          <JsonLdScript data={jsonLd} />
           <div className="not-prose">
             <DocHeader doc={doc} />
           </div>
@@ -149,6 +170,7 @@ export default async function LocaleDocsPage({ params }: PageProps) {
     const Content = doc.component
     return (
       <DocLayout doc={doc}>
+        <JsonLdScript data={jsonLd} />
         <Content />
       </DocLayout>
     )
@@ -162,6 +184,18 @@ export default async function LocaleDocsPage({ params }: PageProps) {
   }
 
   const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
+  const pageUrl = `${siteUrl}/${resolved.locale}${primaryHref}`
+  const jsonLd = buildDocPageJsonLd({
+    siteUrl,
+    pageUrl,
+    id: doc.id,
+    title: doc.title,
+    description: doc.description,
+    keywords: doc.keywords,
+    lastUpdated: doc.lastUpdated,
+    locale: resolved.locale,
+    breadcrumb: getNavContext(doc.id).breadcrumb,
+  })
 
   if (doc.openapi) {
     const operationNode = await getApiOperationByKey(doc.openapi.method, doc.openapi.path, doc.openapi.specId)
@@ -171,6 +205,7 @@ export default async function LocaleDocsPage({ params }: PageProps) {
 
     return (
       <div className="space-y-10">
+        <JsonLdScript data={jsonLd} />
         <div className="not-prose">
           <DocHeader doc={doc} />
         </div>
@@ -185,6 +220,7 @@ export default async function LocaleDocsPage({ params }: PageProps) {
 
   return (
     <DocLayout doc={doc}>
+      <JsonLdScript data={jsonLd} />
       {doc.isFallback ? (
         <LocaleFallbackBanner locale={resolved.locale} defaultLocale={i18n?.defaultLocale ?? 'en'} />
       ) : doc.isStale ? (
