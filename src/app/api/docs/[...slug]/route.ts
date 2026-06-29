@@ -2,7 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import matter from 'gray-matter'
 import { type NextRequest } from 'next/server'
-import { getDocEntries, getNavContext } from '@/data/docs'
+import { getDocEntries, getI18nConfig, getNavContext } from '@/data/docs'
+import { buildDocPageJsonLd } from '@/lib/json-ld'
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
@@ -139,6 +140,25 @@ function readRawContent(
   return null
 }
 
+function resolveRequestedFormat(request: NextRequest): 'json' | 'ldjson' | 'markdown' {
+  const formatHeader = request.headers.get('x-dox-format')
+  if (formatHeader === 'ldjson') return 'ldjson'
+  if (formatHeader === 'json') return 'json'
+  if (formatHeader === 'md') return 'markdown'
+
+  const formatParam = request.nextUrl.searchParams.get('format')
+  if (formatParam === 'ldjson') return 'ldjson'
+  if (formatParam === 'json') return 'json'
+  if (formatParam === 'md') return 'markdown'
+
+  const accept = request.headers.get('accept') ?? ''
+  if (accept.includes('application/ld+json')) return 'ldjson'
+  if (accept.includes('application/json')) return 'json'
+  if (accept.includes('text/markdown')) return 'markdown'
+
+  return 'markdown'
+}
+
 // ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
@@ -149,22 +169,16 @@ export async function GET(
 ) {
   const { slug } = await params
   const slugPath = slug.join('/')
-
-  // Determine requested format
-  const accept = request.headers.get('accept') ?? ''
-  const formatParam = request.nextUrl.searchParams.get('format')
-  const wantsJson =
-    formatParam === 'json' ||
-    formatParam === 'ldjson' ||
-    accept.includes('application/json') ||
-    accept.includes('application/ld+json')
+  const format = resolveRequestedFormat(request)
+  const wantsJson = format === 'json'
+  const wantsLdJson = format === 'ldjson'
 
   // Find matching doc entry
   const entries = getDocEntries()
   const entry = entries.find((e) => e.slug.join('/') === slugPath || e.id === slugPath)
 
   if (!entry) {
-    if (wantsJson) {
+    if (wantsJson || wantsLdJson) {
       return Response.json(
         { error: 'not_found', message: 'No documentation page matches this path.' },
         { status: 404 },
@@ -178,7 +192,7 @@ export async function GET(
 
   const result = readRawContent(entry.id)
   if (!result) {
-    if (wantsJson) {
+    if (wantsJson || wantsLdJson) {
       return Response.json(
         { error: 'content_not_found', message: 'The source file for this page could not be read.' },
         { status: 404 },
@@ -191,10 +205,36 @@ export async function GET(
   }
 
   const canonicalUrl = `${baseUrl}${entry.href}`
+  const locale = getI18nConfig()?.defaultLocale ?? 'en'
+  const nav = getNavContext(entry.id)
+  const jsonLd = buildDocPageJsonLd({
+    siteUrl: baseUrl,
+    pageUrl: canonicalUrl,
+    id: entry.id,
+    title: entry.title,
+    description: entry.description,
+    keywords: entry.keywords,
+    lastUpdated: entry.lastUpdated,
+    locale,
+    breadcrumb: nav.breadcrumb,
+  })
+
   const commonHeaders: Record<string, string> = {
     'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-    Vary: 'Accept',
-    Link: `<${entry.href}>; rel="canonical", <${entry.href}?format=json>; rel="alternate"; type="application/json"`,
+    Vary: 'Accept, X-Dox-Format',
+    Link: `<${entry.href}>; rel="canonical", <${entry.href}?format=json>; rel="alternate"; type="application/json", <${entry.href}?format=ldjson>; rel="alternate"; type="application/ld+json"`,
+  }
+
+  // -------------------------------------------------------------------------
+  // JSON-LD response
+  // -------------------------------------------------------------------------
+  if (wantsLdJson) {
+    return new Response(JSON.stringify(jsonLd), {
+      headers: {
+        ...commonHeaders,
+        'Content-Type': 'application/ld+json; charset=utf-8',
+      },
+    })
   }
 
   // -------------------------------------------------------------------------
@@ -205,7 +245,6 @@ export async function GET(
     const headings = extractHeadings(cleanedMdx)
     const codeBlocks = extractCodeBlocks(rawMdx)
     const toc = buildToc(headings)
-    const nav = getNavContext(entry.id)
 
     const fm = frontmatter as Record<string, unknown>
 
@@ -241,7 +280,7 @@ export async function GET(
 
       // Metadata
       meta: {
-        locale: 'en',
+        locale,
         keywords: entry.keywords,
         badge: entry.badge ?? undefined,
         mode: entry.mode ?? undefined,
@@ -249,6 +288,9 @@ export async function GET(
         lastUpdated: entry.lastUpdated || undefined,
         timeEstimate: entry.timeEstimate || undefined,
       },
+
+      // schema.org structured data (same payload embedded in HTML pages)
+      json_ld: jsonLd,
 
       // OpenAPI (when this page or its tab has a spec)
       ...(fm.openapi || entry.openapi

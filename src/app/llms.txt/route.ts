@@ -21,6 +21,17 @@ export async function GET() {
     lines.push(`- GitHub: ${siteConfig.repoUrl}`)
   }
   lines.push(`- Full docs for LLMs: ${baseUrl}/llms-full.txt`)
+  lines.push(`- Agent discovery (ai.txt): ${baseUrl}/ai.txt`)
+  lines.push(`- Structured docs index (JSON): ${baseUrl}/api/docs-index`)
+  lines.push(`- OpenAPI spec: ${baseUrl}/openapi.yaml`)
+  lines.push('')
+  lines.push('## For AI agents')
+  lines.push('')
+  lines.push('Every page supports content negotiation on its human URL:')
+  lines.push(`- JSON API: append \`?format=json\` or send \`Accept: application/json\``)
+  lines.push(`- JSON-LD: append \`?format=ldjson\` or send \`Accept: application/ld+json\``)
+  lines.push(`- Markdown: append \`?format=md\` or send \`Accept: text/markdown\``)
+  lines.push(`- Per-page API: ${baseUrl}/api/docs/{page-id}`)
   lines.push('')
 
   // Sections grouped by tab > group

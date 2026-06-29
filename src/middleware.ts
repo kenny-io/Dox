@@ -10,6 +10,12 @@ const KNOWN_BOT_UA = [
   'anthropic-ai',
   'Gemini-Deep-Research',
   'GoogleOther',
+  'PerplexityBot',
+  'Meta-ExternalAgent',
+  'Amazonbot',
+  'Bytespider',
+  'CCBot',
+  'cohere-ai',
   'python-requests',
   'node-fetch',
   'Go-http-client',
@@ -60,11 +66,17 @@ export function middleware(request: NextRequest) {
   // Rewrite agent requests to the structured docs API
   if (detectAgentRequest(request)) {
     const slugPath = pathname === '/' ? 'introduction' : pathname.slice(1)
+    const format = request.nextUrl.searchParams.get('format')
     const url = request.nextUrl.clone()
     url.pathname = `/api/docs/${slugPath}`
-    // Strip the format param — the API route handles it via Accept header
     url.searchParams.delete('format')
-    return NextResponse.rewrite(url)
+
+    const requestHeaders = new Headers(request.headers)
+    if (format === 'json' || format === 'ldjson' || format === 'md') {
+      requestHeaders.set('x-dox-format', format)
+    }
+
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } })
   }
 }
 
