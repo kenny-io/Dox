@@ -1,61 +1,110 @@
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import type { NextFetchEvent, NextRequest } from 'next/server'
+import {
+  ADMIN_SESSION_COOKIE,
+  DOCS_ACCESS_COOKIE,
+  getInternalAnalyticsSecretEdge,
+  isAdminAuthenticatedEdge,
+  isAdminEnabledEdge,
+  isDocsAccessEnabledEdge,
+  isDocsAccessGrantedEdge,
+} from '@/lib/admin/auth-edge'
+import { classifyRequest, isAgentRequest } from '@/lib/traffic-classifier'
 
-const KNOWN_BOT_UA = [
-  'GPTBot',
-  'OAI-SearchBot',
-  'ChatGPT-User',
-  'ClaudeBot',
-  'Claude-User',
-  'anthropic-ai',
-  'Gemini-Deep-Research',
-  'GoogleOther',
-  'PerplexityBot',
-  'Meta-ExternalAgent',
-  'Amazonbot',
-  'Bytespider',
-  'CCBot',
-  'cohere-ai',
-  'python-requests',
-  'node-fetch',
-  'Go-http-client',
-]
-
-function detectAgentRequest(req: NextRequest): boolean {
-  // Never treat Next.js App Router navigation or prefetch requests as agent requests.
-  // These headers are only present in browser-initiated RSC navigations, not AI bots.
+function shouldTrackPath(pathname: string): boolean {
   if (
-    req.headers.has('next-router-state-tree') ||
-    req.headers.has('rsc') ||
-    req.headers.has('next-router-prefetch')
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/api/admin') ||
+    pathname.startsWith('/api/analytics') ||
+    pathname.startsWith('/api/access') ||
+    pathname === '/access' ||
+    pathname === '/icon' ||
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.webp')
   ) {
     return false
   }
-
-  // 1. Explicit format override — highest priority
-  const format = req.nextUrl.searchParams.get('format')
-  if (format === 'json' || format === 'ldjson') return true
-
-  // 2. Accept header content negotiation
-  const accept = req.headers.get('accept') ?? ''
-  if (accept.includes('application/json') || accept.includes('application/ld+json')) return true
-
-  // 3. Explicit Dox client header
-  if (req.headers.get('x-dox-client')?.toLowerCase() === 'agent') return true
-
-  // 4. Known bot User-Agent strings
-  const ua = req.headers.get('user-agent') ?? ''
-  if (KNOWN_BOT_UA.some((b) => ua.includes(b))) return true
-
-  return false
+  return true
 }
 
-export function middleware(request: NextRequest) {
+function buildAnalyticsPayload(request: NextRequest, pathname: string) {
+  const classification = classifyRequest(request, pathname)
+  const slugPath = pathname === '/' ? 'introduction' : pathname.slice(1).replace(/\.md$/, '')
+
+  const isDiscovery =
+    pathname === '/llms.txt' ||
+    pathname === '/llms-full.txt' ||
+    pathname === '/ai.txt' ||
+    pathname === '/api/docs-index'
+
+  return {
+    type: isDiscovery ? 'discovery' : pathname.startsWith('/api/') ? 'api_fetch' : 'page_view',
+    path: pathname,
+    slug: slugPath || undefined,
+    visitorType: classification.visitorType,
+    agentSignal: classification.agentSignal,
+    format: classification.format,
+    referer: request.headers.get('referer') ?? undefined,
+  }
+}
+
+async function sendAnalyticsEvent(request: NextRequest, pathname: string) {
+  if (!shouldTrackPath(pathname)) return
+
+  const origin = request.nextUrl.origin
+  const secret = getInternalAnalyticsSecretEdge()
+
+  await fetch(`${origin}/api/analytics/collect`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-dox-analytics-secret': secret,
+    },
+    body: JSON.stringify(buildAnalyticsPayload(request, pathname)),
+  }).catch(() => {
+    // analytics must never block requests
+  })
+}
+
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
 
-  // Rewrite .md paths to the markdown API
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login' && isAdminEnabledEdge()) {
+    const authed = await isAdminAuthenticatedEdge(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)
+    if (!authed) {
+      const loginUrl = request.nextUrl.clone()
+      loginUrl.pathname = '/admin/login'
+      loginUrl.searchParams.set('next', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
+  if (
+    isDocsAccessEnabledEdge() &&
+    !pathname.startsWith('/admin') &&
+    !pathname.startsWith('/api/admin') &&
+    !pathname.startsWith('/api/analytics') &&
+    !pathname.startsWith('/api/access') &&
+    pathname !== '/access' &&
+    !pathname.startsWith('/_next') &&
+    !(await isDocsAccessGrantedEdge(request.cookies.get(DOCS_ACCESS_COOKIE)?.value))
+  ) {
+    const accessUrl = request.nextUrl.clone()
+    accessUrl.pathname = '/access'
+    accessUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(accessUrl)
+  }
+
+  if (shouldTrackPath(pathname)) {
+    event.waitUntil(sendAnalyticsEvent(request, pathname))
+  }
+
   if (pathname.endsWith('.md')) {
-    const slugPath = pathname.slice(1, -3) // '/foo/bar.md' → 'foo/bar'
+    const slugPath = pathname.slice(1, -3)
     if (slugPath) {
       const url = request.nextUrl.clone()
       url.pathname = `/api/markdown/${slugPath}`
@@ -63,8 +112,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Rewrite agent requests to the structured docs API
-  if (detectAgentRequest(request)) {
+  if (isAgentRequest(request, pathname)) {
     const slugPath = pathname === '/' ? 'introduction' : pathname.slice(1)
     const format = request.nextUrl.searchParams.get('format')
     const url = request.nextUrl.clone()
@@ -81,10 +129,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    // .md path rewrites (all depths)
-    '/((?!_next/|api/).+\\.md$)',
-    // Agent detection on all doc routes (excludes Next.js internals, API routes, static files)
-    '/((?!_next/|api/|_vercel/|favicon|robots|sitemap|ai\\.txt).+)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }

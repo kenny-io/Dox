@@ -4,7 +4,18 @@
     "content": "🚀 Dox v2 is coming — faster builds, more themes, and a brand-new component library. [See what's coming →](/changelog)",
     "dismissible": true
   },
-  "ai": { "chat": true },
+  "ai": {
+    "chat": true,
+    "label": "DoxAI",
+    "systemPrompt": "Prefer concise answers with links to relevant guide pages when available."
+  },
+  "admin": { "enabled": true },
+  "analytics": { "enabled": true },
+  "apiPlayground": {
+    "credentials": {
+      "bearerAuth": "YOUR_API_KEY"
+    }
+  },
   "navbar": {
     "links": [
       { "label": "GitHub", "href": "https://github.com/your-org/dox", "type": "github" }

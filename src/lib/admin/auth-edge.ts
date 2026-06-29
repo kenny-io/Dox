@@ -1,0 +1,69 @@
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+export const ADMIN_SESSION_COOKIE = 'dox_admin_session'
+export const DOCS_ACCESS_COOKIE = 'dox_docs_access'
+
+function getSecret(): string {
+  return process.env.DOX_ADMIN_SECRET ?? process.env.DOX_ADMIN_PASSWORD ?? 'dox-dev-admin'
+}
+
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+async function signPayload(payload: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(getSecret()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))
+  return toBase64Url(new Uint8Array(signature))
+}
+
+async function verifySignedToken(token: string | undefined, scope?: string): Promise<boolean> {
+  if (!token) return false
+  const [payload, signature] = token.split('.')
+  if (!payload || !signature) return false
+
+  const expected = await signPayload(payload)
+  if (expected !== signature) return false
+
+  try {
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    const data = JSON.parse(json) as { exp?: number; scope?: string }
+    if (typeof data.exp !== 'number' || data.exp <= Date.now()) return false
+    if (scope && data.scope !== scope) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function isAdminEnabledEdge(): boolean {
+  return Boolean(process.env.DOX_ADMIN_PASSWORD)
+}
+
+export function isDocsAccessEnabledEdge(): boolean {
+  return Boolean(process.env.DOX_ACCESS_PASSWORD)
+}
+
+export function getInternalAnalyticsSecretEdge(): string {
+  return process.env.DOX_ANALYTICS_SECRET ?? getSecret()
+}
+
+export async function isAdminAuthenticatedEdge(cookieValue: string | undefined): Promise<boolean> {
+  if (!isAdminEnabledEdge()) return false
+  return verifySignedToken(cookieValue)
+}
+
+export async function isDocsAccessGrantedEdge(cookieValue: string | undefined): Promise<boolean> {
+  if (!isDocsAccessEnabledEdge()) return true
+  return verifySignedToken(cookieValue, 'docs')
+}
+
+export { SESSION_TTL_MS, getSecret }
