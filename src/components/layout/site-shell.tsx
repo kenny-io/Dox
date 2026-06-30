@@ -5,7 +5,8 @@ import { TopBar } from '@/components/layout/top-bar'
 import { Sidebar } from '@/components/navigation/sidebar'
 import { PageContainer } from '@/components/layout/sections'
 import { layout, shell } from '@/config/layout'
-import type { SidebarCollection, SearchableDoc, DocsJsonNavbar, DocsJsonFooter } from '@/data/docs'
+import type { SidebarCollection, DocsJsonNavbar, DocsJsonFooter } from '@/data/docs'
+import type { SearchCorpusRecord } from '@/components/search/command-search'
 import { useSidebarCollectionsStore } from './sidebar-store'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -54,7 +55,7 @@ function normalizePath(value: string) {
 interface SiteShellProps {
   children: React.ReactNode
   initialCollections: Array<SidebarCollection>
-  searchIndex: Array<SearchableDoc>
+  searchIndex: Array<SearchCorpusRecord>
   i18nConfig?: I18nConfig | null
   navbarConfig?: DocsJsonNavbar | null
   footerConfig?: DocsJsonFooter | null

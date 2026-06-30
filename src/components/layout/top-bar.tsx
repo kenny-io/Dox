@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
-import type { SidebarCollection, SearchableDoc, DocsJsonNavbar } from '@/data/docs'
+import type { SidebarCollection, DocsJsonNavbar } from '@/data/docs'
+import type { SearchCorpusRecord } from '@/components/search/command-search'
 import { MobileNav } from '@/components/navigation/mobile-nav'
 import { CommandSearch } from '@/components/search/command-search'
 import { ThemeSwitch } from '@/components/theme/theme-switch'
@@ -38,7 +39,7 @@ interface TopBarProps {
   activeCollectionId: SidebarCollection['id']
   onCollectionChange: (id: SidebarCollection['id']) => void
   activeSections: SidebarCollection['sections']
-  searchIndex: Array<SearchableDoc>
+  searchIndex: Array<SearchCorpusRecord>
   i18nConfig?: I18nConfig | null
   currentLocale?: string
   currentPath?: string

@@ -1482,14 +1482,50 @@ async function handleSearchDocs(input) {
   return lines.join("\n").trimEnd();
 }
 
-// src/tools/read-page.ts
+// src/tools/semantic-search.ts
 import { z as z8 } from "zod";
+var semanticSearchSchema = z8.object({
+  siteUrl: z8.string().describe("Base URL of the deployed Dox site (e.g. https://docs.example.com)"),
+  query: z8.string().describe("Natural-language search query"),
+  limit: z8.number().optional().default(8).describe("Max results to return (default 8)"),
+  mode: z8.enum(["hybrid", "fulltext"]).optional().default("hybrid").describe("Search mode: hybrid (full-text + vector) or fulltext")
+});
+async function handleSemanticSearch(input) {
+  const { siteUrl, query, limit = 8, mode = "hybrid" } = input;
+  const base = siteUrl.replace(/\/$/, "");
+  const url = `${base}/api/search?q=${encodeURIComponent(query)}&limit=${limit}&mode=${mode}`;
+  let response;
+  try {
+    response = await fetch(url, { headers: { Accept: "application/json" } });
+  } catch (err) {
+    throw new Error(`Failed to reach ${url}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (!response.ok) {
+    throw new Error(`Search request failed: ${response.status} ${response.statusText}`);
+  }
+  const data = await response.json();
+  if (!data.results || data.results.length === 0) {
+    return `No results found for "${query}".`;
+  }
+  const lines = [`Found ${data.total} result${data.total === 1 ? "" : "s"} for "${query}" (${data.mode}):
+`];
+  data.results.forEach((result, index) => {
+    lines.push(`${index + 1}. ${result.title} \u2014 ${result.url}`);
+    if (result.snippet) lines.push(`   ${result.snippet}`);
+    lines.push(`   API: ${result.api_url}`);
+    lines.push("");
+  });
+  return lines.join("\n").trimEnd();
+}
+
+// src/tools/read-page.ts
+import { z as z9 } from "zod";
 import { existsSync as existsSync8, readFileSync as readFileSync8 } from "fs";
 import { join as join9 } from "path";
 import matter4 from "gray-matter";
-var readPageSchema = z8.object({
-  projectDir: z8.string().describe("Path to the Dox project root"),
-  pageId: z8.string().describe('Page ID, e.g. "guides/authentication"')
+var readPageSchema = z9.object({
+  projectDir: z9.string().describe("Path to the Dox project root"),
+  pageId: z9.string().describe('Page ID, e.g. "guides/authentication"')
 });
 async function handleReadPage(input) {
   const { projectDir, pageId } = input;
@@ -1522,14 +1558,14 @@ async function handleReadPage(input) {
 }
 
 // src/tools/get-context.ts
-import { z as z9 } from "zod";
+import { z as z10 } from "zod";
 import { existsSync as existsSync9, readFileSync as readFileSync9 } from "fs";
 import { join as join10 } from "path";
 import matter5 from "gray-matter";
-var getContextSchema = z9.object({
-  projectDir: z9.string().describe("Path to the Dox project root"),
-  topic: z9.string().describe("Topic or question to find relevant docs for"),
-  maxTokens: z9.number().optional().default(4e3).describe("Approximate token budget for returned context (default 4000)")
+var getContextSchema = z10.object({
+  projectDir: z10.string().describe("Path to the Dox project root"),
+  topic: z10.string().describe("Topic or question to find relevant docs for"),
+  maxTokens: z10.number().optional().default(4e3).describe("Approximate token budget for returned context (default 4000)")
 });
 async function handleGetContext(input) {
   const { projectDir, topic, maxTokens = 4e3 } = input;
@@ -1578,13 +1614,13 @@ async function handleGetContext(input) {
 }
 
 // src/tools/lint-project.ts
-import { z as z10 } from "zod";
+import { z as z11 } from "zod";
 import { existsSync as existsSync10, readFileSync as readFileSync10 } from "fs";
 import { join as join11 } from "path";
 import matter6 from "gray-matter";
-var lintProjectSchema = z10.object({
-  projectDir: z10.string().describe("Path to the Dox project root"),
-  fix: z10.boolean().optional().default(false).describe("Auto-fix issues where possible (adds orphan pages to nav)")
+var lintProjectSchema = z11.object({
+  projectDir: z11.string().describe("Path to the Dox project root"),
+  fix: z11.boolean().optional().default(false).describe("Auto-fix issues where possible (adds orphan pages to nav)")
 });
 function collectNavPageIds(groups, seen, duplicates) {
   for (const page of groups) {
@@ -1719,19 +1755,19 @@ async function handleLintProject(input) {
 }
 
 // src/tools/translate-docs.ts
-import { z as z11 } from "zod";
+import { z as z12 } from "zod";
 import { readFileSync as readFileSync11, writeFileSync as writeFileSync7, existsSync as existsSync11, mkdirSync as mkdirSync4 } from "fs";
 import { join as join12, dirname as dirname3 } from "path";
 import matter7 from "gray-matter";
 import Anthropic2 from "@anthropic-ai/sdk";
 import pLimit2 from "p-limit";
-var translateDocsSchema = z11.object({
-  projectDir: z11.string().describe("Path to the Dox project directory"),
-  locale: z11.string().describe('Target locale code, e.g. "es", "fr"'),
-  pages: z11.array(z11.string()).optional().describe("Page IDs to translate (omit for all pages)"),
-  force: z11.boolean().optional().default(false).describe("Overwrite existing translation files"),
-  apiKey: z11.string().optional().describe("Anthropic API key (falls back to ANTHROPIC_API_KEY env var)"),
-  model: z11.string().optional().default("claude-sonnet-4-6").describe("Claude model to use for translation")
+var translateDocsSchema = z12.object({
+  projectDir: z12.string().describe("Path to the Dox project directory"),
+  locale: z12.string().describe('Target locale code, e.g. "es", "fr"'),
+  pages: z12.array(z12.string()).optional().describe("Page IDs to translate (omit for all pages)"),
+  force: z12.boolean().optional().default(false).describe("Overwrite existing translation files"),
+  apiKey: z12.string().optional().describe("Anthropic API key (falls back to ANTHROPIC_API_KEY env var)"),
+  model: z12.string().optional().default("claude-sonnet-4-6").describe("Claude model to use for translation")
 });
 function readDocsJson2(projectDir) {
   const docsPath = join12(projectDir, "docs.json");
@@ -1998,6 +2034,19 @@ function createServer() {
     async (input) => {
       try {
         const text = await handleSearchDocs(input);
+        return { content: [{ type: "text", text }] };
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : String(err));
+      }
+    }
+  );
+  server.tool(
+    "semantic_search",
+    "Hybrid (full-text + vector) semantic search against a deployed Dox site \u2014 uses the same index as the in-app command palette and /api/search",
+    semanticSearchSchema.shape,
+    async (input) => {
+      try {
+        const text = await handleSemanticSearch(input);
         return { content: [{ type: "text", text }] };
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : String(err));

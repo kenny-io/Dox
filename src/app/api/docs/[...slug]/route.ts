@@ -1,144 +1,9 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import matter from 'gray-matter'
 import { type NextRequest } from 'next/server'
 import { getDocEntries, getI18nConfig, getNavContext } from '@/data/docs'
+import { getContentDocument } from '@/lib/content'
 import { buildDocPageJsonLd } from '@/lib/json-ld'
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
-
-// ---------------------------------------------------------------------------
-// Content helpers
-// ---------------------------------------------------------------------------
-
-interface CodeBlock {
-  language: string
-  source: string
-  title?: string
-  index: number
-}
-
-interface Heading {
-  depth: number
-  text: string
-  id: string
-}
-
-function slugifyHeading(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-}
-
-function extractCodeBlocks(mdx: string): CodeBlock[] {
-  const blocks: CodeBlock[] = []
-  // Use [ \t]+ (horizontal whitespace only) so newline is never consumed as part of the title
-  const fenceRe = /^```(\S*?)(?:[ \t]+(.+?))?[ \t]*\n([\s\S]*?)^```/gm
-  let match: RegExpExecArray | null
-  let index = 0
-  while ((match = fenceRe.exec(mdx)) !== null) {
-    blocks.push({
-      language: match[1] || 'text',
-      title: match[2] ?? undefined,
-      source: match[3].trimEnd(),
-      index: index++,
-    })
-  }
-  return blocks
-}
-
-function extractHeadings(mdx: string): Heading[] {
-  // Strip code blocks first so `# comments` inside bash/json aren't matched as headings
-  const withoutCode = mdx.replace(/^```[\s\S]*?^```/gm, '')
-  const headings: Heading[] = []
-  const headingRe = /^(#{1,6})\s+(.+)$/gm
-  let match: RegExpExecArray | null
-  while ((match = headingRe.exec(withoutCode)) !== null) {
-    const text = match[2].replace(/\*\*|__|\*|_|`/g, '').trim()
-    headings.push({ depth: match[1].length, text, id: slugifyHeading(text) })
-  }
-  return headings
-}
-
-interface TocItem {
-  depth: number
-  text: string
-  id: string
-  children?: TocItem[]
-}
-
-function buildToc(headings: Heading[]): TocItem[] {
-  const toc: TocItem[] = []
-  const stack: TocItem[] = []
-
-  for (const h of headings) {
-    const item: TocItem = { depth: h.depth, text: h.text, id: h.id }
-    while (stack.length > 0 && stack[stack.length - 1].depth >= h.depth) {
-      stack.pop()
-    }
-    if (stack.length === 0) {
-      toc.push(item)
-    } else {
-      const parent = stack[stack.length - 1]
-      parent.children = parent.children ?? []
-      parent.children.push(item)
-    }
-    stack.push(item)
-  }
-
-  return toc
-}
-
-function stripProseText(mdx: string): string {
-  return mdx
-    // Remove code blocks
-    .replace(/```[\s\S]*?```/g, '')
-    // Remove inline code
-    .replace(/`[^`]+`/g, '')
-    // Remove JSX component tags
-    .replace(/<\/?[A-Z][A-Za-z]*[^>]*>/g, '')
-    // Remove markdown headings markers (keep text)
-    .replace(/^#{1,6}\s+/gm, '')
-    // Remove bold/italic markers
-    .replace(/\*\*|__|\*|_/g, '')
-    // Remove markdown links — keep text
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    // Remove standalone URLs
-    .replace(/https?:\/\/\S+/g, '')
-    // Collapse whitespace
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-function readRawContent(
-  pageId: string,
-): { frontmatter: Record<string, unknown>; rawMdx: string; cleanedMdx: string } | null {
-  const candidates = [
-    path.join(CONTENT_ROOT, `${pageId}.mdx`),
-    path.join(CONTENT_ROOT, `${pageId}/index.mdx`),
-  ]
-
-  for (const filePath of candidates) {
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, 'utf8')
-      const { data, content } = matter(raw)
-      // Cleaned MDX: strip JSX tags but preserve code blocks and text content
-      const cleanedMdx = content
-        .replace(
-          /<\/?(?:Steps|Step|Tabs|Tab|Note|Callout|CodeGroup|CardGroup|Card|Frame|Accordion|Columns|Tooltip)[^>]*>/g,
-          '',
-        )
-        .replace(/\n{3,}/g, '\n\n')
-        .trim()
-      return { frontmatter: data, rawMdx: content, cleanedMdx }
-    }
-  }
-
-  return null
-}
 
 function resolveRequestedFormat(request: NextRequest): 'json' | 'ldjson' | 'markdown' {
   const formatHeader = request.headers.get('x-dox-format')
@@ -158,10 +23,6 @@ function resolveRequestedFormat(request: NextRequest): 'json' | 'ldjson' | 'mark
 
   return 'markdown'
 }
-
-// ---------------------------------------------------------------------------
-// Route handler
-// ---------------------------------------------------------------------------
 
 export async function GET(
   request: NextRequest,
@@ -190,8 +51,9 @@ export async function GET(
     })
   }
 
-  const result = readRawContent(entry.id)
-  if (!result) {
+  // Single source of truth — parse the content graph once via the content engine.
+  const document = getContentDocument(entry.id)
+  if (!document) {
     if (wantsJson || wantsLdJson) {
       return Response.json(
         { error: 'content_not_found', message: 'The source file for this page could not be read.' },
@@ -204,6 +66,7 @@ export async function GET(
     })
   }
 
+  const { content, frontmatter } = document
   const canonicalUrl = `${baseUrl}${entry.href}`
   const locale = getI18nConfig()?.defaultLocale ?? 'en'
   const nav = getNavContext(entry.id)
@@ -238,16 +101,9 @@ export async function GET(
   }
 
   // -------------------------------------------------------------------------
-  // JSON response
+  // JSON response — all fields derived from the content graph
   // -------------------------------------------------------------------------
   if (wantsJson) {
-    const { frontmatter, rawMdx, cleanedMdx } = result
-    const headings = extractHeadings(cleanedMdx)
-    const codeBlocks = extractCodeBlocks(rawMdx)
-    const toc = buildToc(headings)
-
-    const fm = frontmatter as Record<string, unknown>
-
     const payload = {
       schema_version: '1',
 
@@ -260,14 +116,15 @@ export async function GET(
       title: entry.title,
       description: entry.description,
       content: {
-        mdx: cleanedMdx,
-        text: stripProseText(cleanedMdx),
-        code_blocks: codeBlocks,
+        mdx: content.markdown,
+        text: content.text,
+        code_blocks: content.codeBlocks,
+        links: content.links,
       },
 
       // Structure
-      headings,
-      toc,
+      headings: content.headings,
+      toc: content.toc,
 
       // Navigation
       nav: {
@@ -293,7 +150,7 @@ export async function GET(
       json_ld: jsonLd,
 
       // OpenAPI (when this page or its tab has a spec)
-      ...(fm.openapi || entry.openapi
+      ...(frontmatter.openapi || entry.openapi
         ? {
             openapi: {
               spec_url: '/openapi.yaml',
@@ -332,7 +189,7 @@ export async function GET(
     lines.push(entry.description)
     lines.push('')
   }
-  lines.push(result.cleanedMdx)
+  lines.push(content.markdown)
 
   return new Response(lines.join('\n'), {
     headers: {
