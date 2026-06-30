@@ -1,7 +1,8 @@
 import { SiteShell } from '@/components/layout/site-shell'
 import { SidebarCollectionsHydrator } from '@/components/layout/sidebar-hydrator'
-import { getSearchableDocs, getSidebarCollections, getAiConfig, getI18nConfig, getNavbarConfig, getFooterConfig } from '@/data/docs'
+import { getSidebarCollections, getAiConfig, getI18nConfig, getNavbarConfig, getFooterConfig } from '@/data/docs'
 import type { NavigationSection } from '@/data/docs'
+import { getClientSearchCorpus } from '@/lib/search/corpus'
 import { buildApiNavigation } from '@/data/api-reference'
 import { DocsChat } from '@/components/docs/docs-chat'
 
@@ -32,7 +33,7 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
     }
     return collection
   })
-  const searchIndex = getSearchableDocs()
+  const searchIndex = getClientSearchCorpus()
   const aiConfig = getAiConfig()
   const i18nConfig = getI18nConfig()
   const navbarConfig = getNavbarConfig()

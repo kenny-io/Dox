@@ -1,10 +1,11 @@
 'use client'
 
+import { create, insertMultiple, search } from '@orama/orama'
+import type { Orama } from '@orama/orama'
 import { Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
-import { useEffect, useMemo, useState } from 'react'
-import type { SearchableDoc } from '@/data/docs'
+import { useEffect, useRef, useState } from 'react'
 import {
   Command,
   CommandDialog,
@@ -18,31 +19,102 @@ import { cn } from '@/lib/utils'
 
 const parser = parseAsString.withDefault('')
 
-interface CommandSearchProps {
-  searchIndex: Array<SearchableDoc>
+export interface SearchCorpusRecord {
+  id: string
+  pageId: string
+  title: string
+  description: string
+  headings: string
+  body: string
+  keywords: string
+  href: string
 }
+
+interface CommandSearchProps {
+  searchIndex: Array<SearchCorpusRecord>
+}
+
+type ClientDb = Orama<{
+  title: 'string'
+  description: 'string'
+  headings: 'string'
+  body: 'string'
+  keywords: 'string'
+}>
 
 export function CommandSearch({ searchIndex }: CommandSearchProps) {
   const router = useRouter()
   const [query, setQuery] = useQueryState('q', parser)
   const [open, setOpen] = useState(false)
+  const [results, setResults] = useState<Array<SearchCorpusRecord>>(() => searchIndex.slice(0, 6))
+  const dbRef = useRef<ClientDb | null>(null)
 
-  const results = useMemo(() => {
-    const normalized = query.trim().toLowerCase()
-    if (!normalized) return searchIndex.slice(0, 6)
-    return searchIndex
-      .map((doc) => {
-        const haystack = `${doc.title} ${doc.description} ${doc.keywords.join(' ')}`.toLowerCase()
-        if (!haystack.includes(normalized)) return null
-        const score =
-          (doc.title.toLowerCase().includes(normalized) ? 2 : 0) +
-          (doc.description.toLowerCase().includes(normalized) ? 1 : 0)
-        return { doc, score }
+  // Build the in-browser full-text index once. Body-aware + typo tolerant, and
+  // sourced from the same content corpus as the server hybrid index.
+  useEffect(() => {
+    let cancelled = false
+    const db = create({
+      schema: {
+        title: 'string',
+        description: 'string',
+        headings: 'string',
+        body: 'string',
+        keywords: 'string',
+      },
+    }) as ClientDb
+    Promise.resolve(
+      insertMultiple(
+        db,
+        searchIndex.map((record) => ({
+          id: record.id,
+          title: record.title,
+          description: record.description,
+          headings: record.headings,
+          body: record.body,
+          keywords: record.keywords,
+        })),
+      ),
+    ).then(() => {
+      if (!cancelled) dbRef.current = db
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [searchIndex])
+
+  useEffect(() => {
+    const normalized = query.trim()
+    if (!normalized) {
+      setResults(searchIndex.slice(0, 6))
+      return
+    }
+    const db = dbRef.current
+    if (!db) return
+
+    let cancelled = false
+    const handle = setTimeout(() => {
+      Promise.resolve(
+        search(db, {
+          term: normalized,
+          properties: ['title', 'description', 'headings', 'body', 'keywords'],
+          boost: { title: 3, headings: 2, description: 1.5, keywords: 1.5 },
+          tolerance: 1,
+          limit: 8,
+        }),
+      ).then((response) => {
+        if (cancelled) return
+        const byId = new Map(searchIndex.map((record) => [record.id, record]))
+        const hits = response.hits
+          .map((hit) => byId.get((hit.document as { id: string }).id))
+          .filter((record): record is SearchCorpusRecord => Boolean(record))
+        setResults(hits)
       })
-      .filter((item): item is { doc: SearchableDoc; score: number } => Boolean(item))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8)
-      .map((item) => item.doc)
+    }, 60)
+
+    return () => {
+      cancelled = true
+      clearTimeout(handle)
+    }
   }, [query, searchIndex])
 
   useEffect(() => {
@@ -83,22 +155,27 @@ export function CommandSearch({ searchIndex }: CommandSearchProps) {
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <Command>
-          <CommandInput value={query} onValueChange={(value) => setQuery(value ? value : null)} placeholder="Search pages, concepts, or keywords..." />
+        <Command shouldFilter={false}>
+          <CommandInput value={query} onValueChange={(value) => setQuery(value ? value : null)} placeholder="Search pages, concepts, or content..." />
           <CommandList>
             <CommandEmpty>No matches found.</CommandEmpty>
             <CommandGroup heading="Documents">
-              {results.map((doc) => (
-                <CommandItem key={doc.id} onSelect={() => handleSelect(doc.href)}>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{doc.title}</span>
-                    <span className="text-xs text-foreground/60">{doc.description}</span>
-                  </div>
-                  <span className={cn('ml-auto text-xs uppercase tracking-wide text-foreground/50')}>
-                    {doc.keywords[0]}
-                  </span>
-                </CommandItem>
-              ))}
+              {results.map((doc) => {
+                const tag = doc.keywords.split(' ').filter(Boolean)[0]
+                return (
+                  <CommandItem key={doc.id} value={doc.id} onSelect={() => handleSelect(doc.href)}>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{doc.title}</span>
+                      <span className="text-xs text-foreground/60">{doc.description}</span>
+                    </div>
+                    {tag ? (
+                      <span className={cn('ml-auto text-xs uppercase tracking-wide text-foreground/50')}>
+                        {tag}
+                      </span>
+                    ) : null}
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           </CommandList>
         </Command>
@@ -106,4 +183,3 @@ export function CommandSearch({ searchIndex }: CommandSearchProps) {
     </>
   )
 }
-
