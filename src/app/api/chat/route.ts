@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { type NextRequest } from 'next/server'
+import { trackAnalyticsEvent } from '@/lib/analytics/store'
 import { getAiConfig } from '@/data/docs'
 import { siteConfig } from '@/data/site'
 import { getRelevantChunks } from '@/lib/embeddings'
@@ -100,13 +101,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     return new Response('No messages provided.', { status: 400 })
   }
 
+  trackAnalyticsEvent({
+    type: 'chat_message',
+    path: '/api/chat',
+    visitorType: 'human',
+  })
+
   // Retrieval-augmented context: embed the query and pull only the most
   // relevant chunks within a token budget (vs dumping the whole corpus).
   const query = latestUserQuery(messages)
   const results = await getRelevantChunks(query, { k: MAX_CHUNKS, tokenBudget: CONTEXT_TOKEN_BUDGET })
   const { context, citations } = buildRetrievedContext(results)
 
-  const persona = (getAiConfig() as { systemPrompt?: string }).systemPrompt?.trim()
+  const persona = aiConfig.systemPrompt?.trim()
   const sourceList = citations
     .map((citation) => `[${citation.index}] ${citation.heading} — ${citation.url}`)
     .join('\n')

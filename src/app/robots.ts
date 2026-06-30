@@ -37,7 +37,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: ['/', '/llms.txt', '/llms-full.txt', '/ai.txt', '/api/docs/', '/api/docs-index', '/openapi.yaml'],
-        disallow: ['/api/chat', '/api/feedback', '/api/og', '/api/try-it'],
+        disallow: ['/admin', '/access', '/api/chat', '/api/feedback', '/api/og', '/api/try-it', '/api/admin', '/api/analytics'],
       },
       ...agentRules,
     ],
