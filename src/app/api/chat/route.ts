@@ -4,32 +4,15 @@ import { trackAnalyticsEvent } from '@/lib/analytics/store'
 import { getAiConfig } from '@/data/docs'
 import { siteConfig } from '@/data/site'
 import { getRelevantChunks } from '@/lib/embeddings'
+import { getSiteUrl } from '@/lib/site-url'
+import { resolveAnthropicKey, checkChatRateLimit } from '@/lib/ai/chat-access'
 import type { RetrievalResult } from '@/lib/embeddings'
-
-// ---------------------------------------------------------------------------
-// Simple in-memory rate limiter: 10 req/min per IP
-// ---------------------------------------------------------------------------
-
-interface RateEntry { count: number; resetAt: number }
-const rateLimitMap = new Map<string, RateEntry>()
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 })
-    return false
-  }
-  if (entry.count >= 10) return true
-  entry.count++
-  return false
-}
 
 // ---------------------------------------------------------------------------
 // Retrieval-augmented context
 // ---------------------------------------------------------------------------
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const baseUrl = getSiteUrl()
 // Token budget for retrieved context — far smaller than the legacy raw dump.
 const CONTEXT_TOKEN_BUDGET = 2200
 const MAX_CHUNKS = 8
@@ -77,15 +60,34 @@ export async function POST(request: NextRequest): Promise<Response> {
     return new Response('AI chat is not enabled for this project.', { status: 403 })
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    return new Response('ANTHROPIC_API_KEY is not configured.', { status: 503 })
+  // Resolve the active key tier: the owner's own key (generous limits) or the
+  // shared trial key that powers the out-of-the-box "aha" experience.
+  const resolved = resolveAnthropicKey()
+  if (!resolved) {
+    return new Response(
+      'AI chat needs an Anthropic key. Set ANTHROPIC_API_KEY (your own key) to enable it.',
+      { status: 503 },
+    )
   }
+  const { apiKey, tier } = resolved
 
-  // Rate limit by IP
+  // Tier-aware rate limiting (trial keys are tightly capped).
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (isRateLimited(ip)) {
-    return new Response('Rate limit exceeded. Please wait a moment before asking again.', { status: 429 })
+  const decision = checkChatRateLimit(ip, tier)
+  if (decision.limited) {
+    const message =
+      decision.reason === 'global_daily'
+        ? 'The shared trial key has reached its daily limit. Add your own ANTHROPIC_API_KEY for unlimited use.'
+        : tier === 'trial'
+          ? 'Trial rate limit reached. Add your own ANTHROPIC_API_KEY to lift these limits.'
+          : 'Rate limit exceeded. Please wait a moment before asking again.'
+    return new Response(message, {
+      status: 429,
+      headers: {
+        'x-dox-ai-tier': tier,
+        ...(decision.retryAfter ? { 'Retry-After': String(decision.retryAfter) } : {}),
+      },
+    })
   }
 
   let messages: Array<{ role: 'user' | 'assistant'; content: string }>
@@ -165,6 +167,7 @@ ${context ? `Documentation excerpts:\n${context}\n\nSources:\n${sourceList}` : '
       'Content-Type': 'text/plain; charset=utf-8',
       'Transfer-Encoding': 'chunked',
       'Cache-Control': 'no-store',
+      'x-dox-ai-tier': tier,
     },
   })
 }
