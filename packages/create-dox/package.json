@@ -11,7 +11,8 @@
   },
   "exports": {
     ".": "./dist/index.js",
-    "./scaffold": "./dist/scaffold.js"
+    "./scaffold": "./dist/scaffold.js",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
