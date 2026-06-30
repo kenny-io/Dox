@@ -6,6 +6,7 @@ import { listPagesSchema, handleListPages } from './tools/list-pages.js'
 import { updatePageSchema, handleUpdatePage } from './tools/update-page.js'
 import { migrateDocsSchema, handleMigrateDocs } from './tools/migrate-docs.js'
 import { searchDocsSchema, handleSearchDocs } from './tools/search-docs.js'
+import { semanticSearchSchema, handleSemanticSearch } from './tools/semantic-search.js'
 import { readPageSchema, handleReadPage } from './tools/read-page.js'
 import { getContextSchema, handleGetContext } from './tools/get-context.js'
 import { lintProjectSchema, handleLintProject } from './tools/lint-project.js'
@@ -115,6 +116,21 @@ export function createServer(): McpServer {
     async (input) => {
       try {
         const text = await handleSearchDocs(input)
+        return { content: [{ type: 'text', text }] }
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : String(err))
+      }
+    },
+  )
+
+  // Tool: semantic_search
+  server.tool(
+    'semantic_search',
+    'Hybrid (full-text + vector) semantic search against a deployed Dox site — uses the same index as the in-app command palette and /api/search',
+    semanticSearchSchema.shape,
+    async (input) => {
+      try {
+        const text = await handleSemanticSearch(input)
         return { content: [{ type: 'text', text }] }
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : String(err))
