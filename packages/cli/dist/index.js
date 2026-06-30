@@ -6,7 +6,7 @@ var COMMANDS = [
   { name: "dev", summary: "Run the docs site locally (agent endpoints live)", usage: "dox dev [-- <framework args>]" },
   { name: "build", summary: "Build the production site", usage: "dox build" },
   { name: "start", summary: "Serve the built production site", usage: "dox start" },
-  { name: "deploy", summary: "Build and deploy to a live URL", usage: "dox deploy [--prod]" },
+  { name: "deploy", summary: "Build and deploy to a live URL", usage: "dox deploy [--prod] [--cloudflare]" },
   { name: "check", summary: "Lint content + Agent Readiness Score", usage: "dox check [--agents] [--fix]" },
   { name: "new", summary: "Create a new page and register it in docs.json", usage: 'dox new <page-id> [--title "..."]' },
   { name: "migrate", summary: "Migrate docs from a GitHub URL", usage: "dox migrate <github-url> [dir]" },
@@ -107,8 +107,8 @@ function runFramework(task, scriptName, passthrough = []) {
     const npm = process.platform === "win32" ? "npm.cmd" : "npm";
     return run(npm, ["run", scriptName, ...passthrough.length ? ["--", ...passthrough] : []]);
   }
-  const npx = process.platform === "win32" ? "npx.cmd" : "npx";
-  return run(npx, ["next", task, ...passthrough]);
+  const npx2 = process.platform === "win32" ? "npx.cmd" : "npx";
+  return run(npx2, ["next", task, ...passthrough]);
 }
 function runPackageBin(pkg, binName, args) {
   const bin = resolveBin(pkg, binName);
@@ -210,14 +210,41 @@ async function runCheck(args) {
 
 // src/commands/deploy.ts
 var SITE_URL_HINT = process.env.DOX_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
+var npx = process.platform === "win32" ? "npx.cmd" : "npx";
+var ADAPTERS = {
+  vercel: {
+    id: "vercel",
+    label: "Vercel",
+    deploy: (prod) => run(npx, ["vercel", "deploy", ...prod ? ["--prod"] : []])
+  },
+  cloudflare: {
+    id: "cloudflare",
+    label: "Cloudflare Pages",
+    deploy: () => run(npx, ["wrangler", "pages", "deploy"])
+  }
+};
+function selectAdapter(args) {
+  if (args.hasFlag("--cloudflare", "--cf")) return ADAPTERS.cloudflare;
+  return ADAPTERS.vercel;
+}
+async function confirmAgentReadiness() {
+  const scripts = projectScripts();
+  if (!scripts["check:agents"]) return;
+  process.stdout.write("\n  Checking Agent Readiness before deploy...\n");
+  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+  await run(npm, ["run", "check:agents"]);
+}
 async function runDeploy(args) {
   process.stdout.write("\n  Building production site...\n");
   const buildExit = await runFramework("build", "build");
   if (buildExit !== 0) return buildExit;
+  await confirmAgentReadiness();
+  const adapter = selectAdapter(args);
   const prod = args.hasFlag("--prod", "--production");
-  const npx = process.platform === "win32" ? "npx.cmd" : "npx";
-  process.stdout.write("\n  Deploying with Vercel...\n");
-  const deployExit = await run(npx, ["vercel", "deploy", ...prod ? ["--prod"] : []]);
+  process.stdout.write(`
+  Deploying with ${adapter.label}...
+`);
+  const deployExit = await adapter.deploy(prod);
   if (deployExit !== 0) {
     process.stdout.write(
       "\n  Deploy did not complete. To deploy manually:\n    \u2022 Vercel:     npx vercel deploy --prod\n    \u2022 Cloudflare: npx wrangler pages deploy\n\n"
@@ -227,10 +254,11 @@ async function runDeploy(args) {
   const base = SITE_URL_HINT ?? "<your-url>";
   process.stdout.write(
     `
-  Deployed. Agent endpoints:
+  Deployed via ${adapter.label}. Your docs now answer agents at:
     \u2022 ${base}/llms.txt
     \u2022 ${base}/ai.txt
     \u2022 ${base}/api/docs-index
+    \u2022 ${base}/api/agent-readiness
 
 `
   );
