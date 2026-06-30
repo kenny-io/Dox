@@ -69,4 +69,15 @@ describe('parseMdxContent', () => {
     const top = parsed.toc.find((item) => item.text === 'Getting Started')
     expect(top?.children?.some((c) => c.text === 'Configuration')).toBe(true)
   })
+
+  it('produces heading-bounded sections anchored to heading ids', () => {
+    const config = parsed.sections.find((s) => s.title === 'Configuration')
+    expect(config).toBeDefined()
+    expect(config?.id).toBe(slugify('Configuration'))
+    expect(config?.text).toContain('Set your')
+    expect(config?.headingPath).toEqual(['Getting Started', 'Configuration'])
+
+    const nested = parsed.sections.find((s) => s.title === 'Nested heading')
+    expect(nested?.code.some((c) => c.language === 'ts')).toBe(true)
+  })
 })

@@ -7,7 +7,9 @@
   ],
   "scripts": {
     "dev": "next dev --webpack -p 3040",
+    "prebuild": "npm run embeddings:build",
     "build": "next build",
+    "embeddings:build": "tsx scripts/build-embeddings.ts",
     "start": "next start -p 3040",
     "lint": "eslint",
     "test": "vitest run",

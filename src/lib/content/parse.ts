@@ -3,13 +3,13 @@ import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import remarkMdx from 'remark-mdx'
 import { toString as mdastToString } from 'mdast-util-to-string'
-import { visit } from 'unist-util-visit'
 import type { Root, RootContent } from 'mdast'
 import { slugify } from '@/lib/utils'
 import type {
   ContentCodeBlock,
   ContentHeading,
   ContentLink,
+  ContentSection,
   ContentTocItem,
   ParsedContent,
 } from '@/lib/content/types'
@@ -34,21 +34,94 @@ function ensureUniqueId(base: string, seen: Map<string, number>): string {
   return count === 0 ? slug : `${slug}-${count}`
 }
 
-function extractHeadings(tree: Root): Array<ContentHeading> {
-  const headings: Array<ContentHeading> = []
-  const seen = new Map<string, number>()
+function cleanText(value: string): string {
+  return value
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
 
-  visit(tree, 'heading', (node) => {
-    const text = mdastToString(node).trim()
-    if (!text) return
-    headings.push({
-      depth: node.depth,
-      text,
-      id: ensureUniqueId(slugify(text), seen),
-    })
-  })
+const BLOCK_TYPES = new Set([
+  'paragraph',
+  'listItem',
+  'blockquote',
+  'tableRow',
+  'tableCell',
+])
 
-  return headings
+interface WalkState {
+  headings: Array<ContentHeading>
+  codeBlocks: Array<ContentCodeBlock>
+  links: Array<ContentLink>
+  sections: Array<ContentSection>
+  textParts: Array<string>
+  sectionTextParts: Array<string>
+  current: ContentSection
+  stack: Array<{ depth: number; text: string }>
+  seen: Map<string, number>
+  codeIndex: number
+}
+
+function startSection(state: WalkState, depth: number, text: string) {
+  // Flush the previous section's accumulated text.
+  state.current.text = cleanText(state.sectionTextParts.join(' '))
+  state.sectionTextParts = []
+
+  while (state.stack.length > 0 && state.stack[state.stack.length - 1].depth >= depth) {
+    state.stack.pop()
+  }
+  const headingPath = [...state.stack.map((s) => s.text), text]
+  state.stack.push({ depth, text })
+
+  const id = ensureUniqueId(slugify(text), state.seen)
+  state.headings.push({ depth, text, id })
+
+  const section: ContentSection = { id, title: text, depth, headingPath, text: '', code: [] }
+  state.sections.push(section)
+  state.current = section
+}
+
+function recordCode(state: WalkState, node: { lang?: string | null; meta?: string | null; value: string }) {
+  const block: ContentCodeBlock = {
+    language: node.lang || 'text',
+    title: node.meta?.trim() || undefined,
+    source: node.value.trimEnd(),
+    index: state.codeIndex++,
+  }
+  state.codeBlocks.push(block)
+  state.current.code.push(block)
+}
+
+function appendText(state: WalkState, value: string) {
+  if (!value) return
+  state.textParts.push(value)
+  state.sectionTextParts.push(value)
+}
+
+function walk(state: WalkState, nodes: Array<RootContent>) {
+  for (const node of nodes) {
+    if (node.type === 'heading') {
+      startSection(state, node.depth, mdastToString(node).trim())
+      continue
+    }
+    if (node.type === 'code') {
+      recordCode(state, node)
+      continue
+    }
+    if (node.type === 'link') {
+      state.links.push({ url: node.url, text: mdastToString(node).trim() })
+      // fall through to descend so the link's text joins the prose
+    }
+    if (node.type === 'text' || node.type === 'inlineCode') {
+      if ('value' in node && node.value) appendText(state, node.value)
+      continue
+    }
+    if ('children' in node && Array.isArray(node.children)) {
+      walk(state, node.children as Array<RootContent>)
+      if (BLOCK_TYPES.has(node.type)) appendText(state, '\n')
+    }
+  }
 }
 
 function buildToc(headings: Array<ContentHeading>): Array<ContentTocItem> {
@@ -73,71 +146,6 @@ function buildToc(headings: Array<ContentHeading>): Array<ContentTocItem> {
   return toc
 }
 
-function extractCodeBlocks(tree: Root): Array<ContentCodeBlock> {
-  const blocks: Array<ContentCodeBlock> = []
-  let index = 0
-
-  visit(tree, 'code', (node) => {
-    const title = node.meta?.trim() || undefined
-    blocks.push({
-      language: node.lang || 'text',
-      title,
-      source: node.value.trimEnd(),
-      index: index++,
-    })
-  })
-
-  return blocks
-}
-
-function extractLinks(tree: Root): Array<ContentLink> {
-  const links: Array<ContentLink> = []
-
-  visit(tree, 'link', (node) => {
-    const text = mdastToString(node).trim()
-    links.push({ url: node.url, text })
-  })
-
-  return links
-}
-
-// Concatenate prose text, skipping fenced code blocks. Inline code is kept.
-function extractText(tree: Root): string {
-  const parts: Array<string> = []
-
-  function walk(nodes: Array<RootContent>) {
-    for (const node of nodes) {
-      if (node.type === 'code') continue
-      if (node.type === 'text' || node.type === 'inlineCode') {
-        if ('value' in node && node.value) parts.push(node.value)
-        continue
-      }
-      if ('children' in node && Array.isArray(node.children)) {
-        walk(node.children as Array<RootContent>)
-        // Add a soft break after block-level containers for readability.
-        if (
-          node.type === 'paragraph' ||
-          node.type === 'heading' ||
-          node.type === 'listItem' ||
-          node.type === 'blockquote' ||
-          node.type === 'tableRow'
-        ) {
-          parts.push('\n')
-        }
-      }
-    }
-  }
-
-  walk(tree.children)
-
-  return parts
-    .join(' ')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/ *\n */g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
 const JSX_WRAPPER_PATTERN =
   /<\/?(?:Steps|Step|Tabs|Tab|Note|Callout|CodeGroup|CardGroup|Card|Frame|Accordion|Columns|Tooltip)[^>]*>/g
 
@@ -147,18 +155,41 @@ function cleanMarkdown(markdown: string): string {
 
 /**
  * Parse an MDX body into the typed content graph. This is the single source of
- * truth for all structured representations of a document.
+ * truth for all structured representations of a document. One parse, one walk.
  */
 export function parseMdxContent(markdown: string): ParsedContent {
   const tree = parseToTree(markdown)
-  const headings = extractHeadings(tree)
+
+  const preamble: ContentSection = { id: '', title: '', depth: 0, headingPath: [], text: '', code: [] }
+  const state: WalkState = {
+    headings: [],
+    codeBlocks: [],
+    links: [],
+    sections: [preamble],
+    textParts: [],
+    sectionTextParts: [],
+    current: preamble,
+    stack: [],
+    seen: new Map(),
+    codeIndex: 0,
+  }
+
+  walk(state, tree.children)
+  // Flush the final section's text.
+  state.current.text = cleanText(state.sectionTextParts.join(' '))
+
+  // Drop the preamble if it carried no prose or code.
+  const sections = state.sections.filter(
+    (section, index) => index !== 0 || section.text.length > 0 || section.code.length > 0,
+  )
 
   return {
-    headings,
-    toc: buildToc(headings),
-    codeBlocks: extractCodeBlocks(tree),
-    links: extractLinks(tree),
-    text: extractText(tree),
+    headings: state.headings,
+    toc: buildToc(state.headings),
+    codeBlocks: state.codeBlocks,
+    sections,
+    links: state.links,
+    text: cleanText(state.textParts.join(' ')),
     markdown: cleanMarkdown(markdown),
   }
 }
