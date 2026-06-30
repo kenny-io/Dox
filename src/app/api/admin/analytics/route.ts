@@ -22,6 +22,6 @@ export async function GET(request: NextRequest) {
   }
 
   const range = parseRange(request.nextUrl.searchParams.get('range'))
-  const summary = aggregateAnalytics(range)
+  const summary = await aggregateAnalytics(range)
   return NextResponse.json(summary)
 }
