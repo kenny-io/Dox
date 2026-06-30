@@ -7,7 +7,7 @@
         "http://localhost:3040/",
         "http://localhost:3040/quickstart"
       ],
-      "numberOfRuns": 1,
+      "numberOfRuns": 3,
       "settings": {
         "preset": "desktop"
       }

@@ -48,9 +48,9 @@ jobs:
   lighthouse:
     name: Core Web Vitals budget
     runs-on: ubuntu-latest
-    # Advisory perf gate: warn-level assertions (see lighthouserc.json) so a noisy
-    # or flaky run never blocks a PR. Tighten to error-level once it's stable.
-    continue-on-error: true
+    # Advisory perf gate: assertions are warn-level (see lighthouserc.json), so a
+    # noisy or flaky run reports annotations without failing the job. Flip the
+    # assertions to error-level once the budget is stable to make it blocking.
     steps:
       - name: Checkout
         uses: actions/checkout@v4

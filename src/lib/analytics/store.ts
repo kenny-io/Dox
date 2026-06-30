@@ -33,11 +33,23 @@ const INSERT_SQL = `INSERT OR IGNORE INTO analytics_events
 function resolveDbUrl(): { url: string; usingDefaultFile: boolean } {
   const configured = process.env.DOX_ANALYTICS_DB_URL?.trim()
   if (configured) return { url: configured, usingDefaultFile: false }
-
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true })
-  }
   return { url: `file:${DEFAULT_DB_FILE}`, usingDefaultFile: true }
+}
+
+/**
+ * Ensure the parent directory exists for any on-disk libSQL file URL (the
+ * default DB, or a custom `file:` URL via DOX_ANALYTICS_DB_URL). Skipped for
+ * in-memory (`:memory:` / `file::memory:`) and remote (`libsql://`) targets,
+ * which need no local directory.
+ */
+function ensureParentDir(url: string): void {
+  if (!url.startsWith('file:')) return
+  const filePath = url.slice('file:'.length)
+  if (!filePath || filePath.startsWith(':')) return
+  const dir = path.dirname(filePath)
+  if (dir && !fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
 }
 
 let clientPromise: Promise<Client> | null = null
@@ -46,6 +58,7 @@ async function getClient(): Promise<Client> {
   if (!clientPromise) {
     clientPromise = (async () => {
       const { url, usingDefaultFile } = resolveDbUrl()
+      ensureParentDir(url)
       const authToken = process.env.DOX_ANALYTICS_DB_TOKEN?.trim() || undefined
       const client = createClient({ url, authToken })
 
@@ -75,6 +88,12 @@ async function getClient(): Promise<Client> {
 
       return client
     })()
+
+    // If initialization fails (transient FS/network/auth), drop the cached
+    // rejection so the next call retries instead of staying dead until restart.
+    clientPromise.catch(() => {
+      clientPromise = null
+    })
   }
   return clientPromise
 }
@@ -115,10 +134,15 @@ async function migrateLegacyJsonl(client: Client): Promise<void> {
     }
     if (events.length === 0) return
 
-    await client.batch(
-      events.map((event) => ({ sql: INSERT_SQL, args: eventToArgs(event) })),
-      'write',
-    )
+    // Import row-by-row so a single malformed record (e.g. a missing required
+    // field) skips only itself rather than aborting the whole import.
+    for (const event of events) {
+      try {
+        await client.execute({ sql: INSERT_SQL, args: eventToArgs(event) })
+      } catch {
+        // skip the bad row, keep the rest of the history
+      }
+    }
   } catch {
     // Migration is best-effort — never let it block the store from coming up.
   }
