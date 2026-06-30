@@ -221,6 +221,42 @@ Get context about the authentication flow for up to 4000 tokens
 
 ---
 
+### Agent-native (deployed site)
+
+These tools query a **deployed** Dox site over HTTP — they use the same indexes and reports that power the live site, so an agent can reason about docs it didn't scaffold.
+
+#### `semantic_search`
+
+Runs hybrid (full-text + vector) search against a deployed site's `/api/search` — the same Orama index as the in-app command palette.
+
+```
+Semantic-search https://docs.example.com for "rotating API keys"
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `siteUrl` | Yes | Base URL of the deployed Dox site |
+| `query` | Yes | Natural-language search query |
+| `limit` | No | Max results (default: `8`) |
+| `mode` | No | `hybrid` (default) or `fulltext` |
+
+---
+
+#### `agent_readiness`
+
+Fetches the Agent Readiness Score (0–100) for a deployed site — the same report as `/api/agent-readiness` and `dox check`, including per-signal subscores and the specific pages dragging the score down.
+
+```
+What's the agent readiness score for https://docs.example.com?
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `siteUrl` | Yes | Base URL of the deployed Dox site |
+| `minScore` | No | Threshold (0–100); flags pass/fail in the summary |
+
+---
+
 ### Quality
 
 #### `lint_project`

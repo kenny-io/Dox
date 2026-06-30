@@ -15,21 +15,25 @@ Dox is an open-source documentation template that gives you a production-ready d
 
 **Content & authoring**
 - **MDX content authoring** — write documentation in Markdown with JSX components like Steps, Tabs, Cards, and Callouts
+- **Unified content engine** — every page is parsed once into a typed content graph; HTML, JSON, JSON-LD, Markdown, search, and embeddings are all projections of the same source of truth
 - **Tabbed navigation** — organize content into tabs, groups, and pages via a single `docs.json` file
 - **API reference generation** — drop in an OpenAPI spec and get interactive endpoint docs with a built-in "Try It" console
-- **Full-text search** — instant client-side search with relevance scoring
+- **Hybrid search** — instant client-side full-text search in the command palette, plus a server-side hybrid (full-text + vector) `/api/search` endpoint
 - **Code blocks** — syntax highlighting with Shiki, multi-language code groups, and copy-to-clipboard
 - **Changelog with RSS** — changelog page with an RSS feed at `/changelog/rss.xml`
 
 **Tooling**
-- **CLI (`create-dox`)** — scaffold a new project, migrate from another platform, or lint your docs in one command
-- **MCP server (`@dox/mcp`)** — 10 tools for Claude, Cursor, and any MCP client to create, edit, search, and migrate docs through natural language
-- **Migration** — import from Mintlify, Docusaurus, GitBook, Nextra, and more with `create-dox migrate`
+- **Unified `dox` CLI** — one binary to `init`, `dev`, `build`, `deploy`, `new`, `migrate`, `translate`, `check`, and run the MCP server; the Next.js runtime stays a hidden implementation detail
+- **`create-dox`** — scaffold a new project, migrate from another platform, or lint your docs in one command
+- **MCP server (`@dox/mcp`)** — 12 tools for Claude, Cursor, and any MCP client to create, edit, search, and migrate docs through natural language, plus query a deployed site's search and agent-readiness
+- **Migration** — import from Mintlify, Docusaurus, GitBook, Nextra, and more with `dox migrate`
 
 **AI features**
-- **AI chat widget** — floating Q&A powered by Claude, grounded in your actual docs content
+- **Retrieval-grounded AI chat** — floating Q&A powered by Claude that retrieves the most relevant chunks (RAG) and answers with inline citations and a sources list
+- **Zero-config + bring-your-own keys** — chat works out of the box on a rate-limited trial key, then lifts limits when you add your own `ANTHROPIC_API_KEY`
+- **Agent Readiness Score** — a deterministic 0–100 score (with per-signal subscores) for how well your docs serve AI agents, via `/api/agent-readiness` and `dox check`
 - **`/llms.txt` and `/llms-full.txt`** — LLM-ready endpoints so AI tools can index and read your docs
-- **`/api/docs/[slug]`** — individual pages as clean Markdown for programmatic access
+- **`/api/docs/[slug]`** — individual pages as structured JSON, JSON-LD, or clean Markdown via content negotiation
 
 **Design & infrastructure**
 - **Dark mode** — automatic light/dark theming with customizable brand colors
