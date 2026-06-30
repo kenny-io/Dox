@@ -1,6 +1,6 @@
 {
   "name": "@dox/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The unified dox CLI — author content + config; the framework stays a hidden runtime",
   "type": "module",
   "engines": {

@@ -1518,14 +1518,52 @@ async function handleSemanticSearch(input) {
   return lines.join("\n").trimEnd();
 }
 
-// src/tools/read-page.ts
+// src/tools/agent-readiness.ts
 import { z as z9 } from "zod";
+var agentReadinessSchema = z9.object({
+  siteUrl: z9.string().describe("Base URL of the deployed Dox site (e.g. https://docs.example.com)"),
+  minScore: z9.number().optional().describe("Optional threshold (0-100). If set, the summary flags whether the site passes.")
+});
+async function handleAgentReadiness(input) {
+  const { siteUrl, minScore } = input;
+  const base = siteUrl.replace(/\/$/, "");
+  const url = `${base}/api/agent-readiness`;
+  let response;
+  try {
+    response = await fetch(url, { headers: { Accept: "application/json" } });
+  } catch (err) {
+    throw new Error(`Failed to reach ${url}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (!response.ok) {
+    throw new Error(`Agent readiness request failed: ${response.status} ${response.statusText}`);
+  }
+  const data = await response.json();
+  const lines = [
+    `Agent Readiness: ${data.score}/100 (grade ${data.grade}) across ${data.totalPages} pages.`
+  ];
+  if (typeof minScore === "number") {
+    lines.push(data.score >= minScore ? `PASS (>= ${minScore})` : `FAIL (< ${minScore})`);
+  }
+  lines.push("", "Subscores:");
+  for (const sub of data.subscores) {
+    const pct = Math.round(sub.score * 100);
+    const status = sub.available ? `${pct}%` : "n/a";
+    lines.push(`- ${sub.label} (weight ${sub.weight}): ${status} \u2014 ${sub.detail}`);
+    for (const offender of sub.offenders.slice(0, 3)) {
+      lines.push(`    \u2022 ${offender.href}: ${offender.reason}`);
+    }
+  }
+  return lines.join("\n").trimEnd();
+}
+
+// src/tools/read-page.ts
+import { z as z10 } from "zod";
 import { existsSync as existsSync8, readFileSync as readFileSync8 } from "fs";
 import { join as join9 } from "path";
 import matter4 from "gray-matter";
-var readPageSchema = z9.object({
-  projectDir: z9.string().describe("Path to the Dox project root"),
-  pageId: z9.string().describe('Page ID, e.g. "guides/authentication"')
+var readPageSchema = z10.object({
+  projectDir: z10.string().describe("Path to the Dox project root"),
+  pageId: z10.string().describe('Page ID, e.g. "guides/authentication"')
 });
 async function handleReadPage(input) {
   const { projectDir, pageId } = input;
@@ -1558,14 +1596,14 @@ async function handleReadPage(input) {
 }
 
 // src/tools/get-context.ts
-import { z as z10 } from "zod";
+import { z as z11 } from "zod";
 import { existsSync as existsSync9, readFileSync as readFileSync9 } from "fs";
 import { join as join10 } from "path";
 import matter5 from "gray-matter";
-var getContextSchema = z10.object({
-  projectDir: z10.string().describe("Path to the Dox project root"),
-  topic: z10.string().describe("Topic or question to find relevant docs for"),
-  maxTokens: z10.number().optional().default(4e3).describe("Approximate token budget for returned context (default 4000)")
+var getContextSchema = z11.object({
+  projectDir: z11.string().describe("Path to the Dox project root"),
+  topic: z11.string().describe("Topic or question to find relevant docs for"),
+  maxTokens: z11.number().optional().default(4e3).describe("Approximate token budget for returned context (default 4000)")
 });
 async function handleGetContext(input) {
   const { projectDir, topic, maxTokens = 4e3 } = input;
@@ -1614,13 +1652,13 @@ async function handleGetContext(input) {
 }
 
 // src/tools/lint-project.ts
-import { z as z11 } from "zod";
+import { z as z12 } from "zod";
 import { existsSync as existsSync10, readFileSync as readFileSync10 } from "fs";
 import { join as join11 } from "path";
 import matter6 from "gray-matter";
-var lintProjectSchema = z11.object({
-  projectDir: z11.string().describe("Path to the Dox project root"),
-  fix: z11.boolean().optional().default(false).describe("Auto-fix issues where possible (adds orphan pages to nav)")
+var lintProjectSchema = z12.object({
+  projectDir: z12.string().describe("Path to the Dox project root"),
+  fix: z12.boolean().optional().default(false).describe("Auto-fix issues where possible (adds orphan pages to nav)")
 });
 function collectNavPageIds(groups, seen, duplicates) {
   for (const page of groups) {
@@ -1755,19 +1793,19 @@ async function handleLintProject(input) {
 }
 
 // src/tools/translate-docs.ts
-import { z as z12 } from "zod";
+import { z as z13 } from "zod";
 import { readFileSync as readFileSync11, writeFileSync as writeFileSync7, existsSync as existsSync11, mkdirSync as mkdirSync4 } from "fs";
 import { join as join12, dirname as dirname3 } from "path";
 import matter7 from "gray-matter";
 import Anthropic2 from "@anthropic-ai/sdk";
 import pLimit2 from "p-limit";
-var translateDocsSchema = z12.object({
-  projectDir: z12.string().describe("Path to the Dox project directory"),
-  locale: z12.string().describe('Target locale code, e.g. "es", "fr"'),
-  pages: z12.array(z12.string()).optional().describe("Page IDs to translate (omit for all pages)"),
-  force: z12.boolean().optional().default(false).describe("Overwrite existing translation files"),
-  apiKey: z12.string().optional().describe("Anthropic API key (falls back to ANTHROPIC_API_KEY env var)"),
-  model: z12.string().optional().default("claude-sonnet-4-6").describe("Claude model to use for translation")
+var translateDocsSchema = z13.object({
+  projectDir: z13.string().describe("Path to the Dox project directory"),
+  locale: z13.string().describe('Target locale code, e.g. "es", "fr"'),
+  pages: z13.array(z13.string()).optional().describe("Page IDs to translate (omit for all pages)"),
+  force: z13.boolean().optional().default(false).describe("Overwrite existing translation files"),
+  apiKey: z13.string().optional().describe("Anthropic API key (falls back to ANTHROPIC_API_KEY env var)"),
+  model: z13.string().optional().default("claude-sonnet-4-6").describe("Claude model to use for translation")
 });
 function readDocsJson2(projectDir) {
   const docsPath = join12(projectDir, "docs.json");
@@ -1947,7 +1985,7 @@ async function handleTranslateDocs(input) {
 function createServer() {
   const server = new McpServer({
     name: "@dox/mcp",
-    version: "0.1.0"
+    version: "0.3.0"
   });
   server.tool(
     "create_project",
@@ -2047,6 +2085,19 @@ function createServer() {
     async (input) => {
       try {
         const text = await handleSemanticSearch(input);
+        return { content: [{ type: "text", text }] };
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : String(err));
+      }
+    }
+  );
+  server.tool(
+    "agent_readiness",
+    "Fetch the Agent Readiness Score (0-100) for a deployed Dox site \u2014 the same report as /api/agent-readiness and `dox check`, with per-signal subscores and fixable offenders",
+    agentReadinessSchema.shape,
+    async (input) => {
+      try {
+        const text = await handleAgentReadiness(input);
         return { content: [{ type: "text", text }] };
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : String(err));
