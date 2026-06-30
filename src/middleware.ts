@@ -10,6 +10,7 @@ import {
   isDocsAccessGrantedEdge,
 } from '@/lib/admin/auth-edge'
 import { classifyRequest, isAgentRequest } from '@/lib/traffic-classifier'
+import { isMachineEndpoint } from '@/lib/agent-endpoints'
 
 function shouldTrackPath(pathname: string): boolean {
   if (
@@ -112,7 +113,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     }
   }
 
-  if (isAgentRequest(request, pathname)) {
+  if (isAgentRequest(request, pathname) && !isMachineEndpoint(pathname)) {
     const slugPath = pathname === '/' ? 'introduction' : pathname.slice(1)
     const format = request.nextUrl.searchParams.get('format')
     const url = request.nextUrl.clone()
