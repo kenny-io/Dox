@@ -1,10 +1,18 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { AnalyticsEvent, AnalyticsRange, AnalyticsSummary, DailyTrafficPoint } from '@/lib/analytics/types'
+import { createClient, type Client, type InValue } from '@libsql/client'
+import type {
+  AnalyticsEvent,
+  AnalyticsEventType,
+  AnalyticsRange,
+  AnalyticsSummary,
+  DailyTrafficPoint,
+} from '@/lib/analytics/types'
 
 const DATA_DIR = path.join(process.cwd(), '.data', 'analytics')
-const EVENTS_FILE = path.join(DATA_DIR, 'events.jsonl')
+const DEFAULT_DB_FILE = path.join(DATA_DIR, 'events.db')
+const LEGACY_JSONL = path.join(DATA_DIR, 'events.jsonl')
 
 const RANGE_DAYS: Record<AnalyticsRange, number> = {
   '7d': 7,
@@ -12,16 +20,113 @@ const RANGE_DAYS: Record<AnalyticsRange, number> = {
   '90d': 90,
 }
 
-function ensureDataDir() {
+const INSERT_SQL = `INSERT OR IGNORE INTO analytics_events
+  (id, ts, type, path, slug, visitor_type, agent_signal, format, referer, vote, page)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+/**
+ * Resolve the libSQL connection string. Defaults to an embedded on-disk file so
+ * the store works with zero config locally; point `DOX_ANALYTICS_DB_URL` at a
+ * Turso/libSQL URL (with `DOX_ANALYTICS_DB_TOKEN`) for a durable, serverless-safe
+ * store in production.
+ */
+function resolveDbUrl(): { url: string; usingDefaultFile: boolean } {
+  const configured = process.env.DOX_ANALYTICS_DB_URL?.trim()
+  if (configured) return { url: configured, usingDefaultFile: false }
+
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true })
   }
+  return { url: `file:${DEFAULT_DB_FILE}`, usingDefaultFile: true }
 }
 
-export function trackAnalyticsEvent(
+let clientPromise: Promise<Client> | null = null
+
+async function getClient(): Promise<Client> {
+  if (!clientPromise) {
+    clientPromise = (async () => {
+      const { url, usingDefaultFile } = resolveDbUrl()
+      const authToken = process.env.DOX_ANALYTICS_DB_TOKEN?.trim() || undefined
+      const client = createClient({ url, authToken })
+
+      await client.execute(`CREATE TABLE IF NOT EXISTS analytics_events (
+        id TEXT PRIMARY KEY,
+        ts INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        path TEXT NOT NULL,
+        slug TEXT,
+        visitor_type TEXT,
+        agent_signal TEXT,
+        format TEXT,
+        referer TEXT,
+        vote TEXT,
+        page TEXT
+      )`)
+      await client.execute(
+        `CREATE INDEX IF NOT EXISTS idx_analytics_events_ts ON analytics_events (ts)`,
+      )
+
+      // Best-effort, one-time import of the legacy JSONL store. Only runs for the
+      // local default file DB and only when the table is still empty, so it's
+      // idempotent and never duplicates events.
+      if (usingDefaultFile) {
+        await migrateLegacyJsonl(client)
+      }
+
+      return client
+    })()
+  }
+  return clientPromise
+}
+
+function eventToArgs(event: AnalyticsEvent): Array<InValue> {
+  return [
+    event.id,
+    event.ts,
+    event.type,
+    event.path,
+    event.slug ?? null,
+    event.visitorType ?? null,
+    event.agentSignal ?? null,
+    event.format ?? null,
+    event.referer ?? null,
+    event.vote ?? null,
+    event.page ?? null,
+  ]
+}
+
+async function migrateLegacyJsonl(client: Client): Promise<void> {
+  try {
+    if (!fs.existsSync(LEGACY_JSONL)) return
+
+    const existing = await client.execute('SELECT COUNT(*) AS n FROM analytics_events')
+    const count = Number(existing.rows[0]?.n ?? 0)
+    if (count > 0) return
+
+    const raw = fs.readFileSync(LEGACY_JSONL, 'utf8')
+    const events: Array<AnalyticsEvent> = []
+    for (const line of raw.split('\n')) {
+      if (!line.trim()) continue
+      try {
+        events.push(JSON.parse(line) as AnalyticsEvent)
+      } catch {
+        // skip malformed lines
+      }
+    }
+    if (events.length === 0) return
+
+    await client.batch(
+      events.map((event) => ({ sql: INSERT_SQL, args: eventToArgs(event) })),
+      'write',
+    )
+  } catch {
+    // Migration is best-effort — never let it block the store from coming up.
+  }
+}
+
+export async function trackAnalyticsEvent(
   partial: Omit<AnalyticsEvent, 'id' | 'ts'> & { ts?: number },
-): AnalyticsEvent {
-  ensureDataDir()
+): Promise<AnalyticsEvent> {
   const event: AnalyticsEvent = {
     id: randomUUID(),
     ts: partial.ts ?? Date.now(),
@@ -36,37 +141,45 @@ export function trackAnalyticsEvent(
     page: partial.page,
   }
 
-  fs.appendFileSync(EVENTS_FILE, `${JSON.stringify(event)}\n`, 'utf8')
+  const client = await getClient()
+  await client.execute({ sql: INSERT_SQL, args: eventToArgs(event) })
   return event
 }
 
-function readEventsSince(sinceMs: number): Array<AnalyticsEvent> {
-  if (!fs.existsSync(EVENTS_FILE)) return []
+function optionalString(value: unknown): string | undefined {
+  return value === null || value === undefined ? undefined : String(value)
+}
 
-  const raw = fs.readFileSync(EVENTS_FILE, 'utf8')
-  const events: Array<AnalyticsEvent> = []
+async function readEventsSince(sinceMs: number): Promise<Array<AnalyticsEvent>> {
+  const client = await getClient()
+  const result = await client.execute({
+    sql: 'SELECT * FROM analytics_events WHERE ts >= ? ORDER BY ts ASC',
+    args: [sinceMs],
+  })
 
-  for (const line of raw.split('\n')) {
-    if (!line.trim()) continue
-    try {
-      const event = JSON.parse(line) as AnalyticsEvent
-      if (event.ts >= sinceMs) events.push(event)
-    } catch {
-      // skip malformed lines
-    }
-  }
-
-  return events
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    ts: Number(row.ts),
+    type: String(row.type) as AnalyticsEventType,
+    path: String(row.path),
+    slug: optionalString(row.slug),
+    visitorType: optionalString(row.visitor_type) as AnalyticsEvent['visitorType'],
+    agentSignal: optionalString(row.agent_signal) as AnalyticsEvent['agentSignal'],
+    format: optionalString(row.format),
+    referer: optionalString(row.referer),
+    vote: optionalString(row.vote) as AnalyticsEvent['vote'],
+    page: optionalString(row.page),
+  }))
 }
 
 function dateKey(ts: number): string {
   return new Date(ts).toISOString().slice(0, 10)
 }
 
-export function aggregateAnalytics(range: AnalyticsRange): AnalyticsSummary {
+export async function aggregateAnalytics(range: AnalyticsRange): Promise<AnalyticsSummary> {
   const days = RANGE_DAYS[range]
   const sinceMs = Date.now() - days * 24 * 60 * 60 * 1000
-  const events = readEventsSince(sinceMs)
+  const events = await readEventsSince(sinceMs)
 
   const dailyMap = new Map<string, DailyTrafficPoint>()
   const humanPages = new Map<string, number>()
@@ -152,4 +265,9 @@ export function aggregateAnalytics(range: AnalyticsRange): AnalyticsSummary {
       .map(([signal, count]) => ({ signal, count })),
     recentFeedback: recentFeedback.slice(0, 20),
   }
+}
+
+/** Test-only: drop the cached client so a fresh DB is used per test. */
+export function __resetAnalyticsStoreForTests(): void {
+  clientPromise = null
 }

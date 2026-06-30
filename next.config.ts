@@ -12,6 +12,9 @@ const docRedirects: Array<DocsRedirect> =
 
 const nextConfig: NextConfig = {
   pageExtensions: ['ts', 'tsx'],
+  // libSQL ships a native binding; leave it as a runtime require so Next doesn't
+  // try to bundle it (which breaks the analytics store on serverless builds).
+  serverExternalPackages: ['@libsql/client'],
   experimental: {
     externalDir: true,
   },

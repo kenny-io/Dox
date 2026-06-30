@@ -2,6 +2,7 @@
   "name": "dox",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "packages/*"
   ],
@@ -19,6 +20,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@headlessui/react": "^2.2.9",
+    "@libsql/client": "^0.14.0",
     "@mdx-js/loader": "^3.1.0",
     "@mdx-js/react": "^3.1.0",
     "@orama/orama": "^3.1.18",
