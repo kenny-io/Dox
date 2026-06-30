@@ -14,7 +14,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "check:agents": "tsx scripts/agent-readiness.ts",
-    "packages:build": "npm run build -w packages/create-dox && npm run build -w packages/mcp"
+    "packages:build": "npm run build -w packages/create-dox && npm run build -w packages/mcp && npm run build -w packages/cli"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
