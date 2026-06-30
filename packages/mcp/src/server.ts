@@ -7,6 +7,7 @@ import { updatePageSchema, handleUpdatePage } from './tools/update-page.js'
 import { migrateDocsSchema, handleMigrateDocs } from './tools/migrate-docs.js'
 import { searchDocsSchema, handleSearchDocs } from './tools/search-docs.js'
 import { semanticSearchSchema, handleSemanticSearch } from './tools/semantic-search.js'
+import { agentReadinessSchema, handleAgentReadiness } from './tools/agent-readiness.js'
 import { readPageSchema, handleReadPage } from './tools/read-page.js'
 import { getContextSchema, handleGetContext } from './tools/get-context.js'
 import { lintProjectSchema, handleLintProject } from './tools/lint-project.js'
@@ -15,7 +16,7 @@ import { translateDocsSchema, handleTranslateDocs } from './tools/translate-docs
 export function createServer(): McpServer {
   const server = new McpServer({
     name: '@dox/mcp',
-    version: '0.1.0',
+    version: '0.3.0',
   })
 
   // Tool: create_project
@@ -131,6 +132,21 @@ export function createServer(): McpServer {
     async (input) => {
       try {
         const text = await handleSemanticSearch(input)
+        return { content: [{ type: 'text', text }] }
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : String(err))
+      }
+    },
+  )
+
+  // Tool: agent_readiness
+  server.tool(
+    'agent_readiness',
+    'Fetch the Agent Readiness Score (0-100) for a deployed Dox site — the same report as /api/agent-readiness and `dox check`, with per-signal subscores and fixable offenders',
+    agentReadinessSchema.shape,
+    async (input) => {
+      try {
+        const text = await handleAgentReadiness(input)
         return { content: [{ type: 'text', text }] }
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : String(err))

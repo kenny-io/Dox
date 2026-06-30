@@ -209,7 +209,7 @@ async function runCheck(args) {
 }
 
 // src/commands/deploy.ts
-var SITE_URL_HINT = process.env.NEXT_PUBLIC_SITE_URL;
+var SITE_URL_HINT = process.env.DOX_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
 async function runDeploy(args) {
   process.stdout.write("\n  Building production site...\n");
   const buildExit = await runFramework("build", "build");
