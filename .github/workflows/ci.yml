@@ -44,3 +44,30 @@ jobs:
           # Keep the build deterministic and offline — embeddings fall back to the
           # local hash provider when no key is present.
           DOX_SITE_URL: https://example.com
+
+  lighthouse:
+    name: Core Web Vitals budget
+    runs-on: ubuntu-latest
+    # Advisory perf gate: warn-level assertions (see lighthouserc.json) so a noisy
+    # or flaky run never blocks a PR. Tighten to error-level once it's stable.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          DOX_SITE_URL: http://localhost:3040
+
+      - name: Run Lighthouse CI
+        run: npx --yes @lhci/cli@0.14.x autorun
