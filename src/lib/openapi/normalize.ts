@@ -11,6 +11,7 @@ import type {
   OperationOverride,
   ResolvedSpec,
 } from '@/lib/openapi/types'
+import { getApiPlaygroundCredentials } from '@/data/docs'
 
 type RawObject = Record<string, unknown>
 
@@ -24,6 +25,11 @@ export function buildOperationKey(method: string, path: string, isWebhook = fals
 export function normalizeSpec(resolved: ResolvedSpec): NormalizedSpec {
   const specServers = normalizeServers((resolved.document as RawObject).servers)
   const resolveRef = createSchemaResolver(resolved.document as RawObject)
+  const securitySchemes = (resolved.document as RawObject).components as RawObject | undefined
+  const rawSecuritySchemes =
+    securitySchemes && typeof securitySchemes.securitySchemes === 'object'
+      ? (securitySchemes.securitySchemes as Record<string, RawObject>)
+      : {}
   const operations: Array<NormalizedOperation> = []
 
   const paths = (resolved.document as RawObject).paths
@@ -48,6 +54,7 @@ export function normalizeSpec(resolved: ResolvedSpec): NormalizedSpec {
             specServers,
             config: resolved.config,
             documentSecurity: (resolved.document as RawObject).security,
+            securitySchemes: rawSecuritySchemes,
             isWebhook: false,
             resolveRef,
           }),
@@ -77,6 +84,7 @@ export function normalizeSpec(resolved: ResolvedSpec): NormalizedSpec {
             specServers,
             config: resolved.config,
             documentSecurity: (resolved.document as RawObject).security,
+            securitySchemes: rawSecuritySchemes,
             isWebhook: true,
             resolveRef,
           }),
@@ -108,6 +116,7 @@ interface NormalizeOperationOptions {
   pathServers: Array<NormalizedServer>
   specServers: Array<NormalizedServer>
   documentSecurity?: unknown
+  securitySchemes: Record<string, RawObject>
   config: ApiSpecConfig
   isWebhook: boolean
   resolveRef: (ref: string) => RawObject | null
@@ -133,6 +142,12 @@ function normalizeOperation(options: NormalizeOperationOptions): NormalizedOpera
   const { body: requestBody, sample: requestBodySample } = normalizeRequestBody(options.rawOperation.requestBody, options.resolveRef)
   const responses = normalizeResponses(options.rawOperation.responses, options.resolveRef)
   const security = normalizeSecurity(options.rawOperation.security ?? options.documentSecurity)
+  const headerPrefill = applySecurityAuthPrefill(
+    security,
+    options.securitySchemes,
+    options.resolveRef,
+    { ...parameterPrefill.header },
+  )
 
   const operationServers = normalizeServers(options.rawOperation.servers)
   const servers =
@@ -167,7 +182,7 @@ function normalizeOperation(options: NormalizeOperationOptions): NormalizedOpera
     prefill: {
       path: parameterPrefill.path,
       query: parameterPrefill.query,
-      header: parameterPrefill.header,
+      header: headerPrefill,
       cookie: parameterPrefill.cookie,
       body: requestBodySample,
     },
@@ -397,6 +412,54 @@ function normalizeSecurity(raw: unknown): Array<Array<NormalizedSecurityRequirem
         .filter((entry) => entry.name.length > 0)
     })
     .filter((group): group is Array<NormalizedSecurityRequirement> => Array.isArray(group) && group.length > 0)
+}
+
+function resolveSecurityScheme(
+  schemes: Record<string, RawObject>,
+  name: string,
+  resolveRef: (ref: string) => RawObject | null,
+): RawObject | null {
+  const scheme = schemes[name]
+  if (!scheme) return null
+  if (typeof scheme.$ref === 'string') {
+    const ref = scheme.$ref as string
+    const parts = ref.split('/')
+    const refName = parts[parts.length - 1]
+    return schemes[refName] ?? resolveRef(ref)
+  }
+  return scheme
+}
+
+function applySecurityAuthPrefill(
+  security: Array<Array<NormalizedSecurityRequirement>>,
+  securitySchemes: Record<string, RawObject>,
+  resolveRef: (ref: string) => RawObject | null,
+  headerPrefill: Record<string, string>,
+): Record<string, string> {
+  const credentials = getApiPlaygroundCredentials()
+  const result = { ...headerPrefill }
+
+  for (const requirementGroup of security) {
+    for (const requirement of requirementGroup) {
+      const scheme = resolveSecurityScheme(securitySchemes, requirement.name, resolveRef)
+      if (!scheme) continue
+
+      const configured = credentials[requirement.name]
+      const type = scheme.type as string | undefined
+
+      if (type === 'http' && scheme.scheme === 'bearer') {
+        const token = configured ?? 'YOUR_API_KEY'
+        result.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`
+      } else if (type === 'apiKey' && scheme.in === 'header' && typeof scheme.name === 'string') {
+        result[scheme.name as string] = configured ?? 'YOUR_API_KEY'
+      } else if (type === 'http' && scheme.scheme === 'basic') {
+        result.Authorization = configured ? `Basic ${configured}` : 'Basic YOUR_BASE64_CREDENTIALS'
+      }
+    }
+    break
+  }
+
+  return result
 }
 
 function resolveGroup({

@@ -211,8 +211,8 @@ function extractSnippetComponents(source: string) {
       const loader = resolveSnippetComponent(normalizedPath, name)
       if (loader) {
         snippetInjectors[name] = loader
-      } else if (process.env.NODE_ENV !== 'production') {
-        console.warn(`[docs] Unable to resolve snippet component "${name}" from "${normalizedPath}".`)
+      } else {
+        snippetInjectors[name] = () => compileSnippetFromPath(normalizedPath)
       }
     })
 
@@ -220,6 +220,45 @@ function extractSnippetComponents(source: string) {
   })
 
   return { cleanedSource, snippetInjectors }
+}
+
+const SNIPPETS_ROOT = path.join(process.cwd(), 'snippets')
+
+async function compileSnippetFromPath(snippetImportPath: string): Promise<ComponentType<Record<string, unknown>>> {
+  const relative = snippetImportPath.replace(/^\/snippets\//, '').replace(/\.mdx$/, '')
+  const candidates = [
+    path.join(SNIPPETS_ROOT, `${relative}.mdx`),
+    path.join(SNIPPETS_ROOT, relative, 'index.mdx'),
+  ]
+
+  let source: string | null = null
+  for (const filePath of candidates) {
+    try {
+      source = await fs.readFile(filePath, 'utf8')
+      break
+    } catch {
+      // try next candidate
+    }
+  }
+
+  if (!source) {
+    const MissingSnippet: ComponentType<Record<string, unknown>> = () => null
+    return MissingSnippet
+  }
+
+  const { content } = await compileMDX({
+    source,
+    components: getMDXComponents({}),
+    options: {
+      parseFrontmatter: false,
+      mdxOptions: { remarkPlugins, rehypePlugins },
+    },
+  })
+
+  const SnippetComponent: ComponentType<Record<string, unknown>> = function SnippetComponent() {
+    return content
+  }
+  return SnippetComponent
 }
 
 function parseOpenApiReference(raw?: string): OpenApiReference | null {
