@@ -22,30 +22,41 @@ Add `"ai": { "chat": true }` to your `docs.json`:
 }
 ```
 
-Then set your Anthropic API key in `.env.local`:
+A chat button appears in the bottom-right corner of your docs site. Users click it, ask a question, and get a streamed answer sourced from your documentation.
+
+### Keys: aha-first, then bring your own
+
+Chat resolves an Anthropic key in two tiers, so a brand-new site can answer questions immediately without any setup:
+
+| Tier | Key | Limits |
+|------|-----|--------|
+| **Owner** | `ANTHROPIC_API_KEY` | Generous (your key, you pay) |
+| **Trial** | `DOX_TRIAL_ANTHROPIC_KEY` (shared) | Tightly rate-limited per IP + a global daily ceiling |
+
+Set your own key in `.env.local` for production:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-A chat button appears in the bottom-right corner of your docs site. Users click it, ask a question, and get a streamed answer sourced from your documentation.
+When only the shared trial key is configured, chat still works — under strict caps — so visitors reach the "aha moment" before you commit a key. The active tier is returned on each response via the `x-dox-ai-tier` header. Limits are tunable with `DOX_TRIAL_RATE_PER_MIN`, `DOX_TRIAL_RATE_PER_DAY`, `DOX_TRIAL_DAILY_LIMIT`, and `DOX_CHAT_RATE_PER_MIN`.
 
 ### How it works
 
 When a user sends a message, the `/api/chat` route:
 
-1. Loads the full content of all your doc pages
-2. Sends it as context to `claude-haiku-4-5` along with the user's message
-3. Streams the response back to the widget
+1. Embeds the question and retrieves only the most relevant content chunks (RAG) within a small token budget — not the whole corpus
+2. Builds a focused prompt for `claude-haiku-4-5` from those excerpts
+3. Streams the answer back with inline `[n]` citations and a **Sources** list linking to the exact pages and anchors
 
-Answers are grounded in your docs. If the answer isn't there, Claude says so rather than guessing.
+Answers are grounded in your docs. If the answer isn't in the retrieved excerpts, Claude says so rather than guessing.
 
 <Note type="info" title="Cost">
-The chat widget uses `claude-haiku-4-5` — Anthropic's fastest and most affordable model. Each response costs a fraction of a cent.
+The chat widget uses `claude-haiku-4-5` — Anthropic's fastest and most affordable model — and retrieval keeps context small, so each response costs a fraction of a cent.
 </Note>
 
 <Note type="warning" title="Rate limiting">
-The chat route applies a simple rate limit of 10 requests per minute per IP. No Redis or external service is required.
+The chat route applies tier-aware in-memory rate limits (per minute and per day, per IP) plus a global daily ceiling on the shared trial key. No Redis or external service is required.
 </Note>
 
 ---
@@ -225,7 +236,7 @@ Allow: /api/docs-index
 Disallow: /api/chat
 ```
 
-Served as a static asset from `public/ai.txt` — no server required, available on any CDN.
+Generated dynamically at `/ai.txt` from your live navigation, so it always reflects the current set of pages and endpoints.
 
 ---
 
@@ -287,9 +298,25 @@ A human visiting the same URLs never notices any of this. The HTML is identical 
 
 ---
 
+## Agent Readiness Score
+
+Dox grades how well your docs serve AI agents with a deterministic 0–100 score. It's computed from the content graph — structured data, metadata, discovery files, machine readability, OpenAPI coverage, and content quality — with an optional analytics-derived signal when agent traffic data is available.
+
+```bash
+# JSON report
+GET /api/agent-readiness
+
+# In your terminal (fails the run below a threshold — handy in CI)
+dox check --agents --min 80
+```
+
+The report includes weighted subscores and the specific pages dragging each one down, so the fix is always concrete. MCP clients can fetch the same report for any deployed site with the `agent_readiness` tool.
+
+---
+
 ## MCP tools for querying docs
 
-The `@dox/mcp` server includes three tools that let AI agents search and read your documentation as context.
+The `@dox/mcp` server includes tools that let AI agents search and read your documentation as context. Three work against a local project on disk (`search_docs`, `read_page`, `get_context`); two more — `semantic_search` and `agent_readiness` — run against any **deployed** Dox site over HTTP.
 
 ### `search_docs`
 

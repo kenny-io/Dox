@@ -2,30 +2,40 @@
 
 A Mintlify-style documentation template built on Next.js, Tailwind CSS, Radix UI, and shadcn-inspired components. Clean-room, customizable, and free to commercialize.
 
+Dox is **agent-native**: every page is served to humans as pre-rendered HTML and to AI agents as structured JSON / JSON-LD / Markdown from the same URL.
+
 ## Features
 
 - **MDX content** — write docs in Markdown with React components
-- **Auto-generated API reference** — drop in an OpenAPI spec and get interactive docs
+- **Unified content engine** — each page is parsed once into a typed content graph; HTML, JSON, JSON-LD, Markdown, search, and embeddings are projections of that single source of truth
+- **Auto-generated API reference** — drop in an OpenAPI spec and get interactive docs with a "Try It" console
 - **Sidebar & tabs** — configured from a single `docs.json` file
-- **Search, TOC, dark mode** — built-in with zero config
-- **Responsive** — persistent sidebar, mobile drawer, command palette
+- **Hybrid search** — instant client-side command palette plus a server-side full-text + vector `/api/search`
+- **Retrieval-grounded AI chat** — Claude-powered Q&A with RAG retrieval and inline citations; works out of the box on a rate-limited trial key, then on your own `ANTHROPIC_API_KEY`
+- **Agent endpoints** — `/llms.txt`, `/ai.txt`, `/api/docs-index`, `/api/docs/{slug}`, and an **Agent Readiness Score** at `/api/agent-readiness`
+- **Unified `dox` CLI + `@dox/mcp`** — one toolchain to scaffold, develop, deploy, check, and drive your docs from any MCP client
+- **TOC, dark mode, responsive** — built-in with zero config; persistent sidebar, mobile drawer, command palette
 - **Syntax highlighting** — Shiki with CSS variables for theme-aware code blocks
 
 ## Quick Start
 
 ```bash
-# 1. Clone or use as template
-npx degit your-org/dox my-docs
+# Scaffold a new project (recommended)
+npx create-dox my-docs
 cd my-docs
-
-# 2. Install dependencies
-npm install
-
-# 3. Start dev server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Or use the repo directly:
+
+```bash
+npx degit your-org/dox my-docs
+cd my-docs
+npm install
+npm run dev
+```
+
+Open [http://localhost:3040](http://localhost:3040).
 
 ## Project Structure
 
@@ -142,6 +152,9 @@ cp .env.example .env.local
 | Variable | Purpose |
 |---|---|
 | `DOX_SITE_URL` | Production URL for OpenGraph metadata, canonical URLs, and agent endpoints (legacy `NEXT_PUBLIC_SITE_URL` still honored) |
+| `ANTHROPIC_API_KEY` | Owner key for AI chat — lifts trial limits entirely |
+| `DOX_TRIAL_ANTHROPIC_KEY` | Optional shared key powering the out-of-the-box trial chat (strict per-IP limits + a global daily cap) |
+| `DOX_TRIAL_RATE_PER_MIN` / `DOX_TRIAL_RATE_PER_DAY` / `DOX_TRIAL_DAILY_LIMIT` / `DOX_CHAT_RATE_PER_MIN` | Optional chat rate-limit overrides |
 
 ## Production
 
