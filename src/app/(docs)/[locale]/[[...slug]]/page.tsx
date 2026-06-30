@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { DocLayout } from '@/components/docs/doc-layout'
 import { getDocEntries, getI18nConfig, getNavContext } from '@/data/docs'
 import { getDocFromParams } from '@/data/get-doc'
+import { getSiteUrl } from '@/lib/site-url'
 import { getApiOperationByKey } from '@/data/api-reference'
 import { DocHeader } from '@/components/docs/doc-header'
 import { ApiLayout } from '@/components/api/api-layout'
@@ -51,7 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const doc = await getDocFromParams(allSlug)
     if (!doc) return {}
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+    const siteUrl = getSiteUrl()
     const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
     const ogImageUrl = buildOgImageUrl({
       title: doc.title,
@@ -89,7 +90,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const doc = await getDocFromParams(resolved.slug, resolved.locale)
   if (!doc) return {}
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const siteUrl = getSiteUrl()
   const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
 
   const ogImageUrl = buildOgImageUrl({
@@ -128,7 +129,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LocaleDocsPage({ params }: PageProps) {
   const resolved = await params
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const siteUrl = getSiteUrl()
 
   if (!isValidSecondaryLocale(resolved.locale)) {
     // This path was intercepted from [[...slug]] — treat locale segment as part of the slug

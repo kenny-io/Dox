@@ -27,7 +27,7 @@ export function resolveOgConfig() {
   const dark = siteConfig.brand.dark
 
   const accent = og.accent ?? dark.accent
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  const siteUrl = process.env.DOX_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? ''
   let domain = og.domain ?? ''
   if (!domain && siteUrl) {
     try {

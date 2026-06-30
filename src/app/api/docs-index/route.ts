@@ -1,8 +1,9 @@
 import { type NextRequest } from 'next/server'
 import { getAllApiOperationNodes } from '@/data/api-reference'
 import { getDocEntries, getSidebarCollections } from '@/data/docs'
+import { getSiteUrl } from '@/lib/site-url'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const baseUrl = getSiteUrl()
 
 export async function GET(_request: NextRequest) {
   const entries = getDocEntries()

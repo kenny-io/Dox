@@ -2,7 +2,9 @@ import type { MetadataRoute } from 'next'
 import { getDocEntries } from '@/data/docs'
 import { getAllApiOperationNodes } from '@/data/api-reference'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+import { getSiteUrl } from '@/lib/site-url'
+
+const baseUrl = getSiteUrl()
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const docEntries = getDocEntries().filter((doc) => !doc.hidden && !doc.noindex)

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { toHslValue } from '@/lib/colors'
 import { buildOgImageUrl } from '@/lib/og'
 import { buildSiteJsonLd } from '@/lib/json-ld'
+import { getSiteUrl } from '@/lib/site-url'
 import { JsonLdScript } from '@/components/seo/json-ld-script'
 import { AnalyticsProvider } from '@/components/analytics/analytics-provider'
 import { SiteBanner } from '@/components/layout/site-banner'
@@ -129,7 +130,7 @@ const themeVars = THEME_VARS[structuralTheme] ?? ''
 const defaultOgImage = buildOgImageUrl({})
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: `${siteConfig.name} Documentation`,
     template: `%s • ${siteConfig.name}`,
@@ -149,7 +150,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${siteConfig.name} Documentation`,
     description: siteConfig.description,
-    url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+    url: getSiteUrl(),
     siteName: siteConfig.name,
     images: [{ url: defaultOgImage, width: 1200, height: 630 }],
   },
@@ -185,7 +186,7 @@ const brandStyle: Record<string, string> = {
 const defaultLang = getI18nConfig()?.defaultLocale ?? 'en'
 const bannerConfig = getBannerConfig()
 const customScripts = getCustomScriptsConfig()
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const siteUrl = getSiteUrl()
 const siteJsonLd = buildSiteJsonLd({ siteUrl, locale: defaultLang })
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

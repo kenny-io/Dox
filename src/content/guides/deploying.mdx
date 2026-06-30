@@ -13,10 +13,10 @@ This generates an optimized production build in the `.next/` directory. All docu
 
 ## Environment variables
 
-Before deploying, set the `NEXT_PUBLIC_SITE_URL` environment variable to your production domain. This is used for OpenGraph metadata and canonical URLs:
+Before deploying, set the `DOX_SITE_URL` environment variable to your production domain. This is used for OpenGraph metadata and canonical URLs:
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://docs.yourproduct.com
+DOX_SITE_URL=https://docs.yourproduct.com
 ```
 
 ## Vercel
@@ -25,7 +25,7 @@ The fastest way to deploy — push to GitHub and import the repo:
 
 1. Push your docs repo to GitHub
 2. Go to [vercel.com/new](https://vercel.com/new) and import the repository
-3. Set `NEXT_PUBLIC_SITE_URL` in the environment variables
+3. Set `DOX_SITE_URL` in the environment variables
 4. Deploy
 
 Vercel auto-detects Next.js and configures everything.
@@ -105,4 +105,4 @@ Once deployed, Dox automatically serves:
 - **`/changelog/rss.xml`** — RSS feed for changelog updates
 - **Dynamic OG images** — every page gets a branded social preview image via `/api/og`
 
-All of these use `NEXT_PUBLIC_SITE_URL` to generate absolute URLs, so make sure it's set before deploying.
+All of these use `DOX_SITE_URL` to generate absolute URLs, so make sure it's set before deploying.

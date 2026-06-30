@@ -1,7 +1,8 @@
 import { siteConfig } from '@/data/site'
 import { getDocEntries, getSidebarCollections } from '@/data/docs'
+import { getSiteUrl } from '@/lib/site-url'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const baseUrl = getSiteUrl()
 
 export async function GET() {
   const entries = getDocEntries()

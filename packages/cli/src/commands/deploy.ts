@@ -1,7 +1,7 @@
 import type { ParsedArgs } from '../router.js'
 import { run, runFramework } from '../process.js'
 
-const SITE_URL_HINT = process.env.NEXT_PUBLIC_SITE_URL
+const SITE_URL_HINT = process.env.DOX_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL
 
 /**
  * Build, then deploy via a provider adapter. Vercel is the default adapter; if
