@@ -3,8 +3,9 @@ import path from 'node:path'
 import matter from 'gray-matter'
 import { siteConfig } from '@/data/site'
 import { getDocEntries, getSidebarCollections } from '@/data/docs'
+import { getSiteUrl } from '@/lib/site-url'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const baseUrl = getSiteUrl()
 const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
 
 function readRawContent(pageId: string): string | null {

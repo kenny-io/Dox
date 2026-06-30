@@ -35,7 +35,7 @@ export interface OgImageConfig {
   descriptionColor?: string
   /** Group label text color (hex). Defaults to accent. */
   groupColor?: string
-  /** Domain text shown in the bottom bar (e.g. "docs.example.com"). Defaults to NEXT_PUBLIC_SITE_URL hostname. */
+  /** Domain text shown in the bottom bar (e.g. "docs.example.com"). Defaults to DOX_SITE_URL hostname. */
   domain?: string
   /** Logo text displayed in the bottom bar. Defaults to site name. */
   logoText?: string

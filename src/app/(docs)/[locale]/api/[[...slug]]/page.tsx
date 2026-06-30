@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ApiLayout } from '@/components/api/api-layout'
 import { OperationPanel } from '@/components/api/operation-panel'
 import { JsonLdScript } from '@/components/seo/json-ld-script'
+import { getSiteUrl } from '@/lib/site-url'
 import { apiReferenceConfig, getOpenApiSpecUrl } from '@/config/api-reference'
 import { getAllApiOperationNodes, getApiOperationBySlug, getApiOperationNodes } from '@/data/api-reference'
 import { getBreadcrumbs, getI18nConfig } from '@/data/docs'
@@ -32,7 +33,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolved = await params
   if (!isValidSecondaryLocale(resolved.locale)) return {}
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const siteUrl = getSiteUrl()
   const specUrl = getOpenApiSpecUrl(siteUrl)
   const node = await getApiOperationBySlug(resolved.slug)
   if (!node) return {}
@@ -50,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LocaleApiReferencePage({ params }: PageProps) {
   const resolved = await params
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const siteUrl = getSiteUrl()
   const specUrl = getOpenApiSpecUrl(siteUrl)
 
   if (!isValidSecondaryLocale(resolved.locale)) {

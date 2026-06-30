@@ -1,9 +1,10 @@
 import { type NextRequest } from 'next/server'
 import { searchDocs, type SearchMode } from '@/lib/search/engine'
+import { getSiteUrl } from '@/lib/site-url'
 
 export const runtime = 'nodejs'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const baseUrl = getSiteUrl()
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams

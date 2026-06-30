@@ -13,10 +13,10 @@ Esto genera una compilación de producción optimizada en el directorio `.next/`
 
 ## Variables de entorno
 
-Antes de desplegar, establece la variable de entorno `NEXT_PUBLIC_SITE_URL` con tu dominio de producción. Se utiliza para los metadatos de OpenGraph y las URLs canónicas:
+Antes de desplegar, establece la variable de entorno `DOX_SITE_URL` con tu dominio de producción. Se utiliza para los metadatos de OpenGraph y las URLs canónicas:
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://docs.yourproduct.com
+DOX_SITE_URL=https://docs.yourproduct.com
 ```
 
 ## Vercel
@@ -25,7 +25,7 @@ La forma más rápida de desplegar — sube a GitHub e importa el repositorio:
 
 1. Sube tu repositorio de documentación a GitHub
 2. Ve a [vercel.com/new](https://vercel.com/new) e importa el repositorio
-3. Establece `NEXT_PUBLIC_SITE_URL` en las variables de entorno
+3. Establece `DOX_SITE_URL` en las variables de entorno
 4. Despliega
 
 Vercel detecta automáticamente Next.js y configura todo.
@@ -105,4 +105,4 @@ Una vez desplegado, Dox sirve automáticamente:
 - **`/changelog/rss.xml`** — feed RSS para las actualizaciones del registro de cambios
 - **Imágenes OG dinámicas** — cada página obtiene una imagen de vista previa social personalizada a través de `/api/og`
 
-Todos estos usan `NEXT_PUBLIC_SITE_URL` para generar URLs absolutas, así que asegúrate de que esté configurado antes de desplegar.
+Todos estos usan `DOX_SITE_URL` para generar URLs absolutas, así que asegúrate de que esté configurado antes de desplegar.

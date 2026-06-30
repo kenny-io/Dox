@@ -141,7 +141,7 @@ cp .env.example .env.local
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_SITE_URL` | Production URL for OpenGraph metadata |
+| `DOX_SITE_URL` | Production URL for OpenGraph metadata, canonical URLs, and agent endpoints (legacy `NEXT_PUBLIC_SITE_URL` still honored) |
 
 ## Production
 

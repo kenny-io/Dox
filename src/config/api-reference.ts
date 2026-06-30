@@ -1,6 +1,7 @@
 import type { ApiReferenceConfig, ApiSpecConfig, ApiSpecSource } from '@/lib/openapi/types'
 import { getSidebarCollections } from '@/data/docs'
 import type { DocsJsonApiConfig } from '@/data/docs'
+import { getSiteUrl } from '@/lib/site-url'
 
 function buildApiReferenceConfig(): ApiReferenceConfig {
   const collections = getSidebarCollections()
@@ -51,7 +52,7 @@ function resolveSourceUrl(source: ApiSpecSource, siteUrl: string): string | null
   return null
 }
 
-export function getOpenApiSpecUrl(siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'): string | null {
+export function getOpenApiSpecUrl(siteUrl = getSiteUrl()): string | null {
   const spec = apiReferenceConfig.specs.find((entry) => entry.id === apiReferenceConfig.defaultSpecId)
     ?? apiReferenceConfig.specs[0]
 

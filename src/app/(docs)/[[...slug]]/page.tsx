@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { DocLayout } from '@/components/docs/doc-layout'
 import { getDocEntries, getI18nConfig, getNavContext } from '@/data/docs'
 import { getDocFromParams } from '@/data/get-doc'
+import { getSiteUrl } from '@/lib/site-url'
 import { getApiOperationByKey } from '@/data/api-reference'
 import { DocHeader } from '@/components/docs/doc-header'
 import { ApiLayout } from '@/components/api/api-layout'
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {}
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const siteUrl = getSiteUrl()
   const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
   const i18n = getI18nConfig()
 
@@ -83,7 +84,7 @@ export default async function DocsPage({ params }: PageProps) {
     notFound()
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const siteUrl = getSiteUrl()
   const primaryHref = doc.slug.length ? `/${doc.slug.join('/')}` : '/'
   const pageUrl = `${siteUrl}${primaryHref}`
   const locale = getI18nConfig()?.defaultLocale ?? 'en'

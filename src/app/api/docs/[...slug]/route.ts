@@ -2,8 +2,9 @@ import { type NextRequest } from 'next/server'
 import { getDocEntries, getI18nConfig, getNavContext } from '@/data/docs'
 import { getContentDocument } from '@/lib/content'
 import { buildDocPageJsonLd } from '@/lib/json-ld'
+import { getSiteUrl } from '@/lib/site-url'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const baseUrl = getSiteUrl()
 
 function resolveRequestedFormat(request: NextRequest): 'json' | 'ldjson' | 'markdown' {
   const formatHeader = request.headers.get('x-dox-format')
