@@ -24,6 +24,10 @@
 .DS_Store
 *.pem
 
+# dox generated artifacts (embeddings cache, analytics)
+.dox/
+.data/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

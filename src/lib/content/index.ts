@@ -6,5 +6,6 @@ export type {
   ContentTocItem,
   ContentCodeBlock,
   ContentLink,
+  ContentSection,
   ParsedContent,
 } from '@/lib/content/types'
