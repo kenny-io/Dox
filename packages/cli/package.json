@@ -1,0 +1,32 @@
+{
+  "name": "@dox/cli",
+  "version": "0.1.0",
+  "description": "The unified dox CLI — author content + config; the framework stays a hidden runtime",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "dox": "./dist/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "create-dox": "*",
+    "@dox/mcp": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.15"
+  }
+}
