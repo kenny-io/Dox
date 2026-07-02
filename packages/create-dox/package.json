@@ -1,6 +1,6 @@
 {
   "name": "create-dox",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Scaffold a new Dox documentation project",
   "type": "module",
   "engines": {
