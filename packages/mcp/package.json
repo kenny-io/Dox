@@ -1,6 +1,6 @@
 {
   "name": "@doxlabs/mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "MCP server for scaffolding and managing Dox documentation projects",
   "type": "module",
   "engines": {
@@ -14,7 +14,9 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
@@ -33,5 +35,17 @@
     "@types/tar": "^6.1.13",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
-  }
+  },
+  "license": "MIT",
+  "keywords": [
+    "dox",
+    "documentation",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "agent",
+    "claude",
+    "cursor",
+    "llm"
+  ]
 }
