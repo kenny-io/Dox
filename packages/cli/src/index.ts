@@ -63,7 +63,7 @@ async function main(): Promise<number> {
       return runPackageBin('create-dox', 'create-dox', ['translate', ...args.rest])
 
     case 'mcp':
-      return runPackageBin('@dox/mcp', 'dox-mcp', args.rest)
+      return runPackageBin('@doxlabs/mcp', 'dox-mcp', args.rest)
 
     default:
       process.stderr.write(`\n  Unknown command: ${args.command}\n`)

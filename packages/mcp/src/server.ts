@@ -15,7 +15,7 @@ import { translateDocsSchema, handleTranslateDocs } from './tools/translate-docs
 
 export function createServer(): McpServer {
   const server = new McpServer({
-    name: '@dox/mcp',
+    name: '@doxlabs/mcp',
     version: '0.3.0',
   })
 
