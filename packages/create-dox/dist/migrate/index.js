@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import {
   migrateDocs
-} from "../chunk-AFJGDIXU.js";
-import "../chunk-673L75C2.js";
+} from "../chunk-QB4U3KFX.js";
+import "../chunk-YY5QPPAG.js";
 export {
   migrateDocs
 };

@@ -84,8 +84,8 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
                         >
                           <span
                             className={cn(
-                              'dox-sidebar-indicator absolute -left-4 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full transition',
-                              active ? 'bg-accent' : 'bg-transparent group-hover:bg-border/80',
+                              'dox-sidebar-indicator absolute -left-3 inset-y-0 w-px rounded-full transition',
+                              active ? 'bg-accent' : 'bg-transparent group-hover:bg-accent/40',
                             )}
                             style={{ opacity: 'var(--theme-sidebar-indicator-opacity, 1)' } as React.CSSProperties}
                           />

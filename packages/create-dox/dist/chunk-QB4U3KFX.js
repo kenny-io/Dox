@@ -3,7 +3,7 @@ import {
   initGit,
   installDeps,
   scaffold
-} from "./chunk-673L75C2.js";
+} from "./chunk-YY5QPPAG.js";
 
 // src/migrate/index.ts
 import { mkdirSync as mkdirSync2, copyFileSync as copyFileSync2, readFileSync as readFileSync3, writeFileSync, existsSync as existsSync3, mkdtempSync, rmSync } from "fs";
