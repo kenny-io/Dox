@@ -174,9 +174,9 @@
       "api": {
         "source": "openapi.yaml",
         "tagsOrder": [
-          "Pets",
-          "Store",
-          "Webhooks"
+          "Posts",
+          "Comments",
+          "Users"
         ],
         "defaultGroup": "General",
         "overrides": {
