@@ -43,21 +43,48 @@ import { execSync } from "child_process";
 var STARTER_PAGES = {
   "introduction.mdx": `---
 title: Introduction
-description: Welcome to {NAME} documentation.
+description: Welcome to {NAME} \u2014 learn what it does, how the docs are organized, and where to start.
+keywords:
+  - {NAME}
+  - documentation
+  - overview
+  - getting started
 ---
 
 ## Welcome
 
-This is the home page of your **{NAME}** documentation site, powered by [Dox](https://github.com/kenny-io/Dox).
+Welcome to the **{NAME}** documentation. This is your home base for guides, API
+references, and everything you need to build with {NAME}. The site is powered by
+[Dox](https://github.com/kenny-io/Dox), an agent-native docs platform \u2014 every page
+is served to humans as polished HTML and to AI agents as structured JSON, JSON-LD,
+and Markdown from the same URL, so assistants can read your docs accurately.
 
-Get started by editing this file at \`src/content/introduction.mdx\`.
+## What you'll find here
+
+- **Guides** \u2014 step-by-step walkthroughs of common tasks and workflows.
+- **API reference** \u2014 generated from your OpenAPI spec, with a live "Try It" console.
+- **Quickstart** \u2014 install {NAME} and make your first call in a few minutes.
+
+## Next steps
+
+Start with the [Quickstart](/quickstart) to get {NAME} running, then make this site
+your own by editing \`src/content/introduction.mdx\` and updating the navigation in
+\`docs.json\`. Every change you save is instantly reflected for both readers and agents.
 `,
   "quickstart.mdx": `---
 title: Quickstart
-description: Get up and running with {NAME} in under 5 minutes.
+description: Install {NAME}, configure your API key, and make your first call in under five minutes.
+keywords:
+  - {NAME}
+  - quickstart
+  - installation
+  - getting started
 ---
 
 ## Installation
+
+Install {NAME} with your package manager of choice. We recommend pinning the
+version in your project so builds stay reproducible across machines and CI:
 
 \`\`\`bash
 npm install {SLUG}
@@ -65,13 +92,21 @@ npm install {SLUG}
 
 ## Basic usage
 
+Import the client and initialize it with your API key. Keep the key in an
+environment variable rather than committing it to source control, so it never
+leaks into your repository or build logs:
+
 \`\`\`ts
 import { create } from '{SLUG}'
 
-const client = create({ apiKey: 'your-api-key' })
+const client = create({ apiKey: process.env.API_KEY })
 \`\`\`
 
-That's it \u2014 you're ready to go!
+## What's next
+
+That's the basics \u2014 you're ready to build. Explore the guides for common workflows,
+open the API reference to try endpoints against a live "Try It" console, or edit this
+page at \`src/content/quickstart.mdx\` to document your own onboarding flow.
 `
 };
 function buildStarterDocsJson({

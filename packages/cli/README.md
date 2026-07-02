@@ -38,7 +38,7 @@ Run `dox` with no arguments for the full help.
   project's npm scripts and fall back to invoking the framework directly — so
   the framework is an implementation detail, not part of your surface.
 - **Authoring commands** (`init`, `migrate`, `translate`) delegate to
-  `create-dox`; `mcp` starts `@dox/mcp`. All capabilities are reachable through
+  `create-dox`; `mcp` starts `@doxlabs/mcp`. All capabilities are reachable through
   the single `dox` binary.
 - **`check --agents`** runs content lint plus the Agent Readiness Score, with a
   CI-friendly non-zero exit code when the score is below the threshold.

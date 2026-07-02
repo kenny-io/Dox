@@ -1,6 +1,6 @@
 {
   "name": "create-dox",
-  "version": "0.3.0",
+  "version": "0.3.3",
   "description": "Scaffold a new Dox documentation project",
   "type": "module",
   "engines": {
@@ -15,7 +15,9 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
@@ -33,5 +35,27 @@
     "@types/tar": "^6.1.13",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "dox",
+    "documentation",
+    "docs",
+    "scaffold",
+    "mdx",
+    "nextjs",
+    "ai",
+    "agent-native",
+    "mcp",
+    "create"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kenny-io/Dox.git",
+    "directory": "packages/create-dox"
+  },
+  "homepage": "https://github.com/kenny-io/Dox#readme",
+  "bugs": {
+    "url": "https://github.com/kenny-io/Dox/issues"
   }
 }

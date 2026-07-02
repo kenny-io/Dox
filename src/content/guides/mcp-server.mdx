@@ -1,20 +1,20 @@
 ---
 title: MCP Server
-description: Use @dox/mcp to manage Dox projects with Claude, Cursor, or any MCP-compatible AI tool.
+description: Use @doxlabs/mcp to manage Dox projects with Claude, Cursor, or any MCP-compatible AI tool.
 ---
 
-`@dox/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI tools — Claude Code, Claude Desktop, Cursor, Windsurf — create, read, update, and migrate Dox documentation projects through natural language.
+`@doxlabs/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI tools — Claude Code, Claude Desktop, Cursor, Windsurf — create, read, update, and migrate Dox documentation projects through natural language.
 
 ## Setup
 
-Add `@dox/mcp` to your Claude Code or Claude Desktop configuration:
+Add `@doxlabs/mcp` to your Claude Code or Claude Desktop configuration:
 
 <Tabs>
 
 <Tab title="Claude Code">
 
 ```bash
-claude mcp add dox -- npx -y @dox/mcp
+claude mcp add dox -- npx -y @doxlabs/mcp
 ```
 
 </Tab>
@@ -28,7 +28,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "dox": {
       "command": "npx",
-      "args": ["-y", "@dox/mcp"]
+      "args": ["-y", "@doxlabs/mcp"]
     }
   }
 }
@@ -45,7 +45,7 @@ Add to your MCP settings:
   "mcpServers": {
     "dox": {
       "command": "npx",
-      "args": ["-y", "@dox/mcp"]
+      "args": ["-y", "@doxlabs/mcp"]
     }
   }
 }
