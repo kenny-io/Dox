@@ -1,6 +1,6 @@
 {
   "name": "@doxlabs/cli",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "The unified dox CLI — author content + config; the framework stays a hidden runtime",
   "type": "module",
   "engines": {
@@ -41,5 +41,14 @@
     "nextjs",
     "ai",
     "agent-native"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kenny-io/Dox.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/kenny-io/Dox#readme",
+  "bugs": {
+    "url": "https://github.com/kenny-io/Dox/issues"
+  }
 }

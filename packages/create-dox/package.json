@@ -1,6 +1,6 @@
 {
   "name": "create-dox",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Scaffold a new Dox documentation project",
   "type": "module",
   "engines": {
@@ -48,5 +48,14 @@
     "agent-native",
     "mcp",
     "create"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kenny-io/Dox.git",
+    "directory": "packages/create-dox"
+  },
+  "homepage": "https://github.com/kenny-io/Dox#readme",
+  "bugs": {
+    "url": "https://github.com/kenny-io/Dox/issues"
+  }
 }
