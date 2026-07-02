@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    trackAnalyticsEvent(body)
+    await trackAnalyticsEvent(body)
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })

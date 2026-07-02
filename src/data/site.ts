@@ -140,11 +140,11 @@ export const siteConfig: SiteConfig = {
   name: 'Dox',
   description:
     'Dox is a Mintlify-style documentation template built on Next.js, Tailwind, Radix, and shadcn UI without inherited licensing constraints.',
-  repoUrl: 'https://github.com/your-org/your-docs',
+  repoUrl: 'https://github.com/kenny-io/Dox',
   links: [
     { label: 'Get started', href: '/quickstart' },
     { label: 'Support', href: 'https://github.com/kenny-io/Dox/issues/new' },
-    { label: 'GitHub', href: 'https://github.com/your-org/your-docs' },
+    { label: 'GitHub', href: 'https://github.com/kenny-io/Dox' },
     { label: 'Changelog', href: '/changelog' },
   ],
   brand: brandPresets[brandPreset],

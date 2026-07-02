@@ -17,13 +17,18 @@ export async function POST(request: Request) {
     }
 
     if (vote === 'yes' || vote === 'no') {
-      trackAnalyticsEvent({
-        type: 'feedback',
-        path: url ?? page,
-        page,
-        vote,
-        visitorType: 'human',
-      })
+      try {
+        await trackAnalyticsEvent({
+          type: 'feedback',
+          path: url ?? page,
+          page,
+          vote,
+          visitorType: 'human',
+        })
+      } catch (error) {
+        // Never let an analytics write failure break the user's request.
+        console.error('feedback: failed to record analytics event', error)
+      }
     }
 
     return NextResponse.json({ ok: true })

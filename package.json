@@ -2,11 +2,12 @@
   "name": "dox",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev": "next dev --webpack -p 3040",
+    "dev": "next dev -p 3040",
     "prebuild": "npm run embeddings:build",
     "build": "next build",
     "embeddings:build": "tsx scripts/build-embeddings.ts",
@@ -19,6 +20,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@headlessui/react": "^2.2.9",
+    "@libsql/client": "^0.14.0",
     "@mdx-js/loader": "^3.1.0",
     "@mdx-js/react": "^3.1.0",
     "@orama/orama": "^3.1.18",
@@ -44,7 +46,7 @@
     "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.1",
     "remark-parse": "^11.0.0",
-    "shiki": "^0.14.7",
+    "shiki": "^4.3.0",
     "tailwind-merge": "^2.5.5",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",

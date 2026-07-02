@@ -29,7 +29,7 @@ npm run dev
 Or use the repo directly:
 
 ```bash
-npx degit your-org/dox my-docs
+npx degit kenny-io/Dox my-docs
 cd my-docs
 npm install
 npm run dev

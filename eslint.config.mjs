@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Not source: the scaffolded demo and all package build output.
+    "demo/**",
+    "**/dist/**",
   ]),
 ]);
 
