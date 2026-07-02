@@ -1,7 +1,7 @@
 /**
  * Self-contained scaffold logic for the MCP server.
  * This is intentionally a copy of packages/create-dox/src/scaffold.ts
- * so that @dox/mcp is fully self-contained when run via `npx @dox/mcp`.
+ * so that @doxlabs/mcp is fully self-contained when run via `npx @doxlabs/mcp`.
  */
 
 import { existsSync, mkdirSync, readdirSync, writeFileSync, readFileSync, cpSync } from 'node:fs'

@@ -13,7 +13,7 @@ Dox is **agent-native**: every page is served to humans as pre-rendered HTML and
 - **Hybrid search** — instant client-side command palette plus a server-side full-text + vector `/api/search`
 - **Retrieval-grounded AI chat** — Claude-powered Q&A with RAG retrieval and inline citations; works out of the box on a rate-limited trial key, then on your own `ANTHROPIC_API_KEY`
 - **Agent endpoints** — `/llms.txt`, `/ai.txt`, `/api/docs-index`, `/api/docs/{slug}`, and an **Agent Readiness Score** at `/api/agent-readiness`
-- **Unified `dox` CLI + `@dox/mcp`** — one toolchain to scaffold, develop, deploy, check, and drive your docs from any MCP client
+- **Unified `dox` CLI + `@doxlabs/mcp`** — one toolchain to scaffold, develop, deploy, check, and drive your docs from any MCP client
 - **TOC, dark mode, responsive** — built-in with zero config; persistent sidebar, mobile drawer, command palette
 - **Syntax highlighting** — Shiki with CSS variables for theme-aware code blocks
 

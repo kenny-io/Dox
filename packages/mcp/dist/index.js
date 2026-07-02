@@ -1984,7 +1984,7 @@ async function handleTranslateDocs(input) {
 // src/server.ts
 function createServer() {
   const server = new McpServer({
-    name: "@dox/mcp",
+    name: "@doxlabs/mcp",
     version: "0.3.0"
   });
   server.tool(
@@ -2162,7 +2162,7 @@ function createServer() {
 // src/index.ts
 var [major] = process.versions.node.split(".").map(Number);
 if (major < 18) {
-  console.error("Error: @dox/mcp requires Node.js >= 18");
+  console.error("Error: @doxlabs/mcp requires Node.js >= 18");
   process.exit(1);
 }
 async function main() {
