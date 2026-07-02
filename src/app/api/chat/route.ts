@@ -103,11 +103,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     return new Response('No messages provided.', { status: 400 })
   }
 
-  trackAnalyticsEvent({
-    type: 'chat_message',
-    path: '/api/chat',
-    visitorType: 'human',
-  })
+  try {
+    await trackAnalyticsEvent({
+      type: 'chat_message',
+      path: '/api/chat',
+      visitorType: 'human',
+    })
+  } catch (error) {
+    // Analytics is best-effort — never block a chat response on a write.
+    console.error('chat: failed to record analytics event', error)
+  }
 
   // Retrieval-augmented context: embed the query and pull only the most
   // relevant chunks within a token budget (vs dumping the whole corpus).

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { AgentReadinessPanel } from '@/components/admin/agent-readiness-panel'
 import type { AnalyticsRange, AnalyticsSummary } from '@/lib/analytics/types'
 
 const RANGES: Array<{ id: AnalyticsRange; label: string }> = [
@@ -148,9 +150,9 @@ export function AnalyticsDashboard() {
             <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
           </div>
           <div className="flex items-center gap-2">
-            <a href="/" className="text-sm text-muted-foreground hover:text-foreground">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
               View docs
-            </a>
+            </Link>
             <Button variant="outline" size="sm" onClick={() => void handleLogout()}>
               Sign out
             </Button>
@@ -159,6 +161,10 @@ export function AnalyticsDashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mb-8">
+          <AgentReadinessPanel />
+        </div>
+
         <div className="mb-6 flex flex-wrap items-center gap-2">
           {RANGES.map((item) => (
             <button
