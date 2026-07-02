@@ -1,5 +1,5 @@
 {
-  "name": "@dox/cli",
+  "name": "@doxlabs/cli",
   "version": "0.2.0",
   "description": "The unified dox CLI — author content + config; the framework stays a hidden runtime",
   "type": "module",
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "create-dox": "*",
-    "@dox/mcp": "*"
+    "@doxlabs/mcp": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

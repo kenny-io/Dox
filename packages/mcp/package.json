@@ -1,5 +1,5 @@
 {
-  "name": "@dox/mcp",
+  "name": "@doxlabs/mcp",
   "version": "0.3.0",
   "description": "MCP server for scaffolding and managing Dox documentation projects",
   "type": "module",
