@@ -2,13 +2,13 @@
 import {
   migrateDocs,
   parseGitHubUrl
-} from "./chunk-AFJGDIXU.js";
+} from "./chunk-QB4U3KFX.js";
 import {
   logo,
   scaffold,
   slugify,
   success
-} from "./chunk-673L75C2.js";
+} from "./chunk-YY5QPPAG.js";
 
 // src/index.ts
 import { existsSync as existsSync3, readdirSync as readdirSync2 } from "fs";

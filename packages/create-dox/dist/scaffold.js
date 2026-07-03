@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {
   scaffold
-} from "./chunk-673L75C2.js";
+} from "./chunk-YY5QPPAG.js";
 export {
   scaffold
 };
