@@ -124,8 +124,12 @@ function TopPagesTable({
           <tbody>
             {rows.map((row) => (
               <tr key={row.path}>
-                <td>
-                  <span className="truncate" style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 'var(--ds-text-sm)' }}>
+                <td className="max-w-0">
+                  <span
+                    className="block truncate"
+                    title={row.path}
+                    style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 'var(--ds-text-sm)' }}
+                  >
                     {row.path}
                   </span>
                 </td>
@@ -374,7 +378,8 @@ export function AnalyticsDashboard() {
                     {data.recentFeedback.map((item) => (
                       <div key={`${item.ts}-${item.page}`} className="flex items-center justify-between gap-3">
                         <span
-                          className="truncate"
+                          className="min-w-0 truncate"
+                          title={item.page}
                           style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-secondary)' }}
                         >
                           {item.page}

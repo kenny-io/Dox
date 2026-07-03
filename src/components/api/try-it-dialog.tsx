@@ -37,9 +37,12 @@ export function TryItDialog({ controller, open, onOpenChange }: TryItDialogProps
                 <span className={cn('rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-widest', methodToken.bg, methodToken.text)}>
                   {controller.operation.method}
                 </span>
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-col">
                   <span className="text-[10px] uppercase tracking-[0.3em] text-foreground/50">Resolved URL</span>
-                  <div className="w-64 rounded-xl border border-border/40 bg-transparent px-3 py-1 text-xs text-foreground/80">
+                  <div
+                    className="w-64 max-w-full truncate rounded-xl border border-border/40 bg-transparent px-3 py-1 font-mono text-xs text-foreground/80"
+                    title={controller.preparedRequest.url || undefined}
+                  >
                     {controller.preparedRequest.url || 'Select a server to build the URL'}
                   </div>
                 </div>
