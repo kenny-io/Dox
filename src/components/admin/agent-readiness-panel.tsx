@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import type { AgentReadinessReport, SubscoreResult } from '@/lib/agent-readiness/types'
 
 type ReadinessResponse = AgentReadinessReport & {
@@ -8,90 +8,106 @@ type ReadinessResponse = AgentReadinessReport & {
   as_of: string
 }
 
-const GRADE_COLORS: Record<AgentReadinessReport['grade'], string> = {
-  A: 'text-emerald-600',
-  B: 'text-emerald-600',
-  C: 'text-amber-600',
-  D: 'text-amber-600',
-  F: 'text-red-600',
+function toneForScore(score: number): 'success' | 'warn' | 'danger' {
+  if (score >= 0.9) return 'success'
+  if (score >= 0.6) return 'warn'
+  return 'danger'
 }
 
-function barColor(score: number): string {
-  if (score >= 0.9) return 'bg-emerald-500'
-  if (score >= 0.7) return 'bg-amber-500'
-  return 'bg-red-500'
-}
-
-function ScoreRing({ score, grade }: { score: number; grade: AgentReadinessReport['grade'] }) {
-  const radius = 52
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference * (1 - score / 100)
-  const stroke = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444'
-
-  return (
-    <div className="relative h-32 w-32 shrink-0">
-      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
-        <circle cx="60" cy="60" r={radius} fill="none" stroke="currentColor" strokeWidth="10" className="text-border" />
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke={stroke}
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className="transition-[stroke-dashoffset] duration-700 ease-out"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-semibold tabular-nums">{score}</span>
-        <span className={`text-sm font-semibold ${GRADE_COLORS[grade]}`}>Grade {grade}</span>
-      </div>
-    </div>
-  )
-}
-
-function SubscoreRow({ sub }: { sub: SubscoreResult }) {
+function SubscoreRow({ sub, index }: { sub: SubscoreResult; index: number }) {
   const [open, setOpen] = useState(false)
   const pct = Math.round(sub.score * 100)
+  const tone = toneForScore(sub.score)
   const hasOffenders = sub.offenders.length > 0
 
   return (
-    <div className="border-b border-border/60 py-3 last:border-0">
-      <div className="flex items-center justify-between gap-3">
+    <div
+      className="ds-rise border-t py-4 first:border-t-0 first:pt-0"
+      style={{ borderColor: 'var(--ds-border-subtle)', animationDelay: `${120 + index * 55}ms` }}
+    >
+      <div className="flex items-baseline justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium">{sub.label}</p>
-          <p className="truncate text-xs text-muted-foreground">{sub.detail}</p>
+          <p
+            style={{
+              fontSize: 'var(--ds-text-body)',
+              fontWeight: 'var(--ds-fw-medium)',
+              color: 'var(--ds-text-primary)',
+            }}
+          >
+            {sub.label}
+          </p>
+          <p className="mt-0.5 truncate" style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>
+            {sub.detail}
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="text-xs text-muted-foreground">{Math.round(sub.weight * 100)}% weight</span>
-          <span className="w-10 text-right text-sm font-semibold tabular-nums">{pct}%</span>
+        <div className="flex shrink-0 items-baseline gap-3">
+          <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-faint)' }}>
+            {Math.round(sub.weight * 100)}%
+          </span>
+          <span
+            className="w-11 text-right tabular-nums"
+            style={{
+              fontSize: 'var(--ds-text-body)',
+              fontWeight: 'var(--ds-fw-bold)',
+              letterSpacing: 'var(--ds-tracking-tight)',
+              color: `var(--ds-${tone})`,
+            }}
+          >
+            {pct}%
+          </span>
         </div>
       </div>
-      <div className="mt-2 flex items-center gap-3">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-          <div className={`h-full rounded-full ${barColor(sub.score)}`} style={{ width: `${pct}%` }} />
+
+      <div className="mt-2.5 flex items-center gap-3">
+        <div
+          className="h-1.5 flex-1 overflow-hidden"
+          style={{ background: 'var(--ds-surface-sunk)', borderRadius: 'var(--ds-radius-full)' }}
+        >
+          <div
+            style={{
+              width: `${pct}%`,
+              height: '100%',
+              borderRadius: 'var(--ds-radius-full)',
+              background: `var(--ds-${tone})`,
+              transition: 'width var(--ds-dur-slow) var(--ds-ease-out)',
+            }}
+          />
         </div>
         {hasOffenders ? (
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground"
+            className="ds-focusable shrink-0 rounded"
+            style={{
+              fontSize: 'var(--ds-text-caption)',
+              fontWeight: 'var(--ds-fw-semibold)',
+              color: open ? 'var(--ds-text-secondary)' : 'var(--ds-accent-mid)',
+            }}
           >
             {open ? 'Hide' : `Fix ${sub.offenders.length}`}
           </button>
         ) : null}
       </div>
+
       {open && hasOffenders ? (
-        <ul className="mt-3 space-y-1.5 rounded-lg bg-muted/50 p-3">
+        <ul
+          className="mt-3 space-y-1.5 p-3"
+          style={{ background: 'var(--ds-surface-tint)', borderRadius: 'var(--ds-radius-lg)' }}
+        >
           {sub.offenders.map((offender) => (
-            <li key={offender.pageId} className="flex items-center justify-between gap-3 text-xs">
-              <a href={offender.href} target="_blank" rel="noreferrer" className="truncate font-mono text-foreground/80 hover:underline">
+            <li key={offender.pageId} className="flex items-center justify-between gap-3">
+              <a
+                href={offender.href}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate hover:underline"
+                style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-secondary)' }}
+              >
                 {offender.href}
               </a>
-              <span className="shrink-0 text-muted-foreground">{offender.reason}</span>
+              <span className="shrink-0" style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>
+                {offender.reason}
+              </span>
             </li>
           ))}
         </ul>
@@ -124,12 +140,17 @@ export function AgentReadinessPanel() {
     }
   }, [])
 
+  const tone = report ? toneForScore(report.score / 100) : 'success'
+
   return (
-    <section className="rounded-xl border border-border bg-background p-6 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
+    <section className="ds-panel">
+      <div className="ds-panel-head">
         <div>
-          <h2 className="text-base font-semibold tracking-tight">Agent Readiness Score</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <div className="ds-eyebrow">01 · Agent readiness</div>
+          <h2 className="ds-panel-title" style={{ fontSize: 'var(--ds-text-h3)', letterSpacing: 'var(--ds-tracking-tight)' }}>
+            Agent Readiness Score
+          </h2>
+          <p className="max-w-[52ch]" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
             How well your docs serve AI agents — structured data, metadata, discovery, and machine-readability.
           </p>
         </div>
@@ -137,27 +158,48 @@ export function AgentReadinessPanel() {
           href="/api/agent-readiness"
           target="_blank"
           rel="noreferrer"
-          className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+          className="ds-focusable shrink-0 rounded hover:underline"
+          style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}
         >
-          View JSON
+          View JSON →
         </a>
       </div>
 
       {loading ? (
-        <p className="mt-6 text-sm text-muted-foreground">Computing score…</p>
+        <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>Computing score…</p>
       ) : error ? (
-        <p className="mt-6 text-sm text-red-600">{error}</p>
+        <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-danger)' }}>{error}</p>
       ) : report ? (
-        <div className="mt-6 flex flex-col gap-6 lg:flex-row">
-          <div className="flex items-center gap-4 lg:flex-col lg:items-center lg:justify-center">
-            <ScoreRing score={report.score} grade={report.grade} />
-            <p className="text-xs text-muted-foreground lg:text-center">
+        <div className="flex flex-col gap-8 lg:flex-row lg:gap-10">
+          <div className="flex shrink-0 flex-row items-center gap-5 lg:w-44 lg:flex-col lg:justify-center lg:gap-4">
+            <div
+              className={`ds-ring ds-ring--${tone}`}
+              style={{ '--ds-ring-value': report.score, '--ds-ring-size': '132px', '--ds-ring-stroke': '7' } as CSSProperties}
+            >
+              <svg className="ds-ring__svg" viewBox="0 0 100 100">
+                <circle className="ds-ring__track" cx="50" cy="50" r="45" pathLength={100} />
+                <circle className="ds-ring__fill" cx="50" cy="50" r="45" pathLength={100} />
+              </svg>
+              <span className="ds-ring__label flex flex-col items-center">
+                <span style={{ fontSize: '2rem', lineHeight: 1, letterSpacing: 'var(--ds-tracking-tighter)', fontWeight: 'var(--ds-fw-extrabold)' }}>
+                  {report.score}
+                </span>
+                <span
+                  className="mt-1"
+                  style={{ fontSize: 'var(--ds-text-caption)', fontWeight: 'var(--ds-fw-semibold)', color: `var(--ds-${tone})` }}
+                >
+                  Grade {report.grade}
+                </span>
+              </span>
+            </div>
+            <p style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-faint)' }} className="lg:text-center">
               across {report.totalPages} page{report.totalPages === 1 ? '' : 's'}
             </p>
           </div>
-          <div className="flex-1">
-            {report.subscores.map((sub) => (
-              <SubscoreRow key={sub.id} sub={sub} />
+
+          <div className="min-w-0 flex-1">
+            {report.subscores.map((sub, i) => (
+              <SubscoreRow key={sub.id} sub={sub} index={i} />
             ))}
           </div>
         </div>

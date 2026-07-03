@@ -155,8 +155,8 @@ export function TopBar({
               'dox-nav-tab-item group relative shrink-0 px-3 py-1.5 text-left transition whitespace-nowrap sm:px-4 sm:py-2',
               'rounded-[var(--theme-nav-tab-radius)]',
               isActive
-                ? 'dox-nav-tab-active bg-background text-foreground shadow-sm'
-                : 'text-foreground/70 hover:bg-background/70 hover:text-foreground',
+                ? 'dox-nav-tab-active text-foreground'
+                : 'text-foreground/70 hover:text-foreground',
             )
             if (collection.href) {
               const isExternal = /^https?:\/\//.test(collection.href)
@@ -196,11 +196,10 @@ export function TopBar({
                   }
                 }}
                 className={baseClasses}
-                style={isActive ? { backgroundColor: 'var(--theme-nav-tab-active-bg)', boxShadow: 'var(--theme-nav-tab-active-shadow)' } : undefined}
               >
                 <span
                   className={cn(
-                    'pointer-events-none absolute inset-x-2 bottom-0.5 h-0.5 rounded-full transition sm:bottom-1',
+                    'pointer-events-none absolute inset-x-2 bottom-0 h-px rounded-full transition',
                     isActive ? 'bg-accent' : 'bg-transparent group-hover:bg-border/80',
                   )}
                   style={{ opacity: 'var(--theme-nav-tab-indicator-opacity, 1)' } as React.CSSProperties}

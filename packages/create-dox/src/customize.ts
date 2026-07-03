@@ -70,6 +70,26 @@ That's the basics — you're ready to build. Explore the guides for common workf
 open the API reference to try endpoints against a live "Try It" console, or edit this
 page at \`src/content/quickstart.mdx\` to document your own onboarding flow.
 `,
+  'changelog.mdx': `---
+title: Changelog
+description: Notable changes, releases, and improvements to {NAME}.
+keywords:
+  - {NAME}
+  - changelog
+  - releases
+  - updates
+---
+
+## v0.1.0
+
+The first release of your **{NAME}** documentation.
+
+- Initial docs site scaffolded with [Dox](https://github.com/kenny-io/Dox)
+- Agent-ready endpoints live: \`/llms.txt\`, \`/ai.txt\`, \`/api/docs-index\`, and \`/api/agent-readiness\`
+- Starter guides in the Overview tab and an interactive API reference
+
+Edit this page at \`src/content/changelog.mdx\` to announce your own releases as you ship.
+`,
 }
 
 function buildStarterDocsJson({
