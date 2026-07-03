@@ -137,6 +137,7 @@
           "group": "Customize & Ship",
           "icon": "grid-round",
           "pages": [
+            "guides/extending",
             "guides/branding-and-theming",
             "guides/navbar-and-footer",
             "guides/custom-fonts",
