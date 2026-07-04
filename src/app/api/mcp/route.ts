@@ -105,12 +105,14 @@ export async function POST(request: NextRequest) {
 
   const messages = Array.isArray(body) ? body : [body]
 
-  // Rate-limit the expensive path (tool calls) per IP — fail open.
-  const callsTools = messages.some((m) => m?.method === 'tools/call')
-  if (callsTools && RATE_PER_MIN > 0) {
+  // Rate-limit the expensive path (tool calls) per IP — fail open. Count EVERY
+  // tool call in the batch, not just one per request, or a single batched array
+  // of N tools/call bypasses the ceiling.
+  const toolCallCount = messages.filter((m) => m?.method === 'tools/call').length
+  if (toolCallCount > 0 && RATE_PER_MIN > 0) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     try {
-      const { count } = await getStorage().kvIncrement('mcp_rate', ip, { ttlMs: 60_000 })
+      const { count } = await getStorage().kvIncrement('mcp_rate', ip, { ttlMs: 60_000, amount: toolCallCount })
       if (count > RATE_PER_MIN) {
         const id = Array.isArray(body) ? null : body?.id
         return Response.json(rpcError(id, -32000, 'Rate limit exceeded. Please slow down.'), { status: 429 })

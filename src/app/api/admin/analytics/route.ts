@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
   }
 
   const range = parseRange(request.nextUrl.searchParams.get('range'))
-  const [summary, contentGaps] = await Promise.all([aggregateAnalytics(range), getContentGaps()])
+  const summary = await aggregateAnalytics(range)
+  // Feed the already-computed zero-result terms in — no second aggregation.
+  const contentGaps = await getContentGaps(summary.search.zeroResults)
   return NextResponse.json({ ...summary, contentGaps })
 }

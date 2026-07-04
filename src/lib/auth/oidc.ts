@@ -117,7 +117,11 @@ export async function exchangeAndVerify(
 
   if (payload.nonce !== args.nonce) throw new Error('OIDC nonce mismatch')
   const email = typeof payload.email === 'string' ? payload.email : ''
-  const emailVerified = payload.email_verified !== false // absent → treat as verified (Google always sends true)
+  // Require the IdP to explicitly vouch for the email. Treating an ABSENT
+  // email_verified as verified is the "nOAuth" bypass: on Azure/Entra and
+  // generic IdPs an attacker can set an arbitrary `email` claim and match a
+  // domain-based roster grant. Absent/false/non-true → reject.
+  const emailVerified = payload.email_verified === true || payload.email_verified === 'true'
   if (!email || !emailVerified) throw new Error('OIDC identity has no verified email')
 
   return { email }
