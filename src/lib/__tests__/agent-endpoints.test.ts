@@ -6,6 +6,7 @@ describe('isMachineEndpoint', () => {
     const terminal = [
       '/ai.txt',
       '/llms.txt',
+      '/.well-known/llms.txt',
       '/llms-full.txt',
       '/api/docs-index',
       '/api/docs/guides/auth',
