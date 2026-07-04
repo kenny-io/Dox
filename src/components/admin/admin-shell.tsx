@@ -16,6 +16,7 @@ import {
   MoonStar,
   PanelLeft,
   PanelLeftClose,
+  Plug,
   Search,
   ListChecks,
   Settings,
@@ -44,6 +45,7 @@ const NAV: Array<NavGroup> = [
       { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
       { href: '/admin/agent-readiness', label: 'Agent Readiness', icon: Gauge },
       { href: '/admin/tasks', label: 'Docs tasks', icon: ListChecks },
+      { href: '/admin/mcp', label: 'MCP server', icon: Plug },
     ],
   },
   {
@@ -60,6 +62,7 @@ const TITLES: Record<string, string> = {
   '/admin/analytics': 'Analytics',
   '/admin/agent-readiness': 'Agent Readiness',
   '/admin/tasks': 'Docs tasks',
+  '/admin/mcp': 'MCP server',
   '/admin/team': 'Team',
   '/admin/settings': 'Settings',
 }

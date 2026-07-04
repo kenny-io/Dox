@@ -11,6 +11,8 @@ export interface AdminSettings {
   chatEnabled: boolean | null
   /** null → fall back to docs.json `analytics.enabled` (on); true/false → override. */
   analyticsEnabled: boolean | null
+  /** null → on; false → disable the public /api/mcp endpoint. */
+  mcpEnabled: boolean | null
   /** Extra OIDC access domains, merged with the git-committed `team.domains`. */
   allowedDomains: Array<{ domain: string; role: Role }>
   /** scrypt hash of the docs-access (visitor) password. Never returned by the API. */
@@ -24,6 +26,7 @@ const KEY = 'settings'
 const DEFAULTS: AdminSettings = {
   chatEnabled: null,
   analyticsEnabled: null,
+  mcpEnabled: null,
   allowedDomains: [],
   docsPasswordHash: null,
   chatKeyEnc: null,
@@ -35,6 +38,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
     return {
       chatEnabled: typeof stored?.chatEnabled === 'boolean' ? stored.chatEnabled : DEFAULTS.chatEnabled,
       analyticsEnabled: typeof stored?.analyticsEnabled === 'boolean' ? stored.analyticsEnabled : DEFAULTS.analyticsEnabled,
+      mcpEnabled: typeof stored?.mcpEnabled === 'boolean' ? stored.mcpEnabled : DEFAULTS.mcpEnabled,
       allowedDomains: Array.isArray(stored?.allowedDomains) ? stored!.allowedDomains! : DEFAULTS.allowedDomains,
       docsPasswordHash: typeof stored?.docsPasswordHash === 'string' ? stored.docsPasswordHash : DEFAULTS.docsPasswordHash,
       chatKeyEnc: typeof stored?.chatKeyEnc === 'string' ? stored.chatKeyEnc : DEFAULTS.chatKeyEnc,

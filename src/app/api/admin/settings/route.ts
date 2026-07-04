@@ -16,6 +16,7 @@ function sanitize(s: AdminSettings) {
   return {
     chatEnabled: s.chatEnabled,
     analyticsEnabled: s.analyticsEnabled,
+    mcpEnabled: s.mcpEnabled,
     allowedDomains: s.allowedDomains,
     hasDocsPassword: Boolean(s.docsPasswordHash),
     hasChatKey: Boolean(s.chatKeyEnc),
@@ -46,6 +47,9 @@ export async function PUT(request: NextRequest) {
   }
   if (typeof body.analyticsEnabled === 'boolean' || body.analyticsEnabled === null) {
     patch.analyticsEnabled = body.analyticsEnabled
+  }
+  if (typeof body.mcpEnabled === 'boolean' || body.mcpEnabled === null) {
+    patch.mcpEnabled = body.mcpEnabled
   }
   if (Array.isArray(body.allowedDomains)) {
     patch.allowedDomains = body.allowedDomains
