@@ -38,6 +38,7 @@ function buildAnalyticsPayload(request: NextRequest, pathname: string) {
 
   const isDiscovery =
     pathname === '/llms.txt' ||
+    pathname === '/.well-known/llms.txt' ||
     pathname === '/llms-full.txt' ||
     pathname === '/ai.txt' ||
     pathname === '/api/docs-index'
@@ -104,7 +105,9 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     event.waitUntil(sendAnalyticsEvent(request, pathname))
   }
 
-  if (pathname.endsWith('.md')) {
+  // `.md` page mirrors rewrite to the markdown API — but /skill.md and
+  // /AGENTS.md are their own generated routes, so leave them alone.
+  if (pathname.endsWith('.md') && pathname !== '/skill.md' && pathname !== '/AGENTS.md') {
     const slugPath = pathname.slice(1, -3)
     if (slugPath) {
       const url = request.nextUrl.clone()
@@ -127,6 +130,16 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 
     return NextResponse.rewrite(url, { request: { headers: requestHeaders } })
   }
+
+  // Advertise the llms.txt discovery endpoint on HTML doc-page responses, so
+  // agents and crawlers find the index without guessing. Relative paths keep it
+  // origin-agnostic; only content pages get the headers (not API/admin/_next).
+  const response = NextResponse.next()
+  if (!pathname.startsWith('/api') && !pathname.startsWith('/admin') && !pathname.startsWith('/_next')) {
+    response.headers.append('Link', '</llms.txt>; rel="llms-txt"')
+    response.headers.set('X-Llms-Txt', '/llms.txt')
+  }
+  return response
 }
 
 export const config = {
