@@ -5,6 +5,7 @@ import '@/styles/design-system.css'
 import { useState, type ComponentType } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import {
   BarChart3,
   ExternalLink,
@@ -12,11 +13,15 @@ import {
   Home,
   LogOut,
   Menu,
-  PanelLeftClose,
+  MoonStar,
   PanelLeft,
+  PanelLeftClose,
+  Search,
   Settings,
+  Sun,
   X,
 } from 'lucide-react'
+import { AdminCommandMenu } from '@/components/admin/admin-command-menu'
 
 interface NavItem {
   href: string
@@ -39,7 +44,7 @@ const NAV: Array<NavGroup> = [
     ],
   },
   {
-    label: 'Admin',
+    label: 'Configuration',
     items: [{ href: '/admin/settings', label: 'Settings', icon: Settings }],
   },
 ]
@@ -59,8 +64,10 @@ function isActive(pathname: string, href: string): boolean {
 export function AdminShell({ siteName, children }: { siteName: string; children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { resolvedTheme, setTheme } = useTheme()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [cmdOpen, setCmdOpen] = useState(false)
 
   // The login screen renders bare — no shell chrome.
   if (pathname === '/admin/login') {
@@ -72,10 +79,15 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
     router.replace('/admin/login')
   }
 
+  // next-themes returns undefined until hydrated, so the first client render
+  // matches the server (no mismatch); the icon settles after mount.
+  const isDark = resolvedTheme === 'dark'
   const title = TITLES[pathname] ?? 'Admin'
 
   return (
     <div className="dox-dashboard ds-shell">
+      <AdminCommandMenu open={cmdOpen} onOpenChange={setCmdOpen} onLogout={() => void handleLogout()} />
+
       {mobileOpen ? (
         <div
           className="fixed inset-0 z-30 bg-black/40 md:hidden"
@@ -84,65 +96,84 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
         />
       ) : null}
 
-      <aside className="ds-rail" data-collapsed={collapsed} data-open={mobileOpen}>
-        <div className="ds-rail-card">
-          <div className="ds-rail-brand">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-              style={{ background: 'var(--ds-accent)', color: 'var(--ds-accent-fg)', fontWeight: 'var(--ds-fw-extrabold)' }}
-            >
-              {siteName.charAt(0).toUpperCase()}
+      <aside className="ds-sidebar" data-collapsed={collapsed} data-open={mobileOpen}>
+        <div className="ds-sidebar-head">
+          <Link href="/admin" className="ds-workspace ds-focusable" onClick={() => setMobileOpen(false)}>
+            <span className="ds-workspace-logo">{siteName.charAt(0).toUpperCase()}</span>
+            <span className="ds-rail-label min-w-0 truncate">
+              <span className="ds-workspace-name block truncate">{siteName}</span>
+              <span className="ds-workspace-sub">Admin console</span>
             </span>
-            <span
-              className="ds-rail-label min-w-0 truncate"
-              style={{ fontFamily: 'var(--ds-font-heading)', fontWeight: 'var(--ds-fw-bold)', letterSpacing: 'var(--ds-tracking-tight)' }}
-            >
-              {siteName}
-            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="ds-iconbtn ds-focusable md:hidden"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {!collapsed ? (
+          <div className="px-3">
             <button
               type="button"
-              onClick={() => setMobileOpen(false)}
-              className="ds-focusable ml-auto rounded p-1 md:hidden"
-              style={{ color: 'var(--ds-text-muted)' }}
-              aria-label="Close menu"
+              onClick={() => setCmdOpen(true)}
+              className="ds-sidebar-search ds-focusable"
             >
-              <X className="h-4 w-4" />
+              <Search className="h-3.5 w-3.5" />
+              <span>Search…</span>
+              <kbd className="ds-kbd">⌘K</kbd>
             </button>
           </div>
+        ) : null}
 
-          <nav className="flex-1 overflow-y-auto">
-            {NAV.map((group) => (
-              <div key={group.label}>
-                <div className="ds-rail-group">{group.label}</div>
-                {group.items.map((item) => {
-                  const Icon = item.icon
-                  const active = isActive(pathname, item.href)
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-current={active ? 'page' : undefined}
-                      title={collapsed ? item.label : undefined}
-                      onClick={() => setMobileOpen(false)}
-                      className="ds-nav-item ds-focusable"
-                    >
-                      <Icon className="h-[18px] w-[18px]" />
-                      <span className="ds-rail-label truncate">{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </div>
-            ))}
-          </nav>
+        <nav className="ds-nav">
+          {NAV.map((group) => (
+            <div key={group.label} className="ds-nav-group">
+              <div className="ds-nav-group-label ds-rail-label">{group.label}</div>
+              {group.items.map((item) => {
+                const Icon = item.icon
+                const active = isActive(pathname, item.href)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    title={collapsed ? item.label : undefined}
+                    onClick={() => setMobileOpen(false)}
+                    className="ds-nav-item ds-focusable"
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                    <span className="ds-rail-label truncate">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
+        </nav>
 
-          <div className="mt-2 space-y-1 border-t pt-3" style={{ borderColor: 'var(--ds-border-subtle)' }}>
-            <a href="/" target="_blank" rel="noreferrer" className="ds-nav-item ds-focusable" title={collapsed ? 'View site' : undefined}>
+        <div className="ds-sidebar-foot">
+          <div className="ds-sidebar-actions">
+            <a
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              className="ds-nav-item ds-focusable"
+              title={collapsed ? 'View site' : undefined}
+            >
               <ExternalLink className="h-[18px] w-[18px]" />
               <span className="ds-rail-label truncate">View site</span>
             </a>
-            <button type="button" onClick={() => void handleLogout()} className="ds-nav-item ds-focusable w-full" title={collapsed ? 'Sign out' : undefined}>
-              <LogOut className="h-[18px] w-[18px]" />
-              <span className="ds-rail-label truncate">Sign out</span>
+            <button
+              type="button"
+              onClick={() => setTheme(isDark ? 'light' : 'dark')}
+              className="ds-nav-item ds-focusable w-full"
+              title={collapsed ? 'Toggle theme' : undefined}
+            >
+              {isDark ? <Sun className="h-[18px] w-[18px]" /> : <MoonStar className="h-[18px] w-[18px]" />}
+              <span className="ds-rail-label truncate">{isDark ? 'Light theme' : 'Dark theme'}</span>
             </button>
             <button
               type="button"
@@ -154,44 +185,56 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
               <span className="ds-rail-label truncate">Collapse</span>
             </button>
           </div>
+
+          <div className="ds-account">
+            <span className="ds-account-avatar">{siteName.charAt(0).toUpperCase()}</span>
+            <span className="ds-rail-label min-w-0 flex-1 truncate">
+              <span className="ds-account-name block truncate">Admin</span>
+              <span className="ds-account-role">Signed in</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              className="ds-iconbtn ds-focusable ds-rail-label"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </aside>
 
       <div className="ds-content">
-        <header
-          className="sticky top-0 z-20 flex items-center gap-3 px-6 py-4"
-          style={{
-            background: 'color-mix(in oklch, var(--ds-surface-page) 82%, transparent)',
-            backdropFilter: 'var(--ds-backdrop-glass)',
-            borderBottom: '1px solid var(--ds-border)',
-          }}
-        >
+        <header className="ds-topbar">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="ds-focusable rounded p-1 md:hidden"
-            style={{ color: 'var(--ds-text-secondary)' }}
+            className="ds-iconbtn ds-focusable md:hidden"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <div>
-            <div className="ds-eyebrow" style={{ marginBottom: '2px' }}>
-              {siteName} Admin
-            </div>
-            <h1
-              style={{
-                fontFamily: 'var(--ds-font-heading)',
-                fontSize: 'var(--ds-text-h4)',
-                fontWeight: 'var(--ds-fw-bold)',
-                letterSpacing: 'var(--ds-tracking-tight)',
-              }}
+          <nav className="flex items-center gap-2" aria-label="Breadcrumb">
+            <span className="ds-crumb-muted">Admin</span>
+            <span className="ds-crumb-sep">/</span>
+            <span className="ds-crumb">{title}</span>
+          </nav>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCmdOpen(true)}
+              className="ds-iconbtn ds-focusable md:hidden"
+              aria-label="Search"
             >
-              {title}
-            </h1>
+              <Search className="h-4 w-4" />
+            </button>
+            <a href="/" target="_blank" rel="noreferrer" className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable">
+              View site <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+        <main className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">{children}</main>
       </div>
     </div>
   )
