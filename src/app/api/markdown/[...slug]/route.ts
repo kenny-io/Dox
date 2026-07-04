@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { stripInternalFrontmatter } from '@/lib/provenance'
 
 const localDocsRoot = path.join(process.cwd(), 'src/content')
 
@@ -19,8 +20,9 @@ export async function GET(
 
   for (const filePath of candidates) {
     try {
-      const content = await fs.readFile(filePath, 'utf8')
-      return new NextResponse(content, {
+      const raw = await fs.readFile(filePath, 'utf8')
+      // Strip internal provenance frontmatter so it never ships publicly.
+      return new NextResponse(stripInternalFrontmatter(raw), {
         status: 200,
         headers: {
           'Content-Type': 'text/markdown; charset=utf-8',

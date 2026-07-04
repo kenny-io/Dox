@@ -22,6 +22,10 @@ export interface DocEntry {
   component: ComponentType<Record<string, unknown>>
   timeEstimate: string
   lastUpdated: string
+  /** Public provenance: ISO date a human last confirmed this page is accurate. */
+  lastVerified?: string
+  /** Public provenance: product version this page was verified against. */
+  verifiedVersion?: string
   openapi?: OpenApiReference
   noindex?: boolean
   hidden?: boolean
@@ -223,6 +227,8 @@ interface FrontmatterData {
   keywords?: Array<string>
   timeEstimate?: string
   lastUpdated?: string
+  lastVerified?: string
+  verifiedVersion?: string
   openapi?: string
   hidden?: boolean
   noindex?: boolean
@@ -327,6 +333,8 @@ function buildDocEntryFromPageId(pageId: string): DocEntry {
     component: Placeholder,
     timeEstimate: fm.timeEstimate ?? '5 min',
     lastUpdated: fm.lastUpdated ?? '',
+    lastVerified: fm.lastVerified,
+    verifiedVersion: fm.verifiedVersion,
   }
 }
 

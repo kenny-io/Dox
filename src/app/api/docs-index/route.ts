@@ -40,6 +40,8 @@ export async function GET(_request: NextRequest) {
         group: nav?.group ?? '',
         ...(e.badge ? { badge: e.badge } : {}),
         ...(e.keywords.length ? { keywords: e.keywords } : {}),
+        ...(e.lastVerified ? { last_verified: e.lastVerified } : {}),
+        ...(e.verifiedVersion ? { verified_version: e.verifiedVersion } : {}),
       }
     })
 

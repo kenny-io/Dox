@@ -10,6 +10,7 @@ export async function runCheck(args: ParsedArgs): Promise<number> {
   if (args.hasFlag('--fix')) contentArgs.push('--fix')
   if (args.hasFlag('--ci')) contentArgs.push('--ci')
   if (args.hasFlag('--external')) contentArgs.push('--external')
+  if (args.hasFlag('--drift')) contentArgs.push('--drift')
 
   let exit = await runPackageBin('create-dox', 'create-dox', contentArgs)
 

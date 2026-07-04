@@ -157,6 +157,7 @@
           "pages": [
             "guides/cli-reference",
             "guides/ci-checks",
+            "guides/provenance",
             "guides/mcp-server",
             "guides/remote-mcp",
             "guides/agent-manifests",
