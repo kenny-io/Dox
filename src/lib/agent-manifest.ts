@@ -28,6 +28,7 @@ export function buildSkillManifest(): string {
   lines.push(`- Any page as JSON / JSON-LD / Markdown: ${base}/api/docs/{slug}`)
   lines.push(`- Search: ${base}/api/search?q={query}`)
   lines.push(`- Structured index (JSON): ${base}/api/docs-index`)
+  lines.push(`- MCP server (attach as native tools over HTTP): ${base}/api/mcp`)
   if (hasApi) lines.push(`- OpenAPI spec: ${base}/openapi.yaml`)
   lines.push('')
   lines.push('## Pages')

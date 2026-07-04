@@ -158,6 +158,7 @@
             "guides/cli-reference",
             "guides/ci-checks",
             "guides/mcp-server",
+            "guides/remote-mcp",
             "guides/agent-manifests",
             "guides/migrating",
             "guides/ai-features",

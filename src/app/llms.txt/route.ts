@@ -35,6 +35,7 @@ export async function GET() {
   lines.push(`- Per-page API: ${baseUrl}/api/docs/{page-id}`)
   lines.push(`- Capability manifest (skill): ${baseUrl}/skill.md`)
   lines.push(`- Agent guidance (editing these docs): ${baseUrl}/AGENTS.md`)
+  lines.push(`- MCP server (attach docs as native tools): ${baseUrl}/api/mcp`)
   lines.push('')
 
   // Sections grouped by tab > group
