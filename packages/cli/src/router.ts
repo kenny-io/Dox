@@ -28,6 +28,7 @@ export const COMMANDS: Array<CommandInfo> = [
   { name: 'migrate', summary: 'Migrate docs from a GitHub URL', usage: 'dox migrate <github-url> [dir]' },
   { name: 'translate', summary: 'Translate content into a locale', usage: 'dox translate --locale <code>' },
   { name: 'mcp', summary: 'Start the Model Context Protocol server (stdio)', usage: 'dox mcp' },
+  { name: 'agent', summary: 'Draft docs from a task (PR, diff, or instruction) as a reviewed PR', usage: 'dox agent "<instruction>" [--diff <ref>] [--from-pr <url>] [--dry-run] [--pr]' },
 ]
 
 export function parseArgs(argv: Array<string>): ParsedArgs {

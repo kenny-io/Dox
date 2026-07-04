@@ -160,6 +160,7 @@
             "guides/provenance",
             "guides/mcp-server",
             "guides/remote-mcp",
+            "guides/docs-agent",
             "guides/agent-manifests",
             "guides/migrating",
             "guides/ai-features",
