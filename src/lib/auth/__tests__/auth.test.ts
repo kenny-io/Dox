@@ -1,79 +1,65 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Control storage durability; keep the real (in-memory, under test) store for ops.
-vi.mock('@/lib/storage', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/storage')>()
-  return { ...actual, isRemoteStorage: vi.fn(() => true) }
-})
+// The roster is read from docs.json via getTeamConfig — mock it (no real config).
+vi.mock('@/data/docs', () => ({ getTeamConfig: vi.fn(() => ({ members: [], domains: [] })) }))
 
-import { getStorage, isRemoteStorage, __resetStorageForTests } from '@/lib/storage'
-import { claimOwnerIfEligible } from '@/lib/auth/owner-claim'
-import { upsertMember, getMember, removeMember } from '@/lib/auth/team'
+import { getTeamConfig } from '@/data/docs'
+import { resolveRoleFromRoster, isTeamConfigured } from '@/lib/auth/roster'
 import { resolveAdminSession, requireCapability } from '@/lib/auth/rbac'
 import { signSession } from '@/lib/auth/session'
 
-const eligible = { email: 'alice@acme.com', isVerified: true, isAllowed: true }
+const team = {
+  members: [
+    { email: 'alice@acme.com', role: 'owner' as const },
+    { email: 'Bob@Acme.com', role: 'editor' as const }, // mixed case on purpose
+  ],
+  domains: [{ domain: 'acme.com', role: 'viewer' as const }],
+}
 
-beforeEach(() => {
-  __resetStorageForTests()
-  vi.mocked(isRemoteStorage).mockReturnValue(true)
-})
-
-afterEach(() => {
-  delete process.env.DOX_AUTH_SECRET
-})
-
-describe('claimOwnerIfEligible — the four guards', () => {
-  it('claims Owner on a clean, durable, verified, allowlisted first login', async () => {
-    expect((await claimOwnerIfEligible(eligible)).claimed).toBe(true)
-    expect((await getMember('alice@acme.com'))?.role).toBe('owner')
+describe('resolveRoleFromRoster (git-committed roster)', () => {
+  it('gives explicit members their role, case-insensitively', () => {
+    expect(resolveRoleFromRoster('alice@acme.com', team)).toBe('owner')
+    expect(resolveRoleFromRoster('bob@acme.com', team)).toBe('editor')
   })
 
-  it('refuses on ephemeral storage — the serverless cold-start re-claim vuln', async () => {
-    vi.mocked(isRemoteStorage).mockReturnValue(false)
-    expect(await claimOwnerIfEligible(eligible)).toEqual({ claimed: false, reason: 'ephemeral_storage' })
+  it('explicit member wins over the domain default', () => {
+    // bob is an explicit editor, not the domain's viewer
+    expect(resolveRoleFromRoster('BOB@acme.com', team)).toBe('editor')
   })
 
-  it('refuses a non-allowlisted email — no open internet land-grab', async () => {
-    expect(await claimOwnerIfEligible({ ...eligible, isAllowed: false })).toEqual({
-      claimed: false,
-      reason: 'not_allowed',
-    })
+  it('falls back to the domain default for unlisted addresses', () => {
+    expect(resolveRoleFromRoster('carol@acme.com', team)).toBe('viewer')
   })
 
-  it('refuses an unverified identity', async () => {
-    expect(await claimOwnerIfEligible({ ...eligible, isVerified: false })).toEqual({
-      claimed: false,
-      reason: 'unverified',
-    })
+  it('denies anyone outside the members and domains', () => {
+    expect(resolveRoleFromRoster('mallory@evil.com', team)).toBeNull()
+    expect(resolveRoleFromRoster('not-an-email', team)).toBeNull()
   })
 
-  it('refuses once a team already exists', async () => {
-    await claimOwnerIfEligible(eligible)
-    expect((await claimOwnerIfEligible({ ...eligible, email: 'mallory@acme.com' })).claimed).toBe(false)
-  })
-
-  it('lets exactly one of two concurrent first-logins win the race', async () => {
-    const [a, b] = await Promise.all([
-      claimOwnerIfEligible({ ...eligible, email: 'a@acme.com' }),
-      claimOwnerIfEligible({ ...eligible, email: 'b@acme.com' }),
-    ])
-    expect([a.claimed, b.claimed].filter(Boolean)).toHaveLength(1)
+  it('isTeamConfigured reflects whether any access is declared', () => {
+    expect(isTeamConfigured(team)).toBe(true)
+    expect(isTeamConfigured({ members: [], domains: [] })).toBe(false)
   })
 })
 
-describe('rbac — live role, instant revocation', () => {
-  it('resolves the live role, gates by capability, and denies a removed member immediately', async () => {
+describe('rbac — session → live role → capability', () => {
+  beforeEach(() => {
     process.env.DOX_AUTH_SECRET = 'test-secret-at-least-16-chars'
-    await upsertMember({ email: 'bob@acme.com', role: 'editor', status: 'active', addedAt: Date.now() })
+    vi.mocked(getTeamConfig).mockReturnValue(team)
+  })
+  afterEach(() => {
+    delete process.env.DOX_AUTH_SECRET
+  })
+
+  it('resolves the role, gates capabilities, and denies instantly when removed from the roster', async () => {
     const token = (await signSession({ email: 'bob@acme.com' }))!
 
     expect((await resolveAdminSession(token))?.role).toBe('editor')
     expect(await requireCapability(token, 'manage_docs')).not.toBeNull()
     expect(await requireCapability(token, 'manage_team')).toBeNull() // editor ≠ owner
 
-    // Same still-valid cookie, but the member is gone → denied on the next request.
-    await removeMember('bob@acme.com')
+    // Simulate a committed change that removes Bob → the same cookie is now denied.
+    vi.mocked(getTeamConfig).mockReturnValue({ members: [{ email: 'alice@acme.com', role: 'owner' }], domains: [] })
     expect(await resolveAdminSession(token)).toBeNull()
   })
 })
