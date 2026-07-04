@@ -8,7 +8,7 @@ import docsNavigationConfig from '../../docs.json' assert { type: 'json' }
 // Public interfaces (consumed by components, pages, and stores)
 // ---------------------------------------------------------------------------
 
-export type DocPageMode = 'default' | 'wide' | 'custom' | 'center'
+export type DocPageMode = 'default' | 'wide' | 'custom' | 'center' | 'home'
 
 export interface DocEntry {
   id: string
@@ -185,7 +185,7 @@ interface DocsJsonConfig {
   theme?: StructuralTheme
   ai?: {
     chat?: boolean
-    /** Label shown on the FAB and in the chat header. Defaults to "DoxAI". */
+    /** Label shown on the FAB and in the chat header. Defaults to "Ask AI". */
     label?: string
     /**
      * Icon shown on the FAB. Either a named icon ("sparkles" | "zap" | "bot" |
@@ -246,7 +246,7 @@ interface FrontmatterData {
   openapi?: string
   hidden?: boolean
   noindex?: boolean
-  mode?: 'default' | 'wide' | 'custom' | 'center'
+  mode?: DocPageMode
 }
 
 const frontmatterCache = new Map<string, FrontmatterData>()

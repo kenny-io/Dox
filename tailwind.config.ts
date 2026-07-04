@@ -73,8 +73,10 @@ const config: Config = {
             '--tw-prose-invert-th-borders': theme('colors.zinc.600'),
             '--tw-prose-invert-td-borders': theme('colors.zinc.700'),
             color: 'var(--tw-prose-body)',
-            fontSize: theme('fontSize.sm')[0],
-            lineHeight: theme('lineHeight.7'),
+            // 15px base with a relaxed measure reads more premium than the
+            // former 14px (fontSize.sm) on wide docs columns.
+            fontSize: '0.9375rem',
+            lineHeight: '1.7',
             p: {
               marginTop: theme('spacing.6'),
               marginBottom: theme('spacing.6'),
@@ -193,26 +195,32 @@ const config: Config = {
             'h1, h2, h3, h4, h5, h6': {
               fontFamily: 'var(--font-heading)',
             },
+            // Single source of truth for the docs heading scale. The MDX
+            // heading components intentionally set no font-size/weight so
+            // this config styles every heading, MDX or plain markdown.
             h1: {
               color: 'var(--tw-prose-headings)',
               fontWeight: '700',
-              fontSize: theme('fontSize.2xl')[0],
-              ...theme('fontSize.2xl')[1],
+              letterSpacing: '-0.025em',
+              fontSize: theme('fontSize.3xl')[0],
+              ...theme('fontSize.3xl')[1],
               marginBottom: theme('spacing.2'),
             },
             h2: {
               color: 'var(--tw-prose-headings)',
               fontWeight: '600',
-              fontSize: theme('fontSize.lg')[0],
-              ...theme('fontSize.lg')[1],
+              letterSpacing: '-0.02em',
+              fontSize: theme('fontSize.2xl')[0],
+              ...theme('fontSize.2xl')[1],
               marginTop: theme('spacing.16'),
               marginBottom: theme('spacing.2'),
             },
             h3: {
               color: 'var(--tw-prose-headings)',
-              fontSize: theme('fontSize.base')[0],
-              ...theme('fontSize.base')[1],
+              fontSize: theme('fontSize.xl')[0],
+              ...theme('fontSize.xl')[1],
               fontWeight: '600',
+              letterSpacing: '-0.015em',
               marginTop: theme('spacing.10'),
               marginBottom: theme('spacing.2'),
             },
@@ -330,11 +338,11 @@ const config: Config = {
               color: 'inherit',
             },
             'h2 code': {
-              fontSize: theme('fontSize.base')[0],
+              fontSize: theme('fontSize.lg')[0],
               fontWeight: 'inherit',
             },
             'h3 code': {
-              fontSize: theme('fontSize.sm')[0],
+              fontSize: theme('fontSize.base')[0],
               fontWeight: 'inherit',
             },
             ':is(h1, h2, h3) + *': {
