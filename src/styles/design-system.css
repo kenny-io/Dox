@@ -37,12 +37,17 @@
   --ds-font-mono:    var(--font-mono, 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace);
 
   /* ────────────────────────────────────────────────────────────────────────
-     1. BRAND ACCENT — anchored to the literal green hex, tones derived
+     1. BRAND ACCENT — identity tones inherit the site's brand accent
+     (--dox-accent, the HSL triple set by brand.css / docs.json), so the
+     console feels like the owner's product rather than Dox's. Tones are
+     derived from the single anchor via OKLCH mixing. Fallback = Dox emerald.
+     Functional color (status, chart series, green data ramp) stays fixed
+     below — semantics must not change with the brand.
      ──────────────────────────────────────────────────────────────────────── */
-  --ds-accent:            #10B981;  /* emerald-500 — Dox primary (light) */
-  --ds-accent-mid:        #059669;  /* one step deeper — chart lines, hovers */
-  --ds-accent-strong:     #047857;  /* pressed / active */
-  --ds-accent-fg:         #ECFEF3;  /* text/icon on a solid accent fill */
+  --ds-accent:            hsl(var(--dox-accent, 160 84% 39%));
+  --ds-accent-mid:        color-mix(in oklch, var(--ds-accent) 85%, black);  /* hovers, icons */
+  --ds-accent-strong:     color-mix(in oklch, var(--ds-accent) 72%, black);  /* pressed / active */
+  --ds-accent-fg:         color-mix(in oklch, var(--ds-accent) 8%, white);   /* text/icon on solid fill */
   --ds-accent-secondary:  #8B5CF6;  /* Dox secondary — violet (charts, dual metrics) */
   --ds-accent-tertiary:   #F59E0B;  /* amber — third categorical accent */
 
@@ -255,11 +260,13 @@
    Brand accent + scales are reused (accent bumps to the lighter #34D399).
    ============================================================================ */
 .dark .dox-dashboard {
-  /* Accent — dark surfaces want the lighter emerald so it stays vivid */
-  --ds-accent:        #34D399;  /* emerald-400 — Dox primary (dark) */
-  --ds-accent-mid:    #10B981;
-  --ds-accent-strong: #059669;
-  --ds-accent-fg:     #052E1C;
+  /* Accent — follows the brand's dark accent (--dox-accent flips with .dark).
+     Mixing with white keeps derived tones vivid on dark surfaces; the fg tone
+     goes near-black since dark-theme accents are typically light. */
+  --ds-accent:        hsl(var(--dox-accent, 158 64% 52%));
+  --ds-accent-mid:    color-mix(in oklch, var(--ds-accent) 88%, white);
+  --ds-accent-strong: color-mix(in oklch, var(--ds-accent) 78%, black);
+  --ds-accent-fg:     color-mix(in oklch, var(--ds-accent) 22%, black);
 
   /* Surfaces — cool near-black slate, four tiers lifting toward the viewer */
   --ds-surface-sunk:   oklch(0.150 0.024 262);
@@ -938,6 +945,16 @@
   .dox-dashboard .ds-sidebar[data-open='true'] { transform: translateX(0); }
   .dox-dashboard .ds-content { height: auto; }
   .dox-dashboard .ds-topbar { padding: 0 var(--ds-space-16); }
+}
+
+/* Responsive visibility helpers. Tailwind's `md:hidden`/`hidden` lose to the
+   two-class display rules above (.dox-dashboard .ds-iconbtn etc.), so the
+   mobile-only controls need helpers that out-rank them. */
+@media (min-width: 768px) {
+  .dox-dashboard .ds-mobile-only { display: none !important; }
+}
+@media (max-width: 767px) {
+  .dox-dashboard .ds-desktop-only { display: none !important; }
 }
 
 /* ============================================================================

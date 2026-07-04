@@ -110,9 +110,51 @@ body {
   color: var(--tw-prose-headings) !important;
 }
 
+/* Nav tab strip — active pill.
+   Consumes the --theme-nav-tab-active-* tokens (defined in :root above and
+   overridden per structural theme in layout.tsx). Previously these tokens
+   were defined but never applied, so active tabs only showed the underline. */
+.dox-nav-tab-item.dox-nav-tab-active {
+  background-color: var(--theme-nav-tab-active-bg);
+  box-shadow: var(--theme-nav-tab-active-shadow);
+}
+
 /* Steps component — hide connector line on last step */
 .dox-steps > .dox-step:last-of-type > .dox-step-line {
   display: none;
+}
+
+/* Code blocks — highlighted lines (```ts {2,4-6}). The span stretches across
+   the panel by cancelling the pre's 1rem horizontal padding. */
+.dox-line-highlight {
+  display: inline-block;
+  width: calc(100% + 2rem);
+  margin: 0 -1rem;
+  padding: 0 1rem;
+  background-color: hsl(var(--dox-accent) / 0.12);
+  box-shadow: inset 2px 0 0 hsl(var(--dox-accent));
+}
+
+/* Accordion — animate open/close using the Radix content-height CSS var. */
+@keyframes dox-accordion-down {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-accordion-content-height); opacity: 1; }
+}
+@keyframes dox-accordion-up {
+  from { height: var(--radix-accordion-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
+}
+.dox-accordion-content[data-state='open'] {
+  animation: dox-accordion-down 0.2s ease-out;
+}
+.dox-accordion-content[data-state='closed'] {
+  animation: dox-accordion-up 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dox-accordion-content[data-state='open'],
+  .dox-accordion-content[data-state='closed'] {
+    animation: none;
+  }
 }
 
 @layer utilities {

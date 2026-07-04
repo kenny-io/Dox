@@ -59,7 +59,7 @@ interface DocsChatProps {
   enabled?: boolean
 }
 
-export function DocsChat({ label = 'DoxAI', icon, enabled = true }: DocsChatProps) {
+export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatProps) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -156,7 +156,7 @@ export function DocsChat({ label = 'DoxAI', icon, enabled = true }: DocsChatProp
       {/* FAB */}
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Close DoxAI' : 'Open DoxAI'}
+        aria-label={open ? `Close ${label}` : `Open ${label}`}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent text-accent-foreground shadow-lg transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
       >
         {open ? (

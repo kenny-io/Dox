@@ -121,7 +121,8 @@ export async function exchangeAndVerify(
   // email_verified as verified is the "nOAuth" bypass: on Azure/Entra and
   // generic IdPs an attacker can set an arbitrary `email` claim and match a
   // domain-based roster grant. Absent/false/non-true → reject.
-  const emailVerified = payload.email_verified === true || payload.email_verified === 'true'
+  const ev = payload.email_verified
+  const emailVerified = ev === true || (typeof ev === 'string' && ['true', '1'].includes(ev.trim().toLowerCase()))
   if (!email || !emailVerified) throw new Error('OIDC identity has no verified email')
 
   return { email }
