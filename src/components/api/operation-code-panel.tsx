@@ -1,4 +1,4 @@
-import { Copy } from 'lucide-react'
+import { CopyButton } from '@/components/api/copy-button'
 import type { TryItController } from '@/components/api/use-try-it-controller'
 import { ResponseBody } from '@/components/api/try-it-panel'
 import { cn } from '@/lib/utils'
@@ -20,15 +20,11 @@ export function OperationCodePanel({ controller }: OperationCodePanelProps) {
             <span className="text-xs font-semibold uppercase tracking-wide text-foreground/60">Request</span>
             <span className="text-[10px] uppercase tracking-widest text-foreground/40">cURL</span>
           </div>
-          <button
-            type="button"
+          <CopyButton
+            value={preparedRequest.curlLines.join('\n')}
             disabled={!preparedRequest.isServerConfigured || !preparedRequest.curlLines.length}
-            onClick={() => navigator.clipboard.writeText(preparedRequest.curlLines.join('\n'))}
             className="flex items-center gap-1.5 rounded-full border border-border/40 px-3 py-1 text-xs text-foreground/60 transition hover:text-foreground disabled:opacity-40"
-          >
-            <Copy className="h-3 w-3" />
-            Copy
-          </button>
+          />
         </div>
         <pre className="scrollbar-hide max-h-[280px] overflow-auto bg-background/70 p-4 text-xs leading-relaxed text-foreground/80">
           {preparedRequest.curlLines.length

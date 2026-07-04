@@ -336,25 +336,72 @@ function buildDocEntryFromPageId(pageId: string): DocEntry {
 
 let _allEntries: Array<DocEntry> | null = null
 
+/** Every page that has an .mdx file under src/content (default locale only). */
+function getAllContentPageIds(): Array<string> {
+  const localeCodes = new Set((getI18nConfig()?.locales ?? []).map((l) => l.code))
+  const ids: Array<string> = []
+  const walk = (dir: string, prefix: string) => {
+    let entries: Array<fs.Dirent>
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        if (prefix === '' && localeCodes.has(entry.name)) continue // skip translation dirs
+        walk(path.join(dir, entry.name), prefix ? `${prefix}/${entry.name}` : entry.name)
+      } else if (entry.name.endsWith('.mdx')) {
+        const base = entry.name.slice(0, -4)
+        const id = base === 'index' ? prefix : prefix ? `${prefix}/${base}` : base
+        if (id) ids.push(id)
+      }
+    }
+  }
+  walk(CONTENT_ROOT, '')
+  return ids
+}
+
 function getAllDocEntries(): Array<DocEntry> {
   if (_allEntries) return _allEntries
 
   const seen = new Set<string>()
   const entries: Array<DocEntry> = []
+  const add = (id: string) => {
+    if (!id || seen.has(id)) return
+    seen.add(id)
+    entries.push(buildDocEntryFromPageId(id))
+  }
 
+  // 1. Nav-group pages first (preserves nav order), plus standalone href tabs
+  //    (e.g. Changelog) which reference a real page outside any group.
   for (const tab of docsConfig.tabs) {
     if (tab.groups) {
-      for (const id of collectPageIds(tab.groups)) {
-        if (!seen.has(id)) {
-          seen.add(id)
-          entries.push(buildDocEntryFromPageId(id))
-        }
-      }
+      for (const id of collectPageIds(tab.groups)) add(id)
+    } else if (tab.href && tab.href.startsWith('/')) {
+      add(tab.href.slice(1) || 'introduction')
     }
   }
 
+  // 2. Every remaining content page — so search, embeddings, and the agent
+  //    endpoints cover the whole site, not just pages listed in a nav group.
+  for (const id of getAllContentPageIds()) add(id)
+
   _allEntries = entries
   return entries
+}
+
+/** Page IDs reachable from navigation: nav-group pages + standalone href tabs. */
+export function getNavigablePageIds(): Set<string> {
+  const ids = new Set<string>()
+  for (const tab of docsConfig.tabs) {
+    if (tab.groups) {
+      for (const id of collectPageIds(tab.groups)) ids.add(id)
+    } else if (tab.href && tab.href.startsWith('/')) {
+      ids.add(tab.href.slice(1) || 'introduction')
+    }
+  }
+  return ids
 }
 
 // ---------------------------------------------------------------------------
