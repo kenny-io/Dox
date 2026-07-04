@@ -94,6 +94,9 @@
   --ds-surface-raised: #FFFFFF;                 /* panels — separated by border */
   --ds-surface-card:   #FFFFFF;                 /* stat cards */
   --ds-surface-tint:   color-mix(in oklch, var(--ds-slate-9) 2.5%, transparent);
+  --ds-surface-sidebar: oklch(0.988 0.003 247); /* flush rail — a hair off page */
+  --ds-surface-hover:  color-mix(in oklch, var(--ds-slate-9) 4%, transparent);
+  --ds-surface-active: color-mix(in oklch, var(--ds-slate-9) 6.5%, transparent);
 
   --ds-text-primary:   oklch(0.210 0.040 258);  /* headings, KPI values */
   --ds-text-secondary: oklch(0.445 0.034 259);  /* body */
@@ -195,10 +198,9 @@
        elev-3  floating surfaces — modals, popovers, dropdowns
      Reach for the tier, don't hand-author shadows.
      ──────────────────────────────────────────────────────────────────────── */
-  --ds-elev-1: 0 1px 2px rgba(15, 23, 42, 0.06),
-               0 1px 3px -1px rgba(15, 23, 42, 0.05);
-  --ds-elev-2: 0 4px 14px -2px rgba(15, 23, 42, 0.10),
-               0 2px 4px -1px rgba(15, 23, 42, 0.06);
+  --ds-elev-1: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --ds-elev-2: 0 8px 24px -6px rgba(15, 23, 42, 0.10),
+               0 2px 6px -2px rgba(15, 23, 42, 0.06);
   --ds-elev-3: 0 24px 56px -8px rgba(15, 23, 42, 0.16),
                0 8px 16px -4px rgba(15, 23, 42, 0.10);
   --ds-shadow-focus: 0 0 0 2px var(--ds-surface-page),
@@ -261,10 +263,13 @@
 
   /* Surfaces — cool near-black slate, four tiers lifting toward the viewer */
   --ds-surface-sunk:   oklch(0.150 0.024 262);
-  --ds-surface-page:   oklch(0.170 0.028 262);   /* ≈ #0B1220 */
-  --ds-surface-raised: oklch(0.205 0.030 261);
-  --ds-surface-card:   oklch(0.235 0.030 260);
+  --ds-surface-page:   oklch(0.178 0.028 262);   /* ≈ #0B1220 */
+  --ds-surface-raised: oklch(0.208 0.030 261);
+  --ds-surface-card:   oklch(0.224 0.030 260);
   --ds-surface-tint:   color-mix(in oklch, var(--ds-text-primary) 3%, transparent);
+  --ds-surface-sidebar: oklch(0.152 0.026 262); /* flush rail — recedes behind page */
+  --ds-surface-hover:  color-mix(in oklch, var(--ds-text-primary) 6%, transparent);
+  --ds-surface-active: color-mix(in oklch, var(--ds-text-primary) 10%, transparent);
 
   /* Text — inverted ink ladder */
   --ds-text-primary:   oklch(0.985 0.004 247);   /* ≈ #F8FAFC */
@@ -322,7 +327,18 @@
   background: var(--ds-surface-raised);
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-xl);
-  box-shadow: var(--ds-elev-1);
+  box-shadow: none;
+}
+/* Interactive panels — links/cards that respond to hover */
+.dox-dashboard .ds-panel--interactive {
+  transition: border-color var(--ds-dur-base) var(--ds-ease-standard),
+              box-shadow var(--ds-dur-base) var(--ds-ease-standard),
+              transform var(--ds-dur-base) var(--ds-ease-out);
+}
+.dox-dashboard .ds-panel--interactive:hover {
+  border-color: var(--ds-border-strong);
+  box-shadow: var(--ds-elev-2);
+  transform: translateY(-1px);
 }
 .dox-dashboard .ds-panel-head {
   display: flex;
@@ -378,11 +394,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-12);
-  padding: var(--ds-space-24);
+  padding: var(--ds-space-20) var(--ds-space-24);
   background: var(--ds-surface-card);
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-xl);
-  box-shadow: var(--ds-elev-1);
+  box-shadow: none;
   position: relative;
   overflow: hidden;
   min-width: 0;
@@ -590,63 +606,206 @@
   box-shadow: var(--ds-shadow-focus);
 }
 
+/* Text input */
+.dox-dashboard .ds-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--ds-space-12);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-page);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-sm);
+  transition: border-color var(--ds-dur-fast) var(--ds-ease-standard),
+              box-shadow var(--ds-dur-fast) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-input::placeholder { color: var(--ds-text-faint); }
+.dox-dashboard .ds-input:focus {
+  outline: none;
+  border-color: var(--ds-accent);
+  box-shadow: 0 0 0 3px var(--ds-accent-ring);
+}
+
 /* ============================================================================
-   APP SHELL — a floating side-nav rail + scrollable content stage
-   (LI.FI "app rail": a panel that floats over the sunk page background).
+   AUTH — centered sign-in card on an ambient branded backdrop
+   ============================================================================ */
+.dox-dashboard .ds-auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ds-space-24);
+  background:
+    radial-gradient(60% 46% at 50% -4%, var(--ds-accent-glow), transparent 70%),
+    var(--ds-surface-sunk);
+}
+.dox-dashboard .ds-auth-card {
+  width: 100%;
+  max-width: 384px;
+  padding: var(--ds-space-32);
+  background: var(--ds-surface-raised);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  box-shadow: var(--ds-elev-3);
+}
+.dox-dashboard .ds-auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ds-radius-lg);
+  background: linear-gradient(140deg, var(--ds-accent) 0%, var(--ds-accent-strong) 100%);
+  color: var(--ds-accent-fg);
+  font-family: var(--ds-font-heading);
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-text-h4);
+  box-shadow: 0 4px 12px -4px var(--ds-accent-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   APP SHELL — a flush side rail + scrollable content stage. Sidebar and
+   content share the page plane, split by a single hairline (Vercel / Linear /
+   Render idiom). Depth comes from the hairline and quiet surface tints, never
+   from a heavy floating shadow.
    ============================================================================ */
 .dox-dashboard.ds-shell,
 .dox-dashboard .ds-shell {
   display: flex;
   min-height: 100vh;
-  background: var(--ds-surface-sunk);
+  background: var(--ds-surface-page);
   color: var(--ds-text-primary);
 }
-.dox-dashboard .ds-rail {
+.dox-dashboard .ds-sidebar {
   position: sticky;
   top: 0;
   align-self: flex-start;
   height: 100vh;
   flex-shrink: 0;
-  width: 256px;
-  padding: var(--ds-space-16);
-  transition: width var(--ds-dur-base) var(--ds-ease-standard);
-}
-.dox-dashboard .ds-rail[data-collapsed='true'] { width: 84px; }
-.dox-dashboard .ds-rail-card {
-  height: 100%;
+  width: 260px;
   display: flex;
   flex-direction: column;
-  gap: var(--ds-space-4);
-  padding: var(--ds-space-16);
-  background: var(--ds-surface-card);
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-xl);
-  box-shadow: var(--ds-elev-2);
+  background: var(--ds-surface-sidebar);
+  border-right: 1px solid var(--ds-border);
+  transition: width var(--ds-dur-base) var(--ds-ease-standard);
 }
-.dox-dashboard .ds-rail-brand {
+.dox-dashboard .ds-sidebar[data-collapsed='true'] { width: 72px; }
+
+/* Workspace switcher — the brand block at the rail head */
+.dox-dashboard .ds-sidebar-head {
   display: flex;
   align-items: center;
-  gap: var(--ds-space-12);
-  padding: var(--ds-space-8) var(--ds-space-8) var(--ds-space-16);
-  min-width: 0;
+  gap: var(--ds-space-8);
+  padding: var(--ds-space-12) var(--ds-space-12) var(--ds-space-8);
 }
-.dox-dashboard .ds-rail-group {
-  font-family: var(--ds-font-mono);
-  font-size: var(--ds-text-micro);
+.dox-dashboard .ds-workspace {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-8);
+  flex: 1;
+  min-width: 0;
+  padding: var(--ds-space-8);
+  border-radius: var(--ds-radius-md);
+  text-align: left;
+  transition: background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-workspace:hover { background: var(--ds-surface-hover); }
+.dox-dashboard .ds-workspace-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--ds-radius-md);
+  background: linear-gradient(140deg, var(--ds-accent) 0%, var(--ds-accent-strong) 100%);
+  color: var(--ds-accent-fg);
+  font-family: var(--ds-font-heading);
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-text-sm);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.dox-dashboard .ds-workspace-name {
+  min-width: 0;
+  font-family: var(--ds-font-heading);
+  font-size: var(--ds-text-sm);
   font-weight: var(--ds-fw-semibold);
+  letter-spacing: var(--ds-tracking-snug);
+  color: var(--ds-text-primary);
+  line-height: 1.2;
+}
+.dox-dashboard .ds-workspace-sub {
+  font-size: var(--ds-text-micro);
+  color: var(--ds-text-faint);
+  font-weight: var(--ds-fw-medium);
   letter-spacing: var(--ds-tracking-wide);
   text-transform: uppercase;
+}
+
+/* Sidebar search — a quiet command-bar affordance */
+.dox-dashboard .ds-sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-8);
+  width: 100%;
+  margin: var(--ds-space-4) 0 var(--ds-space-8);
+  padding: var(--ds-space-8) var(--ds-space-12);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-page);
   color: var(--ds-text-faint);
-  padding: 0 var(--ds-space-12);
-  margin: var(--ds-space-16) 0 var(--ds-space-4);
+  font-size: var(--ds-text-sm);
+  transition: border-color var(--ds-dur-fast) var(--ds-ease-standard),
+              color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-sidebar-search:hover {
+  border-color: var(--ds-border-strong);
+  color: var(--ds-text-muted);
+}
+.dox-dashboard .ds-kbd {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 1px var(--ds-space-4);
+  min-width: 18px;
+  height: 18px;
+  justify-content: center;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-sidebar);
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ds-text-faint);
+}
+
+.dox-dashboard .ds-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--ds-space-4) var(--ds-space-12) var(--ds-space-12);
+}
+.dox-dashboard .ds-nav-group + .ds-nav-group { margin-top: var(--ds-space-20); }
+.dox-dashboard .ds-nav-group-label {
+  font-size: var(--ds-text-micro);
+  font-weight: var(--ds-fw-semibold);
+  letter-spacing: var(--ds-tracking-wider);
+  text-transform: uppercase;
+  color: var(--ds-text-faint);
+  padding: 0 var(--ds-space-8);
+  margin-bottom: var(--ds-space-4);
   white-space: nowrap;
   overflow: hidden;
 }
 .dox-dashboard .ds-nav-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--ds-space-12);
-  padding: var(--ds-space-8) var(--ds-space-12);
+  gap: var(--ds-space-8);
+  padding: var(--ds-space-8);
   border-radius: var(--ds-radius-md);
   color: var(--ds-text-muted);
   font-size: var(--ds-text-sm);
@@ -656,36 +815,384 @@
   transition: color var(--ds-dur-fast) var(--ds-ease-standard),
               background var(--ds-dur-fast) var(--ds-ease-standard);
 }
-.dox-dashboard .ds-nav-item > svg { flex-shrink: 0; }
-.dox-dashboard .ds-nav-item:hover {
-  background: var(--ds-surface-tint);
-  color: var(--ds-text-secondary);
+.dox-dashboard .ds-nav-item > svg {
+  flex-shrink: 0;
+  color: var(--ds-text-faint);
+  transition: color var(--ds-dur-fast) var(--ds-ease-standard);
 }
+.dox-dashboard .ds-nav-item:hover {
+  background: var(--ds-surface-hover);
+  color: var(--ds-text-primary);
+}
+.dox-dashboard .ds-nav-item:hover > svg { color: var(--ds-text-secondary); }
 .dox-dashboard .ds-nav-item[aria-current='page'] {
-  background: var(--ds-accent-tint);
-  color: var(--ds-accent-mid);
+  background: var(--ds-surface-active);
+  color: var(--ds-text-primary);
   font-weight: var(--ds-fw-semibold);
 }
-.dox-dashboard .ds-rail[data-collapsed='true'] .ds-rail-label,
-.dox-dashboard .ds-rail[data-collapsed='true'] .ds-rail-group {
-  display: none;
+.dox-dashboard .ds-nav-item[aria-current='page'] > svg { color: var(--ds-accent-mid); }
+
+.dox-dashboard .ds-sidebar-foot {
+  border-top: 1px solid var(--ds-border);
+  padding: var(--ds-space-8) var(--ds-space-12) var(--ds-space-12);
 }
-.dox-dashboard .ds-rail[data-collapsed='true'] .ds-nav-item { justify-content: center; }
+.dox-dashboard .ds-sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: var(--ds-space-8);
+}
+.dox-dashboard .ds-account {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-8);
+  padding: var(--ds-space-8);
+  border-radius: var(--ds-radius-md);
+}
+.dox-dashboard .ds-account-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface-active);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-caption);
+  font-weight: var(--ds-fw-bold);
+}
+.dox-dashboard .ds-account-name {
+  min-width: 0;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-fw-semibold);
+  color: var(--ds-text-primary);
+  line-height: 1.2;
+}
+.dox-dashboard .ds-account-role {
+  font-size: var(--ds-text-micro);
+  color: var(--ds-text-faint);
+  letter-spacing: var(--ds-tracking-wide);
+  text-transform: uppercase;
+  font-weight: var(--ds-fw-medium);
+}
+
+/* Collapsed rail — hide labels, center glyphs */
+.dox-dashboard .ds-sidebar[data-collapsed='true'] .ds-rail-label { display: none; }
+.dox-dashboard .ds-sidebar[data-collapsed='true'] .ds-nav-item,
+.dox-dashboard .ds-sidebar[data-collapsed='true'] .ds-workspace,
+.dox-dashboard .ds-sidebar[data-collapsed='true'] .ds-account { justify-content: center; }
+.dox-dashboard .ds-sidebar[data-collapsed='true'] .ds-nav-group-label { text-align: center; }
+
 .dox-dashboard .ds-content {
   flex: 1;
   min-width: 0;
   height: 100vh;
   overflow-y: auto;
 }
-@media (max-width: 900px) {
-  .dox-dashboard .ds-rail {
+
+/* Top bar — sticky glass header with breadcrumb + page title */
+.dox-dashboard .ds-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-12);
+  height: 56px;
+  padding: 0 var(--ds-space-32);
+  background: color-mix(in oklch, var(--ds-surface-page) 78%, transparent);
+  backdrop-filter: var(--ds-backdrop-glass);
+  border-bottom: 1px solid var(--ds-border);
+}
+.dox-dashboard .ds-crumb {
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-fw-semibold);
+  color: var(--ds-text-primary);
+  letter-spacing: var(--ds-tracking-snug);
+}
+.dox-dashboard .ds-crumb-sep { color: var(--ds-text-faint); }
+.dox-dashboard .ds-crumb-muted { font-weight: var(--ds-fw-medium); color: var(--ds-text-muted); }
+.dox-dashboard .ds-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ds-radius-md);
+  color: var(--ds-text-muted);
+  transition: background var(--ds-dur-fast) var(--ds-ease-standard),
+              color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-iconbtn:hover { background: var(--ds-surface-hover); color: var(--ds-text-primary); }
+
+@media (max-width: 767px) {
+  .dox-dashboard .ds-sidebar {
     position: fixed;
     z-index: 40;
     left: 0;
+    box-shadow: var(--ds-elev-3);
     transform: translateX(-100%);
+    transition: transform var(--ds-dur-base) var(--ds-ease-standard);
   }
-  .dox-dashboard .ds-rail[data-open='true'] { transform: translateX(0); }
+  .dox-dashboard .ds-sidebar[data-open='true'] { transform: translateX(0); }
   .dox-dashboard .ds-content { height: auto; }
+  .dox-dashboard .ds-topbar { padding: 0 var(--ds-space-16); }
+}
+
+/* ============================================================================
+   BUTTONS — token-driven primary / secondary / ghost
+   ============================================================================ */
+.dox-dashboard .ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-8);
+  height: 36px;
+  padding: 0 var(--ds-space-16);
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-md);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-fw-semibold);
+  letter-spacing: var(--ds-tracking-snug);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--ds-dur-fast) var(--ds-ease-standard),
+              border-color var(--ds-dur-fast) var(--ds-ease-standard),
+              color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-btn--primary {
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+.dox-dashboard .ds-btn--primary:hover { background: var(--ds-accent-strong); }
+.dox-dashboard .ds-btn--secondary {
+  background: var(--ds-surface-raised);
+  border-color: var(--ds-border);
+  color: var(--ds-text-secondary);
+}
+.dox-dashboard .ds-btn--secondary:hover {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-hover);
+  color: var(--ds-text-primary);
+}
+.dox-dashboard .ds-btn--ghost { color: var(--ds-text-muted); }
+.dox-dashboard .ds-btn--ghost:hover { background: var(--ds-surface-hover); color: var(--ds-text-primary); }
+.dox-dashboard .ds-btn--sm { height: 30px; padding: 0 var(--ds-space-12); font-size: var(--ds-text-caption); }
+
+/* ============================================================================
+   SETTINGS LIST — grouped label + description rows with a trailing control
+   (Linear / Braintrust / Retool settings idiom)
+   ============================================================================ */
+.dox-dashboard .ds-setting-group + .ds-setting-group { margin-top: var(--ds-space-40); }
+.dox-dashboard .ds-setting-group-head { margin-bottom: var(--ds-space-16); }
+.dox-dashboard .ds-setting-group-title {
+  font-family: var(--ds-font-heading);
+  font-size: var(--ds-text-h4);
+  font-weight: var(--ds-fw-semibold);
+  letter-spacing: var(--ds-tracking-snug);
+  color: var(--ds-text-primary);
+}
+.dox-dashboard .ds-setting-group-desc {
+  margin-top: var(--ds-space-4);
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-muted);
+  max-width: 64ch;
+}
+.dox-dashboard .ds-setting-list {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface-raised);
+  overflow: hidden;
+}
+.dox-dashboard .ds-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-16);
+  padding: var(--ds-space-16) var(--ds-space-20);
+  border-top: 1px solid var(--ds-border-subtle);
+}
+.dox-dashboard .ds-setting-row:first-child { border-top: none; }
+.dox-dashboard .ds-setting-row-label {
+  font-size: var(--ds-text-body);
+  font-weight: var(--ds-fw-medium);
+  color: var(--ds-text-primary);
+}
+.dox-dashboard .ds-setting-row-desc {
+  margin-top: 2px;
+  font-size: var(--ds-text-caption);
+  color: var(--ds-text-muted);
+}
+.dox-dashboard .ds-setting-row-value { flex-shrink: 0; }
+
+/* Status dot — a small leading indicator for chips/labels */
+.dox-dashboard .ds-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--ds-radius-full);
+  flex-shrink: 0;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in oklch, currentColor 18%, transparent);
+}
+
+/* ============================================================================
+   ENDPOINT LIST — compact monospace rows with a trailing open-in-new glyph
+   ============================================================================ */
+.dox-dashboard .ds-endpoint-list {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  overflow: hidden;
+}
+.dox-dashboard .ds-endpoint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-12);
+  padding: var(--ds-space-12) var(--ds-space-16);
+  border-top: 1px solid var(--ds-border-subtle);
+  transition: background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-endpoint-row:first-child { border-top: none; }
+.dox-dashboard .ds-endpoint-row:hover { background: var(--ds-surface-hover); }
+.dox-dashboard .ds-endpoint-name {
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-fw-semibold);
+  color: var(--ds-text-primary);
+}
+.dox-dashboard .ds-endpoint-desc {
+  font-size: var(--ds-text-caption);
+  color: var(--ds-text-muted);
+  margin-top: 1px;
+}
+
+/* ============================================================================
+   SKELETON — quiet shimmer placeholders while data resolves
+   ============================================================================ */
+.dox-dashboard .ds-skeleton {
+  border-radius: var(--ds-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--ds-surface-hover) 0%,
+    var(--ds-surface-active) 50%,
+    var(--ds-surface-hover) 100%
+  );
+  background-size: 200% 100%;
+  animation: ds-shimmer 1.4s ease-in-out infinite;
+}
+.dox-dashboard .ds-skeleton-ring {
+  width: 112px;
+  height: 112px;
+  border-radius: var(--ds-radius-full);
+  border: 7px solid var(--ds-surface-active);
+  flex-shrink: 0;
+  animation: ds-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes ds-shimmer {
+  0% { background-position: 200% 0; opacity: 0.9; }
+  50% { opacity: 0.6; }
+  100% { background-position: -200% 0; opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dox-dashboard .ds-skeleton,
+  .dox-dashboard .ds-skeleton-ring { animation: none; }
+}
+
+/* ============================================================================
+   BAR CHART — gridded stacked columns with a value axis + sparse date ticks
+   ============================================================================ */
+.dox-dashboard .ds-chart-plot {
+  position: relative;
+  height: 224px;
+  padding-left: 42px;
+}
+.dox-dashboard .ds-chart-gridline {
+  position: absolute;
+  left: 42px;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--ds-chart-grid);
+}
+.dox-dashboard .ds-chart-ylabel {
+  position: absolute;
+  left: -42px;
+  top: 0;
+  width: 34px;
+  transform: translateY(-50%);
+  text-align: right;
+  font-size: var(--ds-text-micro);
+  color: var(--ds-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.dox-dashboard .ds-chart-bars {
+  position: absolute;
+  left: 42px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+.dox-dashboard .ds-chart-col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.dox-dashboard .ds-chart-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+}
+.dox-dashboard .ds-chart-seg {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  transition: opacity var(--ds-dur-fast) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-chart-seg--base { border-radius: 0; }
+.dox-dashboard .ds-chart-col:hover .ds-chart-seg { opacity: 0.78; }
+.dox-dashboard .ds-chart-xaxis {
+  display: flex;
+  gap: 3px;
+  padding-left: 42px;
+  margin-top: var(--ds-space-8);
+}
+.dox-dashboard .ds-chart-xtick {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--ds-text-micro);
+  color: var(--ds-text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Inline mini bar — for ranked lists (top pages, top terms) */
+.dox-dashboard .ds-bar-track {
+  width: 84px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface-active);
+  overflow: hidden;
+}
+.dox-dashboard .ds-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-accent);
+  transition: width var(--ds-dur-slow) var(--ds-ease-out);
+}
+@media (max-width: 640px) {
+  .dox-dashboard .ds-bar-track { display: none; }
 }
 
 /* ============================================================================
@@ -707,11 +1214,11 @@
    Calm and short; respects reduced-motion.
    ============================================================================ */
 @keyframes ds-rise {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .dox-dashboard .ds-rise {
-  animation: ds-rise var(--ds-dur-slow) var(--ds-ease-out) both;
+  animation: ds-rise var(--ds-dur-base) var(--ds-ease-out) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .dox-dashboard .ds-rise { animation: none; }
