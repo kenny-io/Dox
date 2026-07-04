@@ -1,5 +1,6 @@
-import { AnalyticsDashboard } from '@/components/admin/analytics-dashboard'
+import { HomeView } from '@/components/admin/home-view'
+import { siteConfig } from '@/data/site'
 
 export default function AdminPage() {
-  return <AnalyticsDashboard />
+  return <HomeView siteName={siteConfig.name} />
 }
