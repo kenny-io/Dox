@@ -2,6 +2,8 @@ import type { NextRequest } from 'next/server'
 import { verifySession, SESSION_COOKIE } from '@/lib/auth/session'
 import { resolveRoleFromRoster } from '@/lib/auth/roster'
 import { isAdminAuthenticated, ADMIN_SESSION_COOKIE } from '@/lib/admin/auth'
+import { getTeamConfig } from '@/data/docs'
+import { getAdminSettings } from '@/lib/admin/settings'
 import { roleAllows, type Capability, type Role } from '@/lib/auth/types'
 
 export interface AdminSession {
@@ -10,12 +12,19 @@ export interface AdminSession {
 }
 
 /**
- * A member's current role — resolved LIVE from the git-committed roster on every
- * request, never trusted from the cookie. Remove or downgrade someone in
- * `docs.json` and their next request reflects it immediately.
+ * A member's current role — resolved LIVE on every request (never trusted from
+ * the cookie): the git-committed roster PLUS any admin-added domains from
+ * settings. Remove/downgrade someone and their next request reflects it.
  */
-export function resolveRole(email: string): Role | null {
-  return resolveRoleFromRoster(email)
+export async function resolveRole(email: string): Promise<Role | null> {
+  const team = getTeamConfig()
+  let extraDomains: typeof team.domains = []
+  try {
+    extraDomains = (await getAdminSettings()).allowedDomains
+  } catch {
+    // settings store unavailable — fall back to the git roster only
+  }
+  return resolveRoleFromRoster(email, { members: team.members, domains: [...team.domains, ...extraDomains] })
 }
 
 /**
@@ -26,7 +35,7 @@ export function resolveRole(email: string): Role | null {
 export async function resolveAdminSession(token: string | undefined): Promise<AdminSession | null> {
   const session = await verifySession(token)
   if (!session) return null
-  const role = resolveRole(session.email)
+  const role = await resolveRole(session.email)
   return role ? { email: session.email, role } : null
 }
 

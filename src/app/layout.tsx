@@ -140,8 +140,8 @@ export const metadata: Metadata = {
   // template-marketing keywords.
   keywords: [siteConfig.name, `${siteConfig.name} documentation`, 'docs'],
   icons: {
-    icon: '/icon',
-    shortcut: '/icon',
+    icon: '/api/brand/favicon',
+    shortcut: '/api/brand/favicon',
   },
   openGraph: {
     title: `${siteConfig.name} Documentation`,

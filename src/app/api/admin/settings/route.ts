@@ -1,0 +1,119 @@
+import { NextResponse, type NextRequest } from 'next/server'
+import {
+  getAdminSettings,
+  updateAdminSettings,
+  setBrandAsset,
+  hasBrandAsset,
+  isValidBrandAsset,
+  type AdminSettings,
+  type BrandAsset,
+} from '@/lib/admin/settings'
+import { requireCapabilityFromRequest } from '@/lib/auth/rbac'
+import { hashPassword, encryptSecret } from '@/lib/admin/secrets'
+import type { Role } from '@/lib/auth/types'
+
+export const runtime = 'nodejs'
+
+const ROLES: Array<Role> = ['owner', 'editor', 'viewer']
+
+/** Body may carry write-only secrets + brand-asset data URIs (never read back). */
+type SettingsBody = Partial<AdminSettings> & {
+  docsPassword?: string | null
+  chatKey?: string | null
+  logo?: string | null
+  favicon?: string | null
+}
+
+async function applyAsset(kind: BrandAsset, value: string | null | undefined): Promise<'invalid' | void> {
+  if (value === undefined) return
+  if (value === null || value === '') {
+    await setBrandAsset(kind, null)
+    return
+  }
+  if (!isValidBrandAsset(value)) return 'invalid'
+  await setBrandAsset(kind, value)
+}
+
+async function fullResponse(s: AdminSettings) {
+  const [hasLogo, hasFavicon] = await Promise.all([hasBrandAsset('logo'), hasBrandAsset('favicon')])
+  return { ...sanitize(s), hasLogo, hasFavicon }
+}
+
+/** Public shape — secrets are surfaced as booleans only, never the hash or key. */
+function sanitize(s: AdminSettings) {
+  return {
+    chatEnabled: s.chatEnabled,
+    analyticsEnabled: s.analyticsEnabled,
+    mcpEnabled: s.mcpEnabled,
+    allowedDomains: s.allowedDomains,
+    hasDocsPassword: Boolean(s.docsPasswordHash),
+    hasChatKey: Boolean(s.chatKeyEnc),
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const session = await requireCapabilityFromRequest(request, 'view_analytics')
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  return NextResponse.json(await fullResponse(await getAdminSettings()))
+}
+
+export async function PUT(request: NextRequest) {
+  // Settings include access control (allowed domains) → Owner only.
+  const session = await requireCapabilityFromRequest(request, 'manage_team')
+  if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  let body: SettingsBody
+  try {
+    body = (await request.json()) as SettingsBody
+  } catch {
+    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+  }
+
+  const patch: Partial<AdminSettings> = {}
+  if (typeof body.chatEnabled === 'boolean' || body.chatEnabled === null) {
+    patch.chatEnabled = body.chatEnabled
+  }
+  if (typeof body.analyticsEnabled === 'boolean' || body.analyticsEnabled === null) {
+    patch.analyticsEnabled = body.analyticsEnabled
+  }
+  if (typeof body.mcpEnabled === 'boolean' || body.mcpEnabled === null) {
+    patch.mcpEnabled = body.mcpEnabled
+  }
+  if (Array.isArray(body.allowedDomains)) {
+    patch.allowedDomains = body.allowedDomains
+      .filter((d) => d && typeof d.domain === 'string' && d.domain.trim() && ROLES.includes(d.role))
+      .map((d) => ({ domain: d.domain.trim().toLowerCase().replace(/^@/, ''), role: d.role }))
+  }
+  // Docs-access password: hash + store on set; clear on empty/null. Write-only.
+  if (typeof body.docsPassword === 'string' && body.docsPassword.trim()) {
+    patch.docsPasswordHash = hashPassword(body.docsPassword)
+  } else if (body.docsPassword === '' || body.docsPassword === null) {
+    patch.docsPasswordHash = null
+  }
+  // AI-chat API key: encrypt (AES-GCM) + store on set; clear on empty/null.
+  // Refuse to store without DOX_AUTH_SECRET rather than persist plaintext.
+  if (typeof body.chatKey === 'string' && body.chatKey.trim()) {
+    const enc = encryptSecret(body.chatKey.trim())
+    if (!enc) {
+      return NextResponse.json(
+        { error: 'Set DOX_AUTH_SECRET to store an API key securely.' },
+        { status: 400 },
+      )
+    }
+    patch.chatKeyEnc = enc
+  } else if (body.chatKey === '' || body.chatKey === null) {
+    patch.chatKeyEnc = null
+  }
+
+  // Brand assets (logo/favicon) — separate F1 keys, validated (raster + size cap).
+  const logoResult = await applyAsset('logo', body.logo)
+  const faviconResult = await applyAsset('favicon', body.favicon)
+  if (logoResult === 'invalid' || faviconResult === 'invalid') {
+    return NextResponse.json(
+      { error: 'Invalid image — use PNG/JPEG/WebP under 150KB.' },
+      { status: 400 },
+    )
+  }
+
+  return NextResponse.json(await fullResponse(await updateAdminSettings(patch)))
+}

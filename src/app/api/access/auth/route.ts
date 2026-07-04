@@ -4,7 +4,7 @@ import {
   DOCS_ACCESS_COOKIE,
   createDocsAccessToken,
   isDocsAccessEnabled,
-  verifyDocsAccessPassword,
+  verifyDocsAccessPasswordAsync,
 } from '@/lib/admin/auth'
 
 export const runtime = 'nodejs'
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = (await request.json()) as { password?: string }
-  if (!body.password || !verifyDocsAccessPassword(body.password)) {
+  if (!body.password || !(await verifyDocsAccessPasswordAsync(body.password))) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
   }
 

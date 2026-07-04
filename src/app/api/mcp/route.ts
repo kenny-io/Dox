@@ -2,6 +2,7 @@ import { type NextRequest } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { siteTools, getSiteTool } from '@/lib/mcp/site-tools'
 import { getStorage } from '@/lib/storage'
+import { getAdminSettings } from '@/lib/admin/settings'
 
 export const runtime = 'nodejs'
 
@@ -96,6 +97,11 @@ async function handleMessage(msg: JsonRpcMessage): Promise<object | null> {
 }
 
 export async function POST(request: NextRequest) {
+  // Admins can disable the public MCP endpoint from the dashboard.
+  if ((await getAdminSettings()).mcpEnabled === false) {
+    return Response.json(rpcError(null, -32601, 'MCP endpoint is disabled.'), { status: 404 })
+  }
+
   let body: JsonRpcMessage | Array<JsonRpcMessage>
   try {
     body = await request.json()

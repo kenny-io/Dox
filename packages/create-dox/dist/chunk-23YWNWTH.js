@@ -19,9 +19,9 @@ function shouldInclude(path) {
   }
   return true;
 }
-async function downloadTemplate(targetDir) {
+async function downloadTemplate(targetDir, siteName) {
   console.log("");
-  console.log("  \u23F3 Downloading Dox template...");
+  console.log(`  \u23F3 Creating ${siteName?.trim() || "your docs site"}...`);
   const response = await fetch(TARBALL_URL);
   if (!response.ok) {
     throw new Error(`Failed to download template: ${response.status} ${response.statusText}`);
@@ -135,6 +135,11 @@ function buildStarterDocsJson({
   i18nLocales
 }) {
   const config = {};
+  config.theme = "sharp";
+  config.fonts = {
+    body: { family: "Plus Jakarta Sans", weight: ["400", "500", "600", "700"] },
+    heading: { family: "Outfit", weight: ["600", "700"] }
+  };
   if (enableAiChat) {
     config.ai = { chat: true };
   }
@@ -201,20 +206,15 @@ function updateSiteConfig(targetDir, projectName, description, brandPreset, repo
     /const brandPreset:\s*BrandPresetKey\s*=\s*'[^']*'/,
     `const brandPreset: BrandPresetKey = '${brandPreset}'`
   );
-  if (repoUrl) {
-    source = source.replace(
-      /repoUrl:\s*'[^']*'/,
-      `repoUrl: '${repoUrl}'`
-    );
-    source = source.replace(
-      /\{\s*label:\s*'GitHub',\s*href:\s*'[^']*'\s*\}/,
-      `{ label: 'GitHub', href: '${repoUrl}' }`
-    );
-    source = source.replace(
-      /\{\s*label:\s*'Support',\s*href:\s*'[^']*'\s*\}/,
-      `{ label: 'Support', href: '${repoUrl}/issues/new' }`
-    );
-  }
+  source = source.replace(/repoUrl:\s*'[^']*'/, `repoUrl: '${repoUrl}'`);
+  source = source.replace(
+    /\{\s*label:\s*'GitHub',\s*href:\s*'[^']*'\s*\}/,
+    `{ label: 'GitHub', href: '${repoUrl}' }`
+  );
+  source = source.replace(
+    /\{\s*label:\s*'Support',\s*href:\s*'[^']*'\s*\}/,
+    `{ label: 'Support', href: '${repoUrl ? `${repoUrl}/issues/new` : ""}' }`
+  );
   writeFileSync(siteFile, source, "utf8");
 }
 function patchApiReferenceGuard(targetDir) {
@@ -366,7 +366,7 @@ async function scaffold(options) {
   }
   mkdirSync2(targetDir, { recursive: true });
   const slug = slugify(projectName);
-  await downloadTemplate(targetDir);
+  await downloadTemplate(targetDir, projectName);
   writeStarterContent(targetDir, projectName, slug, enableAiChat, repoUrl, i18nLocales);
   updateSiteConfig(targetDir, projectName, description, brandPreset, repoUrl);
   patchApiReferenceGuard(targetDir);

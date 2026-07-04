@@ -85,6 +85,20 @@ export function verifyDocsAccessPassword(password: string): boolean {
   return timingSafeEqual(a, b)
 }
 
+/**
+ * Verify the docs-access password with the admin override applied: a
+ * dashboard-set password (F1, hashed) WINS; otherwise fall back to the
+ * DOX_ACCESS_PASSWORD env value. (Env presence remains the enable signal that
+ * the edge gate reads — it can't reach F1.)
+ */
+export async function verifyDocsAccessPasswordAsync(password: string): Promise<boolean> {
+  const { getAdminSettings } = await import('@/lib/admin/settings')
+  const { verifyPasswordHash } = await import('@/lib/admin/secrets')
+  const { docsPasswordHash } = await getAdminSettings()
+  if (docsPasswordHash) return verifyPasswordHash(password, docsPasswordHash)
+  return verifyDocsAccessPassword(password)
+}
+
 export function createDocsAccessToken(): string {
   const payload = Buffer.from(
     JSON.stringify({ exp: Date.now() + SESSION_TTL_MS, scope: 'docs' }),
