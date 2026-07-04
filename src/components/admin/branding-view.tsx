@@ -1,7 +1,7 @@
 'use client'
 
 import { useDeferredValue, useEffect, useState } from 'react'
-import { ArrowUpRight, Check, Upload } from 'lucide-react'
+import { Check, Upload } from 'lucide-react'
 
 type ThemeId = 'default' | 'maple' | 'sharp' | 'minimal'
 
@@ -133,12 +133,35 @@ export function BrandingView({
   const [accentDark, setAccentDark] = useState(currentAccentDark)
   const [assets, setAssets] = useState({ hasLogo: false, hasFavicon: false })
   const [assetVersion, setAssetVersion] = useState(0)
+  const [saved, setSaved] = useState(false)
+
+  async function save(patch: Record<string, unknown>) {
+    if (!canEdit) return
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1400)
+    } catch {
+      /* best-effort */
+    }
+  }
 
   function refreshAssets() {
     setAssetVersion((v) => v + 1)
     fetch('/api/admin/settings')
       .then((r) => (r.ok ? r.json() : null))
-      .then((s) => s && setAssets({ hasLogo: Boolean(s.hasLogo), hasFavicon: Boolean(s.hasFavicon) }))
+      .then((s) => {
+        if (!s) return
+        setAssets({ hasLogo: Boolean(s.hasLogo), hasFavicon: Boolean(s.hasFavicon) })
+        // Reflect the live override (falls back to the build-config props).
+        if (s.brandTheme) setTheme(s.brandTheme)
+        if (s.brandAccent?.light) setAccentLight(s.brandAccent.light)
+        if (s.brandAccent?.dark) setAccentDark(s.brandAccent.dark)
+      })
       .catch(() => {})
   }
   useEffect(() => {
@@ -146,14 +169,26 @@ export function BrandingView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  function pickTheme(id: ThemeId) {
+    setTheme(id)
+    void save({ brandTheme: id })
+  }
+  function saveAccent() {
+    void save({ brandAccent: { light: accentLight, dark: accentDark } })
+  }
+  function resetBranding() {
+    setTheme(currentTheme)
+    setAccentLight(currentAccentLight)
+    setAccentDark(currentAccentDark)
+    void save({ brandTheme: null, brandAccent: null })
+  }
+
   // Deferred so dragging the color picker doesn't refetch the OG image on every frame.
   const deferredAccent = useDeferredValue(accentDark)
   const ogSrc = `/api/og?title=${encodeURIComponent('Overview')}&group=${encodeURIComponent('Introduction')}&description=${encodeURIComponent('Your page previews, styled from your brand.')}&accent=${encodeURIComponent(deferredAccent)}`
 
   const radius = THEMES.find((t) => t.id === theme)?.radius ?? '0.5rem'
-  const changed = theme !== currentTheme || accentLight !== currentAccentLight || accentDark !== currentAccentDark
-  const docsEdit = repoUrl ? `${repoUrl.replace(/\/$/, '')}/edit/main/docs.json` : ''
-  const siteEdit = repoUrl ? `${repoUrl.replace(/\/$/, '')}/edit/main/src/data/site.ts` : ''
+  const overridden = theme !== currentTheme || accentLight !== currentAccentLight || accentDark !== currentAccentDark
 
   return (
     <div className="ds-rise">
@@ -179,7 +214,8 @@ export function BrandingView({
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => setTheme(t.id)}
+                    onClick={() => pickTheme(t.id)}
+                    disabled={!canEdit}
                     className="ds-focusable"
                     style={{
                       textAlign: 'left',
@@ -206,14 +242,14 @@ export function BrandingView({
             <div className="ds-panel-head"><div className="ds-panel-title">Brand accent</div></div>
             <div className="flex flex-wrap gap-6">
               <label className="flex items-center gap-2">
-                <input type="color" value={accentLight} onChange={(e) => setAccentLight(e.target.value)} style={{ width: 40, height: 32, border: 'none', background: 'none' }} />
+                <input type="color" value={accentLight} disabled={!canEdit} onChange={(e) => setAccentLight(e.target.value)} onBlur={saveAccent} style={{ width: 40, height: 32, border: 'none', background: 'none' }} />
                 <span>
                   <span className="ds-rail-label block">Light</span>
                   <span className="font-mono" style={{ fontSize: 'var(--ds-text-caption)' }}>{accentLight}</span>
                 </span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="color" value={accentDark} onChange={(e) => setAccentDark(e.target.value)} style={{ width: 40, height: 32, border: 'none', background: 'none' }} />
+                <input type="color" value={accentDark} disabled={!canEdit} onChange={(e) => setAccentDark(e.target.value)} onBlur={saveAccent} style={{ width: 40, height: 32, border: 'none', background: 'none' }} />
                 <span>
                   <span className="ds-rail-label block">Dark</span>
                   <span className="font-mono" style={{ fontSize: 'var(--ds-text-caption)' }}>{accentDark}</span>
@@ -246,31 +282,21 @@ export function BrandingView({
             </div>
           </section>
 
-          {/* Apply — git-native */}
           <section className="ds-panel">
-            <div className="ds-panel-head"><div className="ds-panel-title">Apply</div></div>
-            {!changed ? (
-              <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>This is your current branding.</p>
-            ) : !canEdit ? (
-              <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>Only an Owner can apply branding changes.</p>
-            ) : (
-              <div className="space-y-3" style={{ fontSize: 'var(--ds-text-sm)' }}>
-                {theme !== currentTheme ? (
-                  <div>
-                    <p className="ds-rail-label mb-1">Theme — set in <code className="font-mono">docs.json</code>:</p>
-                    <pre className="overflow-x-auto p-2" style={{ background: 'var(--ds-surface-tint)', borderRadius: 'var(--ds-radius-md)', fontSize: 'var(--ds-text-caption)' }}>{`"theme": "${theme}"`}</pre>
-                    {docsEdit ? <a href={docsEdit} target="_blank" rel="noreferrer" className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable mt-2">Edit docs.json <ArrowUpRight className="h-3.5 w-3.5" /></a> : null}
-                  </div>
-                ) : null}
-                {(accentLight !== currentAccentLight || accentDark !== currentAccentDark) ? (
-                  <div>
-                    <p className="ds-rail-label mb-1">Accent — set in <code className="font-mono">src/data/site.ts</code> (your brand preset):</p>
-                    <pre className="overflow-x-auto p-2" style={{ background: 'var(--ds-surface-tint)', borderRadius: 'var(--ds-radius-md)', fontSize: 'var(--ds-text-caption)' }}>{`light.accent: '${accentLight}'\ndark.accent:  '${accentDark}'`}</pre>
-                    {siteEdit ? <a href={siteEdit} target="_blank" rel="noreferrer" className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable mt-2">Edit site.ts <ArrowUpRight className="h-3.5 w-3.5" /></a> : null}
-                  </div>
-                ) : null}
-              </div>
-            )}
+            <div className="ds-panel-head">
+              <div className="ds-panel-title">Status</div>
+              {saved ? <span className="ds-chip ds-chip--success"><span className="ds-dot" />Saved</span> : null}
+            </div>
+            <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
+              {canEdit
+                ? 'Theme, accent, logo and favicon changes save automatically and apply to the docs site live.'
+                : 'Only an Owner can change branding.'}
+            </p>
+            {canEdit && overridden ? (
+              <button type="button" className="ds-btn ds-btn--ghost ds-btn--sm ds-focusable mt-3" onClick={resetBranding}>
+                Reset to defaults
+              </button>
+            ) : null}
           </section>
         </div>
 
