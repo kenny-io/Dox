@@ -7,7 +7,7 @@ var COMMANDS = [
   { name: "build", summary: "Build the production site", usage: "dox build" },
   { name: "start", summary: "Serve the built production site", usage: "dox start" },
   { name: "deploy", summary: "Build and deploy to a live URL", usage: "dox deploy [--prod] [--cloudflare]" },
-  { name: "check", summary: "Lint content + Agent Readiness Score", usage: "dox check [--agents] [--fix]" },
+  { name: "check", summary: "Lint content + Agent Readiness Score", usage: "dox check [--agents] [--fix] [--ci]" },
   { name: "new", summary: "Create a new page and register it in docs.json", usage: 'dox new <page-id> [--title "..."]' },
   { name: "migrate", summary: "Migrate docs from a GitHub URL", usage: "dox migrate <github-url> [dir]" },
   { name: "translate", summary: "Translate content into a locale", usage: "dox translate --locale <code>" },
@@ -190,9 +190,10 @@ function runNewPage(args, cwd = process.cwd()) {
 
 // src/commands/check.ts
 async function runCheck(args) {
-  const fix = args.hasFlag("--fix");
   const contentArgs = ["check", "."];
-  if (fix) contentArgs.push("--fix");
+  if (args.hasFlag("--fix")) contentArgs.push("--fix");
+  if (args.hasFlag("--ci")) contentArgs.push("--ci");
+  if (args.hasFlag("--external")) contentArgs.push("--external");
   let exit = await runPackageBin("create-dox", "create-dox", contentArgs);
   if (args.hasFlag("--agents")) {
     const scripts = projectScripts();
