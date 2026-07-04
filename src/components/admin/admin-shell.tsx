@@ -19,6 +19,7 @@ import {
   Search,
   Settings,
   Sun,
+  Users,
   X,
 } from 'lucide-react'
 import { AdminCommandMenu } from '@/components/admin/admin-command-menu'
@@ -45,7 +46,10 @@ const NAV: Array<NavGroup> = [
   },
   {
     label: 'Configuration',
-    items: [{ href: '/admin/settings', label: 'Settings', icon: Settings }],
+    items: [
+      { href: '/admin/team', label: 'Team', icon: Users },
+      { href: '/admin/settings', label: 'Settings', icon: Settings },
+    ],
   },
 ]
 
@@ -53,6 +57,7 @@ const TITLES: Record<string, string> = {
   '/admin': 'Home',
   '/admin/analytics': 'Analytics',
   '/admin/agent-readiness': 'Agent Readiness',
+  '/admin/team': 'Team',
   '/admin/settings': 'Settings',
 }
 
