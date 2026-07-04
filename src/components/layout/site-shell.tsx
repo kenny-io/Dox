@@ -109,6 +109,17 @@ export function SiteShell({ children, initialCollections, searchIndex, i18nConfi
     return null
   }
 
+  // The tab to highlight. A standalone href tab (e.g. Changelog) that owns no
+  // sidebar sections still wins the highlight when its href matches the current
+  // path — otherwise the section-derived collection (Overview/API/…) does.
+  const activeTabId =
+    collections.find(
+      (collection) =>
+        collection.href &&
+        !/^https?:\/\//.test(collection.href) &&
+        (matchesPath(collection.href, pathname) || matchesPath(collection.href, currentPath)),
+    )?.id ?? activeCollection.id
+
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-background text-foreground">
       <div className={`flex min-h-screen w-full ${shell.wrapper}`}>
@@ -119,7 +130,7 @@ export function SiteShell({ children, initialCollections, searchIndex, i18nConfi
         <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col">
           <TopBar
             collections={collections}
-            activeCollectionId={activeCollection.id}
+            activeCollectionId={activeTabId}
             onCollectionChange={(id) => {
               const target = collections.find((collection) => collection.id === id)
               if (!target) {
