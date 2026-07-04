@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { siteConfig } from '@/data/site'
 import { isAdminEnabled, isDocsAccessEnabled } from '@/lib/admin/auth'
 import { getAiConfig, getI18nConfig, isAnalyticsEnabled } from '@/data/docs'
+import { AdminSettingsControls } from '@/components/admin/admin-settings-controls'
+import type { Role } from '@/lib/auth/types'
 
 type Tone = 'success' | 'warn' | 'neutral'
 
@@ -44,7 +46,7 @@ function analyticsStore(): string {
   return 'Custom libSQL file'
 }
 
-export function SettingsView() {
+export function SettingsView({ role = 'viewer' }: { role?: Role }) {
   const adminOn = isAdminEnabled()
   const accessOn = isDocsAccessEnabled()
   const analyticsOn = isAnalyticsEnabled()
@@ -70,7 +72,7 @@ export function SettingsView() {
           Settings
         </h1>
         <p className="mt-1.5" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)', maxWidth: '64ch' }}>
-          A read-only view of your current configuration. Values are managed in{' '}
+          Toggle live settings under <strong>Controls</strong>. The rest is a read-only view of config managed in{' '}
           <code style={{ fontFamily: 'var(--ds-font-mono)' }}>docs.json</code>,{' '}
           <code style={{ fontFamily: 'var(--ds-font-mono)' }}>src/data/site.ts</code>, and environment variables — see the{' '}
           <Link href="/guides/extending" style={{ color: 'var(--ds-accent-mid)', fontWeight: 'var(--ds-fw-semibold)' }}>
@@ -79,6 +81,8 @@ export function SettingsView() {
           guide.
         </p>
       </header>
+
+      <AdminSettingsControls canEdit={role === 'owner'} />
 
       <Group title="Site" desc="Identity and metadata for your documentation site.">
         <Row label="Name" value={siteConfig.name} />

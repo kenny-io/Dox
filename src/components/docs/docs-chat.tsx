@@ -62,6 +62,7 @@ interface DocsChatProps {
 export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatProps) {
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [chatShown, setChatShown] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -88,6 +89,20 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
   const stop = useCallback(() => {
     abortRef.current?.abort()
     setLoading(false)
+  }, [])
+
+  // Respect the admin's live enable/disable toggle (hide if turned off).
+  useEffect(() => {
+    let active = true
+    fetch('/api/chat-status')
+      .then((r) => (r.ok ? r.json() : { show: true }))
+      .then((d) => {
+        if (active && d?.show === false) setChatShown(false)
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
   }, [])
 
   const send = useCallback(async (text?: string) => {
@@ -151,6 +166,8 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
       abortRef.current = null
     }
   }, [input, loading, messages])
+
+  if (!chatShown) return null
 
   return (
     <>
