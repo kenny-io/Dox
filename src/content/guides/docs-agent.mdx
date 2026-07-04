@@ -68,6 +68,42 @@ Drop an `AGENTS.md` in your docs project to give the agent house rules — tone,
 - New API endpoints go under the "API Reference" tab, not "Guides".
 ```
 
+## Automation
+
+The CLI is the whole engine. To make it autonomous, wire GitHub triggers that produce the same task — then engineering's contribution to docs is one `@dox` comment, and DevRel reviews a queue of agent-drafted PRs.
+
+The model is **hub-and-spoke**: your docs repo is the hub (it holds the workflow, the `ANTHROPIC_API_KEY`, and all config); each product repo gets a tiny sender. Secrets never scatter.
+
+<Steps>
+<Step title="Scaffold the hub">
+In your docs repo:
+
+```bash
+dox agent init --repo <owner>/<docs-repo>
+```
+
+This writes `.github/workflows/dox-agent.yml` — a listener that runs the agent on a dispatched task (and a weekly `dox check --drift` sweep). Add two repo secrets: `ANTHROPIC_API_KEY` and `DOX_AGENT_TOKEN` (a fine-grained PAT or GitHub App with write on the docs repo and read on your product repos).
+</Step>
+<Step title="Add a sender to each product repo">
+`dox agent init` prints a ready-to-paste `dox-mention.yml`. It fires when a collaborator comments **`@dox document this …`** on a PR, dispatching the task (PR URL + instruction) to the docs repo. Add a `DOX_DISPATCH_TOKEN` secret there with dispatch access to the docs repo.
+</Step>
+<Step title="(Optional) Document on merge">
+For API-reference-shaped repos, add the merge sender: on merge to `main`, if the diff touches watched paths, it dispatches automatically — no comment needed.
+</Step>
+</Steps>
+
+Declare your product repos in `docs.json` so the setup is self-documenting:
+
+```json
+{
+  "repositories": [
+    { "name": "widget", "repo": "acme/swap-widget", "watch": ["src/**", "openapi.yaml"] }
+  ]
+}
+```
+
 <Note>
-Automatic triggers — a `@dox` comment on a product PR, and merge-dispatch from watched repos — are coming next. They produce the same task the CLI does, so everything here applies to them too.
+Every trigger — a `@dox` comment, a merge, the drift sweep, or the CLI — produces the same task and lands as a **reviewed pull request**. The agent never merges; a human always does.
 </Note>
+
+**Monorepo?** You need none of the sender plumbing — the workflow sees PRs and diffs natively. Run `dox agent init` and point it at the same repo.
