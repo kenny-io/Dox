@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
 
-export function AdminLoginForm({ siteName = 'Dox' }: { siteName?: string }) {
+export function AdminLoginForm({ siteName = 'Dox', oidcEnabled = false }: { siteName?: string; oidcEnabled?: boolean }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
@@ -83,6 +83,20 @@ export function AdminLoginForm({ siteName = 'Dox' }: { siteName?: string }) {
         <button type="submit" className="ds-btn ds-btn--primary ds-focusable mt-6 w-full" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
+        {oidcEnabled ? (
+          <>
+            <div className="mt-4 text-center" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
+              or
+            </div>
+            <a
+              href="/api/admin/auth/oidc"
+              className="ds-btn ds-btn--secondary ds-focusable mt-4 w-full"
+              style={{ display: 'flex', justifyContent: 'center' }}
+            >
+              Sign in with SSO
+            </a>
+          </>
+        ) : null}
       </form>
     </div>
   )

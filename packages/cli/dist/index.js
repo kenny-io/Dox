@@ -279,9 +279,9 @@ import {
 function runAgentInit(args) {
   const docsRepo = args.getFlag("--repo") ?? "<owner>/<docs-repo>";
   const { written, senderSnippet } = scaffoldAgentWorkflow(process.cwd(), docsRepo);
-  process.stdout.write(`
-  \u2713 Wrote ${written}
-`);
+  for (const file of written) process.stdout.write(`
+  \u2713 Wrote ${file}`);
+  process.stdout.write("\n");
   process.stdout.write("\n  Add two secrets to THIS docs repo:\n");
   process.stdout.write("    - ANTHROPIC_API_KEY   (runs the agent)\n");
   process.stdout.write("    - DOX_AGENT_TOKEN     (fine-grained PAT/App: write here, read on product repos)\n");

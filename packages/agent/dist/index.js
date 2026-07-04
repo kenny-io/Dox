@@ -471,15 +471,26 @@ jobs:
             -F "client_payload[from_pr]=\${{ github.event.head_commit.url }}"
 `;
 }
+function codeownersFor(team = "@your-org/docs-admins") {
+  return `# Changes to the admin team roster (the "team" block) require approval from a
+# designated owner. REQUIRES branch protection on main (PRs + required review),
+# otherwise a direct push bypasses this.
+/docs.json   ${team}
+`;
+}
 function scaffoldAgentWorkflow(projectDir, docsRepo = "<owner>/<docs-repo>") {
-  const dir = path2.join(projectDir, ".github", "workflows");
-  fs2.mkdirSync(dir, { recursive: true });
-  const target = path2.join(dir, "dox-agent.yml");
-  fs2.writeFileSync(target, DOCS_AGENT_WORKFLOW);
-  return {
-    written: path2.relative(projectDir, target),
-    senderSnippet: mentionSenderWorkflow(docsRepo)
-  };
+  const written = [];
+  const wfDir = path2.join(projectDir, ".github", "workflows");
+  fs2.mkdirSync(wfDir, { recursive: true });
+  const wf = path2.join(wfDir, "dox-agent.yml");
+  fs2.writeFileSync(wf, DOCS_AGENT_WORKFLOW);
+  written.push(path2.relative(projectDir, wf));
+  const co = path2.join(projectDir, ".github", "CODEOWNERS");
+  if (!fs2.existsSync(co)) {
+    fs2.writeFileSync(co, codeownersFor());
+    written.push(path2.relative(projectDir, co));
+  }
+  return { written, senderSnippet: mentionSenderWorkflow(docsRepo) };
 }
 export {
   DOCS_AGENT_WORKFLOW,

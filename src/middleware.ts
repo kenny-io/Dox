@@ -11,6 +11,7 @@ import {
 } from '@/lib/admin/auth-edge'
 import { classifyRequest, isAgentRequest } from '@/lib/traffic-classifier'
 import { isMachineEndpoint } from '@/lib/agent-endpoints'
+import { verifySession, SESSION_COOKIE } from '@/lib/auth/session'
 
 function shouldTrackPath(pathname: string): boolean {
   if (
@@ -77,7 +78,10 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
 
   if (pathname.startsWith('/admin') && pathname !== '/admin/login' && isAdminEnabledEdge()) {
-    const authed = await isAdminAuthenticatedEdge(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)
+    // Coarse, edge-safe check only: a valid break-glass password session OR a
+    // valid signed OIDC identity cookie. The live role lookup happens in node.
+    const passwordAuthed = await isAdminAuthenticatedEdge(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)
+    const authed = passwordAuthed || Boolean(await verifySession(request.cookies.get(SESSION_COOKIE)?.value))
     if (!authed) {
       const loginUrl = request.nextUrl.clone()
       loginUrl.pathname = '/admin/login'

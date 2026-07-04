@@ -146,10 +146,10 @@ declare function mentionSenderWorkflow(docsRepo: string): string;
  */
 declare function mergeSenderWorkflow(docsRepo: string): string;
 interface ScaffoldResult {
-    written: string;
+    written: Array<string>;
     senderSnippet: string;
 }
-/** Write the docs-repo agent workflow and return the product-repo sender snippet. */
+/** Write the docs-repo agent workflow + a CODEOWNERS roster gate; return the sender snippet. */
 declare function scaffoldAgentWorkflow(projectDir: string, docsRepo?: string): ScaffoldResult;
 
 export { type AgentOptions, type AgentResult, type AnthropicLike, type ContentBlock, type CreateResponse, DOCS_AGENT_WORKFLOW, type DocsTask, type LoopInput, type Message, type OutputMode, type TaskSource, buildToolBridge, loadAgentsGuidance, mentionSenderWorkflow, mergeSenderWorkflow, resolveDiff, resolvePrContext, runAgent, runAgentLoop, scaffoldAgentWorkflow };

@@ -1,5 +1,7 @@
-import { verifySession } from '@/lib/auth/session'
+import type { NextRequest } from 'next/server'
+import { verifySession, SESSION_COOKIE } from '@/lib/auth/session'
 import { resolveRoleFromRoster } from '@/lib/auth/roster'
+import { isAdminAuthenticated, ADMIN_SESSION_COOKIE } from '@/lib/admin/auth'
 import { roleAllows, type Capability, type Role } from '@/lib/auth/types'
 
 export interface AdminSession {
@@ -34,6 +36,28 @@ export async function requireCapability(
   capability: Capability,
 ): Promise<AdminSession | null> {
   const session = await resolveAdminSession(token)
+  if (!session) return null
+  return roleAllows(session.role, capability) ? session : null
+}
+
+/**
+ * Resolve the admin from a request: an OIDC identity (→ live roster role), or the
+ * break-glass DOX_ADMIN_PASSWORD session (→ Owner, since the password-holder is
+ * the deployer). Node-only (reaches the roster).
+ */
+export async function resolveAdminFromRequest(request: NextRequest): Promise<AdminSession | null> {
+  const oidc = await resolveAdminSession(request.cookies.get(SESSION_COOKIE)?.value)
+  if (oidc) return oidc
+  if (isAdminAuthenticated(request)) return { email: 'break-glass', role: 'owner' }
+  return null
+}
+
+/** Require a capability from a request; null if unauthenticated or unauthorized. */
+export async function requireCapabilityFromRequest(
+  request: NextRequest,
+  capability: Capability,
+): Promise<AdminSession | null> {
+  const session = await resolveAdminFromRequest(request)
   if (!session) return null
   return roleAllows(session.role, capability) ? session : null
 }
