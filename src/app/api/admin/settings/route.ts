@@ -29,6 +29,9 @@ export async function PUT(request: NextRequest) {
   if (typeof body.chatEnabled === 'boolean' || body.chatEnabled === null) {
     patch.chatEnabled = body.chatEnabled
   }
+  if (typeof body.analyticsEnabled === 'boolean' || body.analyticsEnabled === null) {
+    patch.analyticsEnabled = body.analyticsEnabled
+  }
   if (Array.isArray(body.allowedDomains)) {
     patch.allowedDomains = body.allowedDomains
       .filter((d) => d && typeof d.domain === 'string' && d.domain.trim() && ROLES.includes(d.role))

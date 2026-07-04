@@ -10,7 +10,42 @@ interface Domain {
 }
 interface Settings {
   chatEnabled: boolean | null
+  analyticsEnabled: boolean | null
   allowedDomains: Array<Domain>
+}
+
+function ToggleRow({
+  label,
+  desc,
+  on,
+  disabled,
+  onToggle,
+}: {
+  label: string
+  desc: string
+  on: boolean
+  disabled: boolean
+  onToggle: () => void
+}) {
+  return (
+    <div className="ds-setting-row">
+      <div className="min-w-0">
+        <div className="ds-setting-row-label">{label}</div>
+        <div className="ds-setting-row-desc">{desc}</div>
+      </div>
+      <button
+        type="button"
+        aria-pressed={on}
+        disabled={disabled}
+        onClick={onToggle}
+        className={`ds-chip ds-setting-row-value ds-chip--${on ? 'success' : 'neutral'}`}
+        style={{ cursor: disabled ? 'default' : 'pointer', border: 'none' }}
+      >
+        {on ? <span className="ds-dot" /> : null}
+        {on ? 'On' : 'Off'}
+      </button>
+    </div>
+  )
 }
 
 export function AdminSettingsControls({ canEdit }: { canEdit: boolean }) {
@@ -50,6 +85,7 @@ export function AdminSettingsControls({ canEdit }: { canEdit: boolean }) {
 
   if (!settings) return null
   const chatOn = settings.chatEnabled ?? true
+  const analyticsOn = settings.analyticsEnabled ?? true
 
   return (
     <section className="ds-setting-group">
@@ -61,24 +97,20 @@ export function AdminSettingsControls({ canEdit }: { canEdit: boolean }) {
         </p>
       </div>
       <div className="ds-setting-list">
-        {/* AI Chat toggle */}
-        <div className="ds-setting-row">
-          <div className="min-w-0">
-            <div className="ds-setting-row-label">AI Chat widget</div>
-            <div className="ds-setting-row-desc">Show the assistant on the docs site</div>
-          </div>
-          <button
-            type="button"
-            aria-pressed={chatOn}
-            disabled={!canEdit || saving}
-            onClick={() => save({ chatEnabled: !chatOn })}
-            className={`ds-chip ds-setting-row-value ds-chip--${chatOn ? 'success' : 'neutral'}`}
-            style={{ cursor: canEdit ? 'pointer' : 'default', border: 'none' }}
-          >
-            {chatOn ? <span className="ds-dot" /> : null}
-            {chatOn ? 'On' : 'Off'}
-          </button>
-        </div>
+        <ToggleRow
+          label="AI Chat widget"
+          desc="Show the assistant on the docs site"
+          on={chatOn}
+          disabled={!canEdit || saving}
+          onToggle={() => save({ chatEnabled: !chatOn })}
+        />
+        <ToggleRow
+          label="Analytics collection"
+          desc="Record page views + agent traffic for the dashboard"
+          on={analyticsOn}
+          disabled={!canEdit || saving}
+          onToggle={() => save({ analyticsEnabled: !analyticsOn })}
+        />
 
         {/* Allowed email domains */}
         <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
