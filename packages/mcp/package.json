@@ -11,6 +11,10 @@
   },
   "exports": {
     ".": "./dist/index.js",
+    "./tools": {
+      "types": "./dist/tools.d.ts",
+      "import": "./dist/tools.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
