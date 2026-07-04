@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { getAdminSettings, updateAdminSettings, type AdminSettings } from '@/lib/admin/settings'
 import { requireCapabilityFromRequest } from '@/lib/auth/rbac'
-import { hashPassword } from '@/lib/admin/secrets'
+import { hashPassword, encryptSecret } from '@/lib/admin/secrets'
 import type { Role } from '@/lib/auth/types'
 
 export const runtime = 'nodejs'
@@ -57,6 +57,20 @@ export async function PUT(request: NextRequest) {
     patch.docsPasswordHash = hashPassword(body.docsPassword)
   } else if (body.docsPassword === '' || body.docsPassword === null) {
     patch.docsPasswordHash = null
+  }
+  // AI-chat API key: encrypt (AES-GCM) + store on set; clear on empty/null.
+  // Refuse to store without DOX_AUTH_SECRET rather than persist plaintext.
+  if (typeof body.chatKey === 'string' && body.chatKey.trim()) {
+    const enc = encryptSecret(body.chatKey.trim())
+    if (!enc) {
+      return NextResponse.json(
+        { error: 'Set DOX_AUTH_SECRET to store an API key securely.' },
+        { status: 400 },
+      )
+    }
+    patch.chatKeyEnc = enc
+  } else if (body.chatKey === '' || body.chatKey === null) {
+    patch.chatKeyEnc = null
   }
 
   return NextResponse.json(sanitize(await updateAdminSettings(patch)))

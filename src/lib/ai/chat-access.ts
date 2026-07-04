@@ -58,6 +58,26 @@ export function resolveAnthropicKey(): ResolvedAiKey | null {
   return null
 }
 
+/**
+ * Resolve the chat key with the admin override applied: a dashboard-set key
+ * (F1, encrypted) is used first at OWNER tier; otherwise fall back to the env
+ * resolver. Decrypt failure (e.g. rotated DOX_AUTH_SECRET) degrades to env.
+ */
+export async function resolveChatKey(): Promise<ResolvedAiKey | null> {
+  try {
+    const { getAdminSettings } = await import('@/lib/admin/settings')
+    const { decryptSecret } = await import('@/lib/admin/secrets')
+    const { chatKeyEnc } = await getAdminSettings()
+    if (chatKeyEnc) {
+      const apiKey = decryptSecret(chatKeyEnc)
+      if (apiKey) return { apiKey, tier: 'owner' }
+    }
+  } catch {
+    // fall through to the env resolver
+  }
+  return resolveAnthropicKey()
+}
+
 function tierLimits(tier: AiKeyTier): TierLimit {
   if (tier === 'owner') {
     return {

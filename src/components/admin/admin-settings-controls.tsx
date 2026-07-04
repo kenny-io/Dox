@@ -192,6 +192,21 @@ export function AdminSettingsControls({ canEdit }: { canEdit: boolean }) {
           onClear={() => save({ docsPassword: null })}
         />
 
+        <SecretRow
+          label="AI Chat API key"
+          desc={
+            <>
+              Anthropic API key for the assistant, <strong>encrypted at rest</strong>. Overrides the{' '}
+              <code className="font-mono">ANTHROPIC_API_KEY</code> env. Requires <code className="font-mono">DOX_AUTH_SECRET</code>.
+            </>
+          }
+          isSet={settings.hasChatKey}
+          disabled={!canEdit || saving}
+          placeholder="sk-ant-…"
+          onSave={(v) => save({ chatKey: v })}
+          onClear={() => save({ chatKey: null })}
+        />
+
         {/* Allowed email domains */}
         <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
           <div className="min-w-0">
