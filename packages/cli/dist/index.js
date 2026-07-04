@@ -273,9 +273,27 @@ import Anthropic from "@anthropic-ai/sdk";
 import {
   runAgent,
   resolveDiff,
-  resolvePrContext
+  resolvePrContext,
+  scaffoldAgentWorkflow
 } from "@doxlabs/agent";
+function runAgentInit(args) {
+  const docsRepo = args.getFlag("--repo") ?? "<owner>/<docs-repo>";
+  const { written, senderSnippet } = scaffoldAgentWorkflow(process.cwd(), docsRepo);
+  process.stdout.write(`
+  \u2713 Wrote ${written}
+`);
+  process.stdout.write("\n  Add two secrets to THIS docs repo:\n");
+  process.stdout.write("    - ANTHROPIC_API_KEY   (runs the agent)\n");
+  process.stdout.write("    - DOX_AGENT_TOKEN     (fine-grained PAT/App: write here, read on product repos)\n");
+  process.stdout.write("\n  Then in each PRODUCT repo, add .github/workflows/dox-mention.yml:\n\n");
+  process.stdout.write(
+    senderSnippet.split("\n").map((l) => `    ${l}`).join("\n")
+  );
+  process.stdout.write("\n  \u2026and a DOX_DISPATCH_TOKEN secret there (dispatch access to this docs repo).\n\n");
+  return 0;
+}
 async function runAgentCommand(args) {
+  if (args.positionals[0] === "init") return runAgentInit(args);
   const instruction = args.positionals.join(" ").trim();
   const fromPr = args.getFlag("--from-pr");
   const diffRef = args.getFlag("--diff");

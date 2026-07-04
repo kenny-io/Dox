@@ -4,10 +4,30 @@ import {
   runAgent,
   resolveDiff,
   resolvePrContext,
+  scaffoldAgentWorkflow,
   type AnthropicLike,
   type DocsTask,
   type OutputMode,
 } from '@doxlabs/agent'
+
+/** `dox agent init` — scaffold the docs-repo workflow + print the product-repo sender. */
+function runAgentInit(args: ParsedArgs): number {
+  const docsRepo = args.getFlag('--repo') ?? '<owner>/<docs-repo>'
+  const { written, senderSnippet } = scaffoldAgentWorkflow(process.cwd(), docsRepo)
+  process.stdout.write(`\n  ✓ Wrote ${written}\n`)
+  process.stdout.write('\n  Add two secrets to THIS docs repo:\n')
+  process.stdout.write('    - ANTHROPIC_API_KEY   (runs the agent)\n')
+  process.stdout.write('    - DOX_AGENT_TOKEN     (fine-grained PAT/App: write here, read on product repos)\n')
+  process.stdout.write('\n  Then in each PRODUCT repo, add .github/workflows/dox-mention.yml:\n\n')
+  process.stdout.write(
+    senderSnippet
+      .split('\n')
+      .map((l) => `    ${l}`)
+      .join('\n'),
+  )
+  process.stdout.write('\n  …and a DOX_DISPATCH_TOKEN secret there (dispatch access to this docs repo).\n\n')
+  return 0
+}
 
 /**
  * `dox agent "<instruction>" [--diff <ref>] [--from-pr <url>] [--dry-run] [--pr]`
@@ -17,6 +37,8 @@ import {
  * a pull request.
  */
 export async function runAgentCommand(args: ParsedArgs): Promise<number> {
+  if (args.positionals[0] === 'init') return runAgentInit(args)
+
   const instruction = args.positionals.join(' ').trim()
   const fromPr = args.getFlag('--from-pr')
   const diffRef = args.getFlag('--diff')

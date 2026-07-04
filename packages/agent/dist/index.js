@@ -347,11 +347,149 @@ ${diff}
 \`\`\`` : ""
   ].join("\n");
 }
+
+// src/scaffold.ts
+import fs2 from "fs";
+import path2 from "path";
+var DOCS_AGENT_WORKFLOW = `name: Dox docs agent
+
+on:
+  # A product repo dispatches a docs task here (see the sender workflow).
+  repository_dispatch:
+    types: [dox-document]
+  # Run it by hand from the Actions tab.
+  workflow_dispatch:
+    inputs:
+      instruction:
+        description: What to document
+        required: true
+      from_pr:
+        description: Product PR URL (optional context)
+        required: false
+  # Weekly provenance drift sweep \u2014 flags pages whose sources changed.
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  document:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Configure git
+        run: |
+          git config user.name "dox-agent"
+          git config user.email "dox-agent@users.noreply.github.com"
+      - name: Draft docs and open a PR
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+          # A fine-grained PAT / App token with write on this docs repo (and read
+          # on your product repos). Falls back to the built-in token.
+          GH_TOKEN: \${{ secrets.DOX_AGENT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          INSTRUCTION="\${{ github.event.client_payload.instruction || inputs.instruction }}"
+          FROM_PR="\${{ github.event.client_payload.from_pr || inputs.from_pr }}"
+          if [ -n "$FROM_PR" ]; then
+            npx dox agent "$INSTRUCTION" --from-pr "$FROM_PR" --pr
+          else
+            npx dox agent "$INSTRUCTION" --pr
+          fi
+
+  drift-sweep:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Check for stale docs
+        run: npx dox check --drift --ci
+`;
+function mentionSenderWorkflow(docsRepo) {
+  return `name: Dox mention
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  dispatch:
+    # Only PR comments from collaborators, starting with "@dox".
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '@dox') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch docs task
+        env:
+          GH_TOKEN: \${{ secrets.DOX_DISPATCH_TOKEN }}
+        run: |
+          INSTRUCTION="\${{ github.event.comment.body }}"
+          PR_URL="\${{ github.event.issue.html_url }}"
+          gh api repos/${docsRepo}/dispatches -f event_type=dox-document \\
+            -F "client_payload[instruction]=\${INSTRUCTION#@dox }" \\
+            -F "client_payload[from_pr]=$PR_URL" \\
+            -F "client_payload[requester]=\${{ github.event.comment.user.login }}"
+`;
+}
+function mergeSenderWorkflow(docsRepo) {
+  return `name: Dox merge dispatch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Only fire when documented surface changes (match your docs.json watch globs).
+      - 'src/**'
+      - 'openapi.yaml'
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch docs task
+        env:
+          GH_TOKEN: \${{ secrets.DOX_DISPATCH_TOKEN }}
+        run: |
+          gh api repos/${docsRepo}/dispatches -f event_type=dox-document \\
+            -F "client_payload[instruction]=Document the changes merged in \${{ github.repository }}@\${{ github.sha }}" \\
+            -F "client_payload[from_pr]=\${{ github.event.head_commit.url }}"
+`;
+}
+function scaffoldAgentWorkflow(projectDir, docsRepo = "<owner>/<docs-repo>") {
+  const dir = path2.join(projectDir, ".github", "workflows");
+  fs2.mkdirSync(dir, { recursive: true });
+  const target = path2.join(dir, "dox-agent.yml");
+  fs2.writeFileSync(target, DOCS_AGENT_WORKFLOW);
+  return {
+    written: path2.relative(projectDir, target),
+    senderSnippet: mentionSenderWorkflow(docsRepo)
+  };
+}
 export {
+  DOCS_AGENT_WORKFLOW,
   buildToolBridge,
   loadAgentsGuidance,
+  mentionSenderWorkflow,
+  mergeSenderWorkflow,
   resolveDiff,
   resolvePrContext,
   runAgent,
-  runAgentLoop
+  runAgentLoop,
+  scaffoldAgentWorkflow
 };
