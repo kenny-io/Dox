@@ -1,6 +1,6 @@
 # Dox
 
-A Mintlify-style documentation template built on Next.js, Tailwind CSS, Radix UI, and shadcn-inspired components. Clean-room, customizable, and free to commercialize.
+The first agent-native documentation platform — every page is served to humans as polished HTML and to AI agents as structured JSON, JSON-LD, and Markdown from the same URL. Built on Next.js: self-hosted, open, extensible, and free to commercialize.
 
 Dox is **agent-native**: every page is served to humans as pre-rendered HTML and to AI agents as structured JSON / JSON-LD / Markdown from the same URL.
 
