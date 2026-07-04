@@ -66,6 +66,7 @@ export async function GET(_request: NextRequest) {
         llms_txt: `${baseUrl}/llms.txt`,
         llms_full_txt: `${baseUrl}/llms-full.txt`,
         ai_txt: `${baseUrl}/ai.txt`,
+        mcp: `${baseUrl}/api/mcp`,
         openapi: `${baseUrl}/openapi.yaml`,
       },
       pages,
