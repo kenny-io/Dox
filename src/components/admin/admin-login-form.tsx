@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
+import { AlertCircle } from 'lucide-react'
 
-export function AdminLoginForm() {
+export function AdminLoginForm({ siteName = 'Dox' }: { siteName?: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
@@ -23,7 +23,7 @@ export function AdminLoginForm() {
     })
 
     if (!res.ok) {
-      setError('Invalid password.')
+      setError('Invalid password. Try again.')
       setLoading(false)
       return
     }
@@ -33,18 +33,32 @@ export function AdminLoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="w-full max-w-sm rounded-xl border border-border bg-background p-8 shadow-sm"
-      >
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Dox Admin</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Sign in</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Enter your project admin password to view analytics and traffic insights.
+    <div className="ds-auth">
+      <form onSubmit={(e) => void handleSubmit(e)} className="ds-auth-card ds-rise">
+        <div className="ds-auth-logo">{siteName.charAt(0).toUpperCase()}</div>
+
+        <p className="mt-6 ds-workspace-sub">{siteName} Admin</p>
+        <h1
+          className="mt-1"
+          style={{
+            fontFamily: 'var(--ds-font-heading)',
+            fontSize: 'var(--ds-text-h3)',
+            fontWeight: 'var(--ds-fw-bold)',
+            letterSpacing: 'var(--ds-tracking-tight)',
+            color: 'var(--ds-text-primary)',
+          }}
+        >
+          Sign in
+        </h1>
+        <p className="mt-2" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
+          Enter your project admin password to view analytics, readiness, and traffic insights.
         </p>
 
-        <label className="mt-6 block text-sm font-medium" htmlFor="password">
+        <label
+          className="mt-6 block"
+          htmlFor="password"
+          style={{ fontSize: 'var(--ds-text-sm)', fontWeight: 'var(--ds-fw-medium)', color: 'var(--ds-text-secondary)' }}
+        >
           Admin password
         </label>
         <input
@@ -52,16 +66,23 @@ export function AdminLoginForm() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+          className="ds-input ds-focusable mt-2"
+          placeholder="••••••••••••"
           autoComplete="current-password"
+          autoFocus
           required
         />
 
-        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+        {error ? (
+          <p className="mt-3 flex items-center gap-1.5" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-danger)' }}>
+            <AlertCircle className="h-4 w-4" />
+            {error}
+          </p>
+        ) : null}
 
-        <Button type="submit" className="mt-6 w-full" disabled={loading}>
+        <button type="submit" className="ds-btn ds-btn--primary ds-focusable mt-6 w-full" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign in'}
-        </Button>
+        </button>
       </form>
     </div>
   )
