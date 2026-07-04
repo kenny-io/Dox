@@ -17,9 +17,9 @@ function shouldInclude(path: string): boolean {
   return true
 }
 
-export async function downloadTemplate(targetDir: string): Promise<void> {
+export async function downloadTemplate(targetDir: string, siteName?: string): Promise<void> {
   console.log('')
-  console.log('  ⏳ Downloading Dox template...')
+  console.log(`  ⏳ Creating ${siteName?.trim() || 'your docs site'}...`)
 
   const response = await fetch(TARBALL_URL)
 

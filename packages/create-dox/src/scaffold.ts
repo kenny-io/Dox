@@ -44,7 +44,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   const slug = slugify(projectName)
 
   // 1. Download template (replaces git clone)
-  await downloadTemplate(targetDir)
+  await downloadTemplate(targetDir, projectName)
 
   // 2. Write starter content
   writeStarterContent(targetDir, projectName, slug, enableAiChat, repoUrl, i18nLocales)
