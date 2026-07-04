@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, ArrowUp, Sparkles, Zap, Bot, Brain, Stars, Wand, Square, type LucideProps } from 'lucide-react'
+import { X, ArrowUp, Sparkles, Zap, Bot, Brain, Stars, Wand, Square, Maximize2, Minimize2, type LucideProps } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 
 interface Message {
@@ -61,6 +61,7 @@ interface DocsChatProps {
 
 export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatProps) {
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -153,34 +154,30 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
 
   return (
     <>
-      {/* FAB */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? `Close ${label}` : `Open ${label}`}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent text-accent-foreground shadow-lg transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-      >
-        {open ? (
-          <X className="h-5 w-5" />
-        ) : (
-          <>
-            <FabIcon icon={icon} className="h-5 w-5" />
-            <span className="text-[9px] font-semibold tracking-wide opacity-90">{label}</span>
-          </>
-        )}
-      </button>
+      {/* FAB — opens the panel (hidden while open; the panel has its own close) */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label={`Open ${label}`}
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent text-accent-foreground shadow-lg transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+        >
+          <FabIcon icon={icon} className="h-5 w-5" />
+          <span className="text-[9px] font-semibold tracking-wide opacity-90">{label}</span>
+        </button>
+      )}
 
-      {/* Panel */}
+      {/* Panel — full-height right dock */}
       {open && (
         <div
-          className="fixed bottom-24 right-6 z-50 flex flex-col overflow-hidden rounded-2xl border border-border shadow-xl backdrop-blur-xl"
+          className="fixed inset-y-0 right-0 z-50 flex flex-col overflow-hidden border-l border-border shadow-2xl backdrop-blur-xl"
           style={{
-            width: 'min(480px, calc(100vw - 2rem))',
-            height: 'min(600px, calc(100vh - 8rem))',
-            background: 'color-mix(in srgb, var(--background) 85%, transparent)',
+            width: expanded ? 'min(680px, 100vw)' : 'min(420px, 100vw)',
+            background: 'color-mix(in srgb, var(--background) 92%, transparent)',
+            transition: 'width 0.2s var(--ds-ease-out, ease)',
           }}
         >
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between px-5 py-4">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-5 py-4">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/10">
                 <FabIcon icon={icon} className="h-3.5 w-3.5 text-accent" />
@@ -190,13 +187,22 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
                 Beta
               </span>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Close"
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                aria-label={expanded ? 'Collapse panel' : 'Expand panel'}
+                className="hidden h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:flex"
+              >
+                {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
