@@ -202,7 +202,7 @@ export function BrandingView({
         </p>
       </header>
 
-      <div className="dash-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,340px)', gap: 24, alignItems: 'start' }}>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* Controls */}
         <div className="space-y-6">
           <section className="ds-panel">
