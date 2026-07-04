@@ -44,8 +44,13 @@ async function verifySignedToken(token: string | undefined, scope?: string): Pro
   }
 }
 
+export function isOidcConfiguredEdge(): boolean {
+  return Boolean(process.env.DOX_OIDC_ISSUER && process.env.DOX_OIDC_CLIENT_ID)
+}
+
 export function isAdminEnabledEdge(): boolean {
-  return Boolean(process.env.DOX_ADMIN_PASSWORD)
+  // Gate /admin when EITHER a break-glass password OR OIDC sign-in is configured.
+  return Boolean(process.env.DOX_ADMIN_PASSWORD) || isOidcConfiguredEdge()
 }
 
 export function isDocsAccessEnabledEdge(): boolean {

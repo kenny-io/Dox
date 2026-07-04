@@ -135,19 +135,39 @@ jobs:
 `
 }
 
+/**
+ * Gate who can change the admin team roster: a PR touching docs.json needs a
+ * designated owner's approval. Pair with branch protection on main. This is the
+ * answer to "can anyone invite themselves via a PR?" — no, not without approval.
+ */
+export function codeownersFor(team = '@your-org/docs-admins'): string {
+  return `# Changes to the admin team roster (the "team" block) require approval from a
+# designated owner. REQUIRES branch protection on main (PRs + required review),
+# otherwise a direct push bypasses this.
+/docs.json   ${team}
+`
+}
+
 export interface ScaffoldResult {
-  written: string
+  written: Array<string>
   senderSnippet: string
 }
 
-/** Write the docs-repo agent workflow and return the product-repo sender snippet. */
+/** Write the docs-repo agent workflow + a CODEOWNERS roster gate; return the sender snippet. */
 export function scaffoldAgentWorkflow(projectDir: string, docsRepo = '<owner>/<docs-repo>'): ScaffoldResult {
-  const dir = path.join(projectDir, '.github', 'workflows')
-  fs.mkdirSync(dir, { recursive: true })
-  const target = path.join(dir, 'dox-agent.yml')
-  fs.writeFileSync(target, DOCS_AGENT_WORKFLOW)
-  return {
-    written: path.relative(projectDir, target),
-    senderSnippet: mentionSenderWorkflow(docsRepo),
+  const written: Array<string> = []
+
+  const wfDir = path.join(projectDir, '.github', 'workflows')
+  fs.mkdirSync(wfDir, { recursive: true })
+  const wf = path.join(wfDir, 'dox-agent.yml')
+  fs.writeFileSync(wf, DOCS_AGENT_WORKFLOW)
+  written.push(path.relative(projectDir, wf))
+
+  const co = path.join(projectDir, '.github', 'CODEOWNERS')
+  if (!fs.existsSync(co)) {
+    fs.writeFileSync(co, codeownersFor())
+    written.push(path.relative(projectDir, co))
   }
+
+  return { written, senderSnippet: mentionSenderWorkflow(docsRepo) }
 }
