@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { createClient, type Client } from '@libsql/client'
-import type { KvEntry, StorageAdapter } from '@/lib/storage/types'
+import type { KvEntry, StorageAdapter, StorageEvent } from '@/lib/storage/types'
 
 /**
  * Ensure the parent directory exists for an on-disk `file:` libSQL URL. Skipped
@@ -41,6 +42,13 @@ export function createLibsqlAdapter(url: string, authToken?: string): StorageAda
           expires_at INTEGER,
           PRIMARY KEY (namespace, key)
         )`)
+        await client.execute(`CREATE TABLE IF NOT EXISTS storage_events (
+          id TEXT PRIMARY KEY,
+          stream TEXT NOT NULL,
+          ts INTEGER NOT NULL,
+          data TEXT NOT NULL
+        )`)
+        await client.execute('CREATE INDEX IF NOT EXISTS idx_events_stream_ts ON storage_events (stream, ts)')
         return client
       })()
       // Drop a failed init so the next call retries instead of wedging.
@@ -135,10 +143,47 @@ export function createLibsqlAdapter(url: string, authToken?: string): StorageAda
       }
     },
 
+    async appendEvent(stream, data, ts) {
+      const client = await getClient()
+      const event: StorageEvent = { id: randomUUID(), stream, ts: ts ?? Date.now(), data }
+      await client.execute({
+        sql: 'INSERT INTO storage_events (id, stream, ts, data) VALUES (?, ?, ?, ?)',
+        args: [event.id, event.stream, event.ts, JSON.stringify(event.data)],
+      })
+      return event
+    },
+
+    async queryEvents(query) {
+      const client = await getClient()
+      const clauses = ['stream = ?']
+      const args: Array<string | number> = [query.stream]
+      if (query.since !== undefined) {
+        clauses.push('ts >= ?')
+        args.push(query.since)
+      }
+      const order = query.order === 'asc' ? 'ASC' : 'DESC'
+      let sql = `SELECT id, stream, ts, data FROM storage_events WHERE ${clauses.join(' AND ')} ORDER BY ts ${order}`
+      if (query.limit) {
+        sql += ' LIMIT ?'
+        args.push(query.limit)
+      }
+      const res = await client.execute({ sql, args })
+      return res.rows.map((row) => ({
+        id: String(row.id),
+        stream: String(row.stream),
+        ts: Number(row.ts),
+        data: JSON.parse(String(row.data)) as Record<string, unknown>,
+      }))
+    },
+
     async clear(namespace) {
       const client = await getClient()
-      if (namespace) await client.execute({ sql: 'DELETE FROM storage_kv WHERE namespace = ?', args: [namespace] })
-      else await client.execute('DELETE FROM storage_kv')
+      if (namespace) {
+        await client.execute({ sql: 'DELETE FROM storage_kv WHERE namespace = ?', args: [namespace] })
+      } else {
+        await client.execute('DELETE FROM storage_kv')
+        await client.execute('DELETE FROM storage_events')
+      }
     },
   }
 }

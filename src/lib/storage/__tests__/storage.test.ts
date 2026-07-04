@@ -87,4 +87,21 @@ describe.each(adapters)('StorageAdapter: %s', (_name, make) => {
     expect(await store.kvGet('x', 'k')).toBeNull()
     expect(await store.kvGet('y', 'k')).toBe(1)
   })
+
+  it('appends and queries events (stream filter, newest-first, since, limit)', async () => {
+    const now = vi.spyOn(Date, 'now')
+    now.mockReturnValue(1000)
+    await store.appendEvent('chat', { q: 'a' })
+    now.mockReturnValue(2000)
+    await store.appendEvent('chat', { q: 'b' })
+    now.mockReturnValue(3000)
+    await store.appendEvent('other', { q: 'x' })
+
+    const chat = await store.queryEvents({ stream: 'chat' })
+    expect(chat.map((e) => (e.data as { q: string }).q)).toEqual(['b', 'a']) // newest first
+    expect(chat.every((e) => e.stream === 'chat')).toBe(true)
+
+    expect((await store.queryEvents({ stream: 'chat', since: 1500 })).map((e) => (e.data as { q: string }).q)).toEqual(['b'])
+    expect((await store.queryEvents({ stream: 'chat', limit: 1, order: 'asc' }))[0].data.q).toBe('a')
+  })
 })

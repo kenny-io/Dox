@@ -1,4 +1,5 @@
-import type { KvEntry, StorageAdapter } from '@/lib/storage/types'
+import { randomUUID } from 'node:crypto'
+import type { KvEntry, StorageAdapter, StorageEvent } from '@/lib/storage/types'
 
 interface Row {
   value: unknown
@@ -16,6 +17,7 @@ function isLive(row: Row | undefined, now: number): row is Row {
  */
 export function createMemoryAdapter(): StorageAdapter {
   const store = new Map<string, Map<string, Row>>()
+  const events: Array<StorageEvent> = []
   const ns = (namespace: string): Map<string, Row> => {
     let m = store.get(namespace)
     if (!m) {
@@ -79,9 +81,25 @@ export function createMemoryAdapter(): StorageAdapter {
       return { count: amount, expiresAt }
     },
 
+    async appendEvent(stream, data, ts) {
+      const event: StorageEvent = { id: randomUUID(), stream, ts: ts ?? Date.now(), data }
+      events.push(event)
+      return event
+    },
+
+    async queryEvents(query) {
+      let out = events.filter((e) => e.stream === query.stream)
+      if (query.since !== undefined) out = out.filter((e) => e.ts >= query.since!)
+      out = out.sort((a, b) => (query.order === 'asc' ? a.ts - b.ts : b.ts - a.ts))
+      return query.limit ? out.slice(0, query.limit) : out
+    },
+
     async clear(namespace) {
       if (namespace) store.delete(namespace)
-      else store.clear()
+      else {
+        store.clear()
+        events.length = 0
+      }
     },
   }
 }
