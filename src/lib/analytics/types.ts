@@ -6,6 +6,7 @@ export type AnalyticsEventType =
   | 'chat_message'
   | 'discovery'
   | 'api_fetch'
+  | 'search_query'
 
 export interface AnalyticsEvent {
   id: string
@@ -19,6 +20,12 @@ export interface AnalyticsEvent {
   referer?: string
   vote?: 'yes' | 'no'
   page?: string
+  /** search_query: the search term. */
+  query?: string
+  /** search_query: number of results returned (0 = a content gap). */
+  resultCount?: number
+  /** search_query: the page slug the user clicked from the results, if any. */
+  clickedSlug?: string
 }
 
 export type AnalyticsRange = '7d' | '30d' | '90d'
@@ -48,4 +55,12 @@ export interface AnalyticsSummary {
   }
   agentSignals: Array<{ signal: string; count: number }>
   recentFeedback: Array<{ ts: number; page: string; vote: 'yes' | 'no' }>
+  search: {
+    totalSearches: number
+    /** Searches that returned a result and were clicked / total searches. */
+    clickThroughRate: number
+    topTerms: Array<{ term: string; count: number }>
+    /** Terms that returned zero results — the content-gap goldmine. */
+    zeroResults: Array<{ term: string; count: number }>
+  }
 }

@@ -314,6 +314,66 @@ export function AnalyticsView() {
               )}
             </ListPanel>
           </div>
+
+          <div>
+            <div className="mb-4">
+              <div className="ds-eyebrow">Search</div>
+              <h2 className="ds-section-title" style={{ marginBottom: 0 }}>What people look for</h2>
+            </div>
+            {data.search.totalSearches === 0 ? (
+              <div className="ds-panel">
+                <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>No searches recorded yet for this range.</p>
+              </div>
+            ) : (
+              <div className="dash-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                <div className="ds-panel">
+                  <div className="ds-panel-head">
+                    <div className="ds-panel-title">Top search terms</div>
+                    <span className="ds-chip ds-chip--neutral">
+                      {data.search.totalSearches.toLocaleString()} searches · {Math.round(data.search.clickThroughRate * 100)}% CTR
+                    </span>
+                  </div>
+                  <table className="ds-table">
+                    <thead>
+                      <tr>
+                        <th>Term</th>
+                        <th className="ds-num">Searches</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.search.topTerms.map((t) => (
+                        <tr key={t.term}>
+                          <td className="max-w-0">
+                            <span className="block truncate" title={t.term}>{t.term}</span>
+                          </td>
+                          <td className="ds-num">
+                            <strong style={{ fontWeight: 'var(--ds-fw-semibold)' }}>{t.count.toLocaleString()}</strong>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <ListPanel title="Content gaps — zero results">
+                  {data.search.zeroResults.length === 0 ? (
+                    <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
+                      Every search found something. 🎉
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {data.search.zeroResults.map((t) => (
+                        <span key={t.term} className="ds-chip ds-chip--warn" title={`${t.count} searches, no results`}>
+                          {t.term}
+                          {t.count > 1 ? ` · ${t.count}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </ListPanel>
+              </div>
+            )}
+          </div>
         </div>
       ) : null}
     </div>

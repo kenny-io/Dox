@@ -31,6 +31,20 @@ describe('analytics store', () => {
     expect(summary.agentSignals[0]?.signal).toBe('user_agent')
   })
 
+  it('aggregates search queries, content gaps, and click-through', async () => {
+    const now = Date.now()
+    await trackAnalyticsEvent({ type: 'search_query', path: '/api/search', query: 'auth', resultCount: 3, ts: now })
+    await trackAnalyticsEvent({ type: 'search_query', path: '/api/search', query: 'Auth', resultCount: 3, ts: now })
+    await trackAnalyticsEvent({ type: 'search_query', path: '/api/search', query: 'pricing', resultCount: 0, ts: now })
+    await trackAnalyticsEvent({ type: 'search_query', path: '/api/search', query: 'auth', clickedSlug: 'guides/auth', ts: now })
+
+    const summary = await aggregateAnalytics('7d')
+    expect(summary.search.totalSearches).toBe(3)
+    expect(summary.search.topTerms[0]).toEqual({ term: 'auth', count: 2 })
+    expect(summary.search.zeroResults[0]).toEqual({ term: 'pricing', count: 1 })
+    expect(summary.search.clickThroughRate).toBeCloseTo(1 / 3, 5)
+  })
+
   it('excludes events outside the requested range', async () => {
     const now = Date.now()
     const old = now - 40 * 24 * 60 * 60 * 1000
