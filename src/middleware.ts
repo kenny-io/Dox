@@ -133,12 +133,14 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   // Advertise the llms.txt discovery endpoint on HTML doc-page responses, so
-  // agents and crawlers find the index without guessing. Relative paths keep it
-  // origin-agnostic; only content pages get the headers (not API/admin/_next).
+  // agents and crawlers find the index without guessing. The `Link` header stays
+  // relative (resolved against the request URL per RFC 8288); `X-Llms-Txt` is a
+  // custom header agents read directly, so it carries an absolute URL. Only
+  // content pages get the headers (not API/admin/_next).
   const response = NextResponse.next()
   if (!pathname.startsWith('/api') && !pathname.startsWith('/admin') && !pathname.startsWith('/_next')) {
     response.headers.append('Link', '</llms.txt>; rel="llms-txt"')
-    response.headers.set('X-Llms-Txt', '/llms.txt')
+    response.headers.set('X-Llms-Txt', `${request.nextUrl.origin}/llms.txt`)
   }
   return response
 }

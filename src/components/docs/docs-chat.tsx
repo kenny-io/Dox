@@ -54,9 +54,12 @@ function TypingDots() {
 interface DocsChatProps {
   label?: string
   icon?: string
+  /** False when no Anthropic key is configured — show an upfront notice instead
+   * of inviting a question that would 503. */
+  enabled?: boolean
 }
 
-export function DocsChat({ label = 'DoxAI', icon }: DocsChatProps) {
+export function DocsChat({ label = 'DoxAI', icon, enabled = true }: DocsChatProps) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -271,6 +274,12 @@ export function DocsChat({ label = 'DoxAI', icon }: DocsChatProps) {
 
           {/* Input */}
           <div className="shrink-0 px-4 pb-4 pt-2">
+            {!enabled ? (
+              <p className="mb-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                AI chat is turned on but needs a key. Set <code className="font-mono">ANTHROPIC_API_KEY</code> in your
+                environment to enable it.
+              </p>
+            ) : null}
             <div className="flex items-end gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-3 focus-within:border-accent/40 transition-colors">
               <textarea
                 ref={textareaRef}
@@ -280,11 +289,11 @@ export function DocsChat({ label = 'DoxAI', icon }: DocsChatProps) {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
-                    void send()
+                    if (enabled) void send()
                   }
                 }}
-                placeholder={`Message ${label}…`}
-                disabled={loading}
+                placeholder={enabled ? `Message ${label}…` : 'Add an ANTHROPIC_API_KEY to enable chat'}
+                disabled={loading || !enabled}
                 className="min-w-0 flex-1 resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50"
                 style={{ maxHeight: '160px' }}
               />
