@@ -1981,181 +1981,121 @@ async function handleTranslateDocs(input) {
   return lines.join("\n");
 }
 
+// src/lib/tools.ts
+function defineTool(def) {
+  return def;
+}
+var tools = [
+  defineTool({
+    name: "create_project",
+    description: "Scaffold a new Dox documentation project from the GitHub template",
+    scope: "project",
+    schema: createProjectSchema,
+    handler: handleCreateProject
+  }),
+  defineTool({
+    name: "add_page",
+    description: "Add a new MDX page to a Dox project and register it in docs.json navigation",
+    scope: "project",
+    schema: addPageSchema,
+    handler: handleAddPage
+  }),
+  defineTool({
+    name: "add_tab",
+    description: "Add a new top-level tab to a Dox project navigation (content tab or redirect link)",
+    scope: "project",
+    schema: addTabSchema,
+    handler: handleAddTab
+  }),
+  defineTool({
+    name: "list_pages",
+    description: "List all pages in a Dox project, organized by tab and group",
+    scope: "project",
+    schema: listPagesSchema,
+    handler: handleListPages
+  }),
+  defineTool({
+    name: "update_page",
+    description: "Update the frontmatter or body content of an existing MDX page in a Dox project",
+    scope: "project",
+    schema: updatePageSchema,
+    handler: handleUpdatePage
+  }),
+  defineTool({
+    name: "migrate_docs",
+    description: "Crawl a docs site and migrate it into a Dox project",
+    scope: "project",
+    schema: migrateDocsSchema,
+    handler: handleMigrateDocs
+  }),
+  defineTool({
+    name: "search_docs",
+    description: "Search documentation pages by keyword \u2014 returns ranked list of matching pages",
+    scope: "project",
+    schema: searchDocsSchema,
+    handler: handleSearchDocs
+  }),
+  defineTool({
+    name: "semantic_search",
+    description: "Hybrid (full-text + vector) semantic search against a deployed Dox site \u2014 uses the same index as the in-app command palette and /api/search",
+    scope: "site",
+    schema: semanticSearchSchema,
+    handler: handleSemanticSearch
+  }),
+  defineTool({
+    name: "agent_readiness",
+    description: "Fetch the Agent Readiness Score (0-100) for a deployed Dox site \u2014 the same report as /api/agent-readiness and `dox check`, with per-signal subscores and fixable offenders",
+    scope: "site",
+    schema: agentReadinessSchema,
+    handler: handleAgentReadiness
+  }),
+  defineTool({
+    name: "read_page",
+    description: "Read the full content of a documentation page by its page ID",
+    scope: "project",
+    schema: readPageSchema,
+    handler: handleReadPage
+  }),
+  defineTool({
+    name: "get_context",
+    description: "Get the most relevant documentation context for a topic or question, within a token budget",
+    scope: "project",
+    schema: getContextSchema,
+    handler: handleGetContext
+  }),
+  defineTool({
+    name: "lint_project",
+    description: "Check a Dox project for issues: broken nav references, orphan files, missing frontmatter",
+    scope: "project",
+    schema: lintProjectSchema,
+    handler: handleLintProject
+  }),
+  defineTool({
+    name: "translate_docs",
+    description: "Translate Dox documentation pages to a secondary locale using Claude AI",
+    scope: "project",
+    schema: translateDocsSchema,
+    handler: handleTranslateDocs
+  })
+];
+
 // src/server.ts
 function createServer() {
   const server = new McpServer({
     name: "@doxlabs/mcp",
     version: "0.3.0"
   });
-  server.tool(
-    "create_project",
-    "Scaffold a new Dox documentation project from the GitHub template",
-    createProjectSchema.shape,
-    async (input) => {
+  const register = server.tool.bind(server);
+  for (const tool of tools) {
+    register(tool.name, tool.description, tool.schema.shape, async (input) => {
       try {
-        const text = await handleCreateProject(input);
+        const text = await tool.handler(input);
         return { content: [{ type: "text", text }] };
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : String(err));
       }
-    }
-  );
-  server.tool(
-    "add_page",
-    "Add a new MDX page to a Dox project and register it in docs.json navigation",
-    addPageSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleAddPage(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "add_tab",
-    "Add a new top-level tab to a Dox project navigation (content tab or redirect link)",
-    addTabSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleAddTab(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "list_pages",
-    "List all pages in a Dox project, organized by tab and group",
-    listPagesSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleListPages(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "update_page",
-    "Update the frontmatter or body content of an existing MDX page in a Dox project",
-    updatePageSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleUpdatePage(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "migrate_docs",
-    "Crawl a docs site and migrate it into a Dox project",
-    migrateDocsSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleMigrateDocs(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "search_docs",
-    "Search documentation pages by keyword \u2014 returns ranked list of matching pages",
-    searchDocsSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleSearchDocs(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "semantic_search",
-    "Hybrid (full-text + vector) semantic search against a deployed Dox site \u2014 uses the same index as the in-app command palette and /api/search",
-    semanticSearchSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleSemanticSearch(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "agent_readiness",
-    "Fetch the Agent Readiness Score (0-100) for a deployed Dox site \u2014 the same report as /api/agent-readiness and `dox check`, with per-signal subscores and fixable offenders",
-    agentReadinessSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleAgentReadiness(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "read_page",
-    "Read the full content of a documentation page by its page ID",
-    readPageSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleReadPage(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "get_context",
-    "Get the most relevant documentation context for a topic or question, within a token budget",
-    getContextSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleGetContext(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "lint_project",
-    "Check a Dox project for issues: broken nav references, orphan files, missing frontmatter",
-    lintProjectSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleLintProject(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
-  server.tool(
-    "translate_docs",
-    "Translate Dox documentation pages to a secondary locale using Claude AI",
-    translateDocsSchema.shape,
-    async (input) => {
-      try {
-        const text = await handleTranslateDocs(input);
-        return { content: [{ type: "text", text }] };
-      } catch (err) {
-        throw new Error(err instanceof Error ? err.message : String(err));
-      }
-    }
-  );
+    });
+  }
   return server;
 }
 
