@@ -71,8 +71,13 @@ export function createLibsqlAdapter(url: string, authToken?: string): StorageAda
       })
       const row = res.rows[0]
       if (!row) return null
-      if (!live(row.expires_at, Date.now())) {
-        await client.execute({ sql: 'DELETE FROM storage_kv WHERE namespace = ? AND key = ?', args: [namespace, key] })
+      const now = Date.now()
+      if (!live(row.expires_at, now)) {
+        // Guard on expiry so a fresh write landing in the SELECT→DELETE gap isn't clobbered.
+        await client.execute({
+          sql: 'DELETE FROM storage_kv WHERE namespace = ? AND key = ? AND expires_at IS NOT NULL AND expires_at <= ?',
+          args: [namespace, key, now],
+        })
         return null
       }
       return JSON.parse(String(row.value))
@@ -104,9 +109,10 @@ export function createLibsqlAdapter(url: string, authToken?: string): StorageAda
       }
       if (expired.length) {
         const placeholders = expired.map(() => '?').join(', ')
+        // Guard on expiry so a concurrent fresh write isn't deleted (SELECT→DELETE gap).
         await client.execute({
-          sql: `DELETE FROM storage_kv WHERE namespace = ? AND key IN (${placeholders})`,
-          args: [namespace, ...expired],
+          sql: `DELETE FROM storage_kv WHERE namespace = ? AND expires_at IS NOT NULL AND expires_at <= ? AND key IN (${placeholders})`,
+          args: [namespace, now, ...expired],
         })
       }
       return out

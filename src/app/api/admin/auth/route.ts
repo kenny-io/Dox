@@ -3,10 +3,12 @@ import { type NextRequest } from 'next/server'
 import {
   ADMIN_SESSION_COOKIE,
   createAdminSessionToken,
-  isAdminAuthenticated,
   isAdminEnabled,
   verifyAdminPassword,
 } from '@/lib/admin/auth'
+import { SESSION_COOKIE } from '@/lib/auth/session'
+import { resolveAdminFromRequest } from '@/lib/auth/rbac'
+import { getOidcConfig } from '@/lib/auth/oidc'
 
 export const runtime = 'nodejs'
 
@@ -35,16 +37,21 @@ export async function POST(request: NextRequest) {
   return response
 }
 
-export async function DELETE(request: NextRequest) {
-  if (!isAdminAuthenticated(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export async function DELETE() {
+  // Logout is idempotent and always allowed. Clear BOTH the break-glass password
+  // session and the OIDC identity session — the old handler 401'd OIDC admins and
+  // left dox_admin_id valid until its 8h expiry (a non-terminable session).
   const response = NextResponse.json({ ok: true })
-  response.cookies.set(ADMIN_SESSION_COOKIE, '', { httpOnly: true, path: '/', maxAge: 0 })
+  const expire = { httpOnly: true as const, path: '/', maxAge: 0 }
+  response.cookies.set(ADMIN_SESSION_COOKIE, '', expire)
+  response.cookies.set(SESSION_COOKIE, '', expire)
   return response
 }
 
 export async function GET(request: NextRequest) {
-  return NextResponse.json({ authenticated: isAdminAuthenticated(request), enabled: isAdminEnabled() })
+  const session = await resolveAdminFromRequest(request)
+  return NextResponse.json({
+    authenticated: Boolean(session),
+    enabled: isAdminEnabled() || Boolean(getOidcConfig()),
+  })
 }

@@ -1,5 +1,7 @@
 import { SettingsView } from '@/components/admin/settings-view'
+import { requireAdminPageSession } from '@/lib/auth/admin-page'
 
-export default function AdminSettingsPage() {
+export default async function AdminSettingsPage() {
+  await requireAdminPageSession()
   return <SettingsView />
 }

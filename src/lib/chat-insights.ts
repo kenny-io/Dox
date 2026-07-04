@@ -1,5 +1,6 @@
 import { getStorage } from '@/lib/storage'
 import { aggregateAnalytics } from '@/lib/analytics/store'
+import type { AnalyticsSummary } from '@/lib/analytics/types'
 
 const STREAM = 'chat_insight'
 
@@ -39,7 +40,10 @@ export interface ContentGap {
  * retrieval) + search terms that returned nothing (C2). The single place to see
  * "what do people want that the docs don't cover."
  */
-export async function getContentGaps(limit = 20): Promise<Array<ContentGap>> {
+export async function getContentGaps(
+  zeroResults?: AnalyticsSummary['search']['zeroResults'],
+  limit = 20,
+): Promise<Array<ContentGap>> {
   const gaps: Array<ContentGap> = []
 
   try {
@@ -56,10 +60,10 @@ export async function getContentGaps(limit = 20): Promise<Array<ContentGap>> {
   }
 
   try {
-    const analytics = await aggregateAnalytics('30d')
-    for (const zero of analytics.search.zeroResults) {
-      gaps.push({ term: zero.term, source: 'search', count: zero.count })
-    }
+    // Reuse the caller's already-computed search summary when provided (the admin
+    // route passes it) rather than re-running a full analytics aggregation.
+    const zeros = zeroResults ?? (await aggregateAnalytics('30d')).search.zeroResults
+    for (const zero of zeros) gaps.push({ term: zero.term, source: 'search', count: zero.count })
   } catch {
     // analytics unavailable — fine
   }

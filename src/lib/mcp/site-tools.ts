@@ -64,9 +64,12 @@ export const siteTools: Array<McpTool> = [
         .trim()
         .replace(/^\//, '')
       if (!raw) return 'Provide a "pageId".'
-      const entries = getDocEntries()
-      const entry = entries.find((e) => e.id === raw || e.slug.join('/') === raw)
-      const doc = getContentDocument(entry?.id ?? raw)
+      // Resolve to a KNOWN entry only — never pass the raw arg to the content
+      // resolver, which path.joins it under CONTENT_ROOT (a "../" would escape
+      // and read arbitrary .mdx files on the public endpoint).
+      const entry = getDocEntries().find((e) => e.id === raw || e.slug.join('/') === raw)
+      if (!entry) return `No page found for "${raw}". Call list_pages to see valid page IDs.`
+      const doc = getContentDocument(entry.id)
       if (!doc) return `No page found for "${raw}". Call list_pages to see valid page IDs.`
       return doc.content.markdown
     },

@@ -77,12 +77,19 @@ async function sendAnalyticsEvent(request: NextRequest, pathname: string) {
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login' && isAdminEnabledEdge()) {
+  // Gate admin PAGES and admin APIs at the edge — except the public auth routes
+  // (login/OIDC start/callback), which must be reachable pre-auth. This is
+  // defense-in-depth so a new /api/admin/* route can't be reached unauthenticated
+  // by forgetting its own requireCapability check.
+  const isAdminPage = pathname.startsWith('/admin') && pathname !== '/admin/login'
+  const isAdminApi = pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/auth')
+  if ((isAdminPage || isAdminApi) && isAdminEnabledEdge()) {
     // Coarse, edge-safe check only: a valid break-glass password session OR a
     // valid signed OIDC identity cookie. The live role lookup happens in node.
     const passwordAuthed = await isAdminAuthenticatedEdge(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)
     const authed = passwordAuthed || Boolean(await verifySession(request.cookies.get(SESSION_COOKIE)?.value))
     if (!authed) {
+      if (isAdminApi) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       const loginUrl = request.nextUrl.clone()
       loginUrl.pathname = '/admin/login'
       loginUrl.searchParams.set('next', pathname)

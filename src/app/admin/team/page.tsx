@@ -1,16 +1,14 @@
-import { cookies } from 'next/headers'
 import { TeamView } from '@/components/admin/team-view'
 import { getTeamConfig } from '@/data/docs'
 import { siteConfig } from '@/data/site'
-import { resolveAdminSession } from '@/lib/auth/rbac'
-import { SESSION_COOKIE } from '@/lib/auth/session'
+import { requireAdminPageSession } from '@/lib/auth/admin-page'
 
 export default async function AdminTeamPage() {
-  const cookieStore = await cookies()
-  const oidc = await resolveAdminSession(cookieStore.get(SESSION_COOKIE)?.value)
-  // Past the middleware gate without an OIDC session → break-glass password → Owner.
-  const viewerRole = oidc?.role ?? 'owner'
-  const viewerEmail = oidc?.email ?? 'break-glass (password)'
+  // Enforce the live roster: a removed/downgraded member is redirected to login,
+  // never shown as Owner. null only for an unconfigured (open-dev) admin.
+  const session = await requireAdminPageSession()
+  const viewerRole = session?.role ?? 'owner'
+  const viewerEmail = session?.email ?? 'break-glass (password)'
   const team = getTeamConfig()
 
   return (
