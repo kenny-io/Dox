@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { siteConfig } from '@/data/site'
 import { isAdminEnabled, isDocsAccessEnabled } from '@/lib/admin/auth'
 import { getAiConfig, getI18nConfig, isAnalyticsEnabled } from '@/data/docs'
@@ -7,27 +8,32 @@ type Tone = 'success' | 'warn' | 'neutral'
 
 function Row({ label, value, tone = 'neutral', hint }: { label: string; value: ReactNode; tone?: Tone; hint?: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b py-3.5 last:border-b-0" style={{ borderColor: 'var(--ds-border-subtle)' }}>
+    <div className="ds-setting-row">
       <div className="min-w-0">
-        <div style={{ fontSize: 'var(--ds-text-body)', fontWeight: 'var(--ds-fw-medium)', color: 'var(--ds-text-primary)' }}>{label}</div>
-        {hint ? <div style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>{hint}</div> : null}
+        <div className="ds-setting-row-label">{label}</div>
+        {hint ? (
+          <div className="ds-setting-row-desc" style={{ fontFamily: /[A-Z_]{4,}/.test(hint) ? 'var(--ds-font-mono)' : undefined }}>
+            {hint}
+          </div>
+        ) : null}
       </div>
-      <span className={`ds-chip shrink-0 ds-chip--${tone === 'neutral' ? 'neutral' : tone}`}>{value}</span>
+      <span className={`ds-chip ds-setting-row-value ds-chip--${tone === 'neutral' ? 'neutral' : tone}`}>
+        {tone === 'success' ? <span className="ds-dot" /> : null}
+        {value}
+      </span>
     </div>
   )
 }
 
-function Panel({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
+function Group({ title, desc, children }: { title: string; desc?: string; children: ReactNode }) {
   return (
-    <div className="ds-panel">
-      <div className="ds-panel-head">
-        <div>
-          <div className="ds-panel-title">{title}</div>
-          {sub ? <div className="ds-panel-sub">{sub}</div> : null}
-        </div>
+    <section className="ds-setting-group">
+      <div className="ds-setting-group-head">
+        <h2 className="ds-setting-group-title">{title}</h2>
+        {desc ? <p className="ds-setting-group-desc">{desc}</p> : null}
       </div>
-      <div>{children}</div>
-    </div>
+      <div className="ds-setting-list">{children}</div>
+    </section>
   )
 }
 
@@ -50,49 +56,74 @@ export function SettingsView() {
   const chatTone: Tone = !ai.chat ? 'neutral' : ownerKey ? 'success' : trialKey ? 'warn' : 'warn'
 
   return (
-    <div className="space-y-6">
-      <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)', maxWidth: '60ch' }}>
-        These reflect your current configuration. Settings are managed in <code style={{ fontFamily: 'var(--ds-font-mono)' }}>docs.json</code>,{' '}
-        <code style={{ fontFamily: 'var(--ds-font-mono)' }}>src/data/site.ts</code>, and environment variables — see the{' '}
-        <a href="/guides/extending" style={{ color: 'var(--ds-accent-mid)', fontWeight: 'var(--ds-fw-semibold)' }}>Extending Dox</a> guide.
-      </p>
+    <div className="ds-rise">
+      <header className="mb-8">
+        <h1
+          style={{
+            fontFamily: 'var(--ds-font-heading)',
+            fontSize: 'var(--ds-text-h2)',
+            fontWeight: 'var(--ds-fw-bold)',
+            letterSpacing: 'var(--ds-tracking-tight)',
+            lineHeight: 1.1,
+          }}
+        >
+          Settings
+        </h1>
+        <p className="mt-1.5" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)', maxWidth: '64ch' }}>
+          A read-only view of your current configuration. Values are managed in{' '}
+          <code style={{ fontFamily: 'var(--ds-font-mono)' }}>docs.json</code>,{' '}
+          <code style={{ fontFamily: 'var(--ds-font-mono)' }}>src/data/site.ts</code>, and environment variables — see the{' '}
+          <Link href="/guides/extending" style={{ color: 'var(--ds-accent-mid)', fontWeight: 'var(--ds-fw-semibold)' }}>
+            Extending Dox
+          </Link>{' '}
+          guide.
+        </p>
+      </header>
 
-      <div className="dash-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-        <Panel title="Site">
-          <Row label="Name" value={siteConfig.name} />
-          <Row label="Repository" value={siteConfig.repoUrl ? 'Linked' : 'Not set'} tone={siteConfig.repoUrl ? 'success' : 'neutral'} hint={siteConfig.repoUrl || undefined} />
-          <Row label="Description" value={siteConfig.description ? 'Set' : 'Not set'} tone={siteConfig.description ? 'success' : 'neutral'} />
-        </Panel>
+      <Group title="Site" desc="Identity and metadata for your documentation site.">
+        <Row label="Name" value={siteConfig.name} />
+        <Row
+          label="Repository"
+          value={siteConfig.repoUrl ? 'Linked' : 'Not set'}
+          tone={siteConfig.repoUrl ? 'success' : 'neutral'}
+          hint={siteConfig.repoUrl || undefined}
+        />
+        <Row label="Description" value={siteConfig.description ? 'Set' : 'Not set'} tone={siteConfig.description ? 'success' : 'neutral'} />
+      </Group>
 
-        <Panel title="Access & authentication">
-          <Row label="Admin dashboard" value={adminOn ? 'Enabled' : 'Off'} tone={adminOn ? 'success' : 'neutral'} hint="DOX_ADMIN_PASSWORD" />
-          <Row label="Docs access protection" value={accessOn ? 'Password-gated' : 'Public'} tone={accessOn ? 'success' : 'neutral'} hint="DOX_ACCESS_PASSWORD" />
-        </Panel>
+      <Group title="Access & authentication" desc="Who can reach the admin console and the docs themselves.">
+        <Row label="Admin dashboard" value={adminOn ? 'Enabled' : 'Off'} tone={adminOn ? 'success' : 'neutral'} hint="DOX_ADMIN_PASSWORD" />
+        <Row
+          label="Docs access protection"
+          value={accessOn ? 'Password-gated' : 'Public'}
+          tone={accessOn ? 'success' : 'neutral'}
+          hint="DOX_ACCESS_PASSWORD"
+        />
+      </Group>
 
-        <Panel title="Analytics">
-          <Row label="Collection" value={analyticsOn ? 'On' : 'Off'} tone={analyticsOn ? 'success' : 'neutral'} />
-          <Row label="Store" value="Durable" tone="success" hint={analyticsStore()} />
-        </Panel>
+      <Group title="Analytics" desc="First-party traffic and engagement collection.">
+        <Row label="Collection" value={analyticsOn ? 'On' : 'Off'} tone={analyticsOn ? 'success' : 'neutral'} />
+        <Row label="Store" value="Durable" tone="success" hint={analyticsStore()} />
+      </Group>
 
-        <Panel title="AI chat">
-          <Row label="Chat widget" value={chatStatus} tone={chatTone} hint="ANTHROPIC_API_KEY / DOX_TRIAL_ANTHROPIC_KEY" />
-          <Row label="Retrieval" value="RAG + citations" tone="success" />
-        </Panel>
+      <Group title="AI chat" desc="The retrieval-augmented assistant embedded in your docs.">
+        <Row label="Chat widget" value={chatStatus} tone={chatTone} hint="ANTHROPIC_API_KEY / DOX_TRIAL_ANTHROPIC_KEY" />
+        <Row label="Retrieval" value="RAG + citations" tone="success" />
+      </Group>
 
-        <Panel title="Localization">
-          <Row
-            label="Languages"
-            value={i18n ? `${i18n.locales.length} locales` : 'Single locale'}
-            tone={i18n ? 'success' : 'neutral'}
-            hint={i18n ? i18n.locales.map((l) => l.code).join(', ') : 'en'}
-          />
-        </Panel>
+      <Group title="Localization" desc="Languages your documentation is available in.">
+        <Row
+          label="Languages"
+          value={i18n ? `${i18n.locales.length} locales` : 'Single locale'}
+          tone={i18n ? 'success' : 'neutral'}
+          hint={i18n ? i18n.locales.map((l) => l.code).join(', ') : 'en'}
+        />
+      </Group>
 
-        <Panel title="Agents">
-          <Row label="Agent endpoints" value="Live" tone="success" hint="llms.txt, ai.txt, docs-index, agent-readiness" />
-          <Row label="Structured data" value="JSON-LD" tone="success" />
-        </Panel>
-      </div>
+      <Group title="Agents" desc="Machine-readable surfaces that make your docs agent-native.">
+        <Row label="Agent endpoints" value="Live" tone="success" hint="llms.txt, ai.txt, docs-index, agent-readiness" />
+        <Row label="Structured data" value="JSON-LD" tone="success" />
+      </Group>
     </div>
   )
 }

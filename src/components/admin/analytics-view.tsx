@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { AnalyticsRange, AnalyticsSummary } from '@/lib/analytics/types'
@@ -11,10 +11,12 @@ const RANGES: Array<{ id: AnalyticsRange; label: string }> = [
   { id: '90d', label: '90 days' },
 ]
 
-function seriesBar(series: 1 | 2): CSSProperties {
-  return {
-    background: `linear-gradient(180deg, var(--ds-series-${series}) 0%, color-mix(in oklch, var(--ds-series-${series}) 55%, transparent) 100%)`,
-  }
+function niceMax(value: number): number {
+  if (value <= 5) return 5
+  const pow = Math.pow(10, Math.floor(Math.log10(value)))
+  const scaled = value / pow
+  const step = scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10
+  return step * pow
 }
 
 function StatCard({
@@ -22,16 +24,14 @@ function StatCard({
   value,
   hint,
   modifier,
-  delay,
 }: {
   label: string
   value: string | number
   hint?: ReactNode
   modifier?: string
-  delay: number
 }) {
   return (
-    <div className={cn('ds-stat-card ds-rise', modifier)} style={{ animationDelay: `${delay}ms` }}>
+    <div className={cn('ds-stat-card', modifier)}>
       <span className="ds-stat-card-label">{label}</span>
       <span className="ds-stat-card-value">{value}</span>
       {hint ? <div className="ds-stat-card-footer">{hint}</div> : null}
@@ -40,7 +40,11 @@ function StatCard({
 }
 
 function TrafficChart({ data }: { data: AnalyticsSummary['dailyTraffic'] }) {
-  const max = Math.max(...data.map((d) => d.total), 1)
+  const max = niceMax(Math.max(...data.map((d) => d.total), 1))
+  const gridLines = [1, 0.75, 0.5, 0.25, 0]
+  // Show at most ~6 evenly-spaced date ticks so the axis never crowds.
+  const tickEvery = Math.max(1, Math.ceil(data.length / 6))
+
   return (
     <div className="ds-panel">
       <div className="ds-panel-head">
@@ -57,33 +61,47 @@ function TrafficChart({ data }: { data: AnalyticsSummary['dailyTraffic'] }) {
           </span>
         </div>
       </div>
-      <div className="flex h-52 items-end gap-[3px]">
-        {data.length === 0 ? (
-          <p className="m-auto" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
-            No traffic recorded yet for this range.
-          </p>
-        ) : (
-          data.map((point) => (
-            <div key={point.date} className="group flex flex-1 flex-col items-center gap-1">
-              <div className="flex w-full flex-col justify-end gap-0.5" style={{ height: '12rem' }}>
-                <div
-                  className="w-full rounded-t-[3px]"
-                  style={{ ...seriesBar(2), height: `${(point.agent / max) * 100}%`, minHeight: point.agent ? 2 : 0 }}
-                  title={`Agent: ${point.agent}`}
-                />
-                <div
-                  className="w-full rounded-t-[3px]"
-                  style={{ ...seriesBar(1), height: `${(point.human / max) * 100}%`, minHeight: point.human ? 2 : 0 }}
-                  title={`Human: ${point.human}`}
-                />
+
+      {data.length === 0 ? (
+        <div className="flex h-56 items-center justify-center" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
+          No traffic recorded yet for this range.
+        </div>
+      ) : (
+        <div className="ds-chart">
+          {/* Gridlines + y labels */}
+          <div className="ds-chart-plot">
+            {gridLines.map((g) => (
+              <div key={g} className="ds-chart-gridline" style={{ bottom: `${g * 100}%` }}>
+                <span className="ds-chart-ylabel">{Math.round(max * g).toLocaleString()}</span>
               </div>
-              <span className="hidden group-hover:block" style={{ fontSize: 'var(--ds-text-micro)', color: 'var(--ds-text-faint)' }}>
-                {point.date.slice(5)}
-              </span>
+            ))}
+            <div className="ds-chart-bars">
+              {data.map((point) => (
+                <div key={point.date} className="ds-chart-col group" title={`${point.date} · ${point.human} human · ${point.agent} agent`}>
+                  <div className="ds-chart-stack">
+                    <div
+                      className="ds-chart-seg"
+                      style={{ background: 'var(--ds-series-2)', height: `${(point.agent / max) * 100}%`, minHeight: point.agent ? 2 : 0 }}
+                    />
+                    <div
+                      className="ds-chart-seg ds-chart-seg--base"
+                      style={{ background: 'var(--ds-series-1)', height: `${(point.human / max) * 100}%`, minHeight: point.human ? 2 : 0 }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))
-        )}
-      </div>
+          </div>
+          {/* X axis */}
+          <div className="ds-chart-xaxis">
+            {data.map((point, i) => (
+              <div key={point.date} className="ds-chart-xtick">
+                {i % tickEvery === 0 ? point.date.slice(5) : ''}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -97,6 +115,7 @@ function TopPagesTable({
   rows: Array<{ path: string; views: number }>
   emptyLabel: string
 }) {
+  const max = Math.max(...rows.map((r) => r.views), 1)
   return (
     <div className="ds-panel">
       <div className="ds-panel-head">
@@ -105,38 +124,39 @@ function TopPagesTable({
       {rows.length === 0 ? (
         <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>{emptyLabel}</p>
       ) : (
-        <table className="ds-table">
-          <thead>
-            <tr>
-              <th>Page</th>
-              <th className="ds-num">Views</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.path}>
-                <td className="max-w-0">
-                  <span className="block truncate" title={row.path} style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 'var(--ds-text-sm)' }}>
-                    {row.path}
-                  </span>
-                </td>
-                <td className="ds-num">
-                  <strong style={{ fontWeight: 'var(--ds-fw-semibold)' }}>{row.views.toLocaleString()}</strong>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <div key={row.path} className="flex items-center gap-3">
+              <span
+                className="min-w-0 flex-1 truncate"
+                title={row.path}
+                style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-secondary)' }}
+              >
+                {row.path}
+              </span>
+              <span className="ds-bar-track" aria-hidden>
+                <span className="ds-bar-fill" style={{ width: `${(row.views / max) * 100}%` }} />
+              </span>
+              <span
+                className="w-12 text-right tabular-nums"
+                style={{ fontSize: 'var(--ds-text-sm)', fontWeight: 'var(--ds-fw-semibold)', color: 'var(--ds-text-primary)' }}
+              >
+                {row.views.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
 }
 
-function ListPanel({ title, children }: { title: string; children: ReactNode }) {
+function ListPanel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <div className="ds-panel">
       <div className="ds-panel-head">
         <div className="ds-panel-title">{title}</div>
+        {action}
       </div>
       {children}
     </div>
@@ -179,13 +199,21 @@ export function AnalyticsView() {
     data && data.totals.pageViews > 0 ? Math.round((data.totals.agentViews / data.totals.pageViews) * 100) : 0
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="ds-rise">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="ds-eyebrow">Traffic &amp; engagement</div>
-          <h2 className="ds-section-title" style={{ marginBottom: 0 }}>
+          <h1
+            style={{
+              fontFamily: 'var(--ds-font-heading)',
+              fontSize: 'var(--ds-text-h2)',
+              fontWeight: 'var(--ds-fw-bold)',
+              letterSpacing: 'var(--ds-tracking-tight)',
+              lineHeight: 1.1,
+            }}
+          >
             Audience
-          </h2>
+          </h1>
         </div>
         <div className="ds-segmented" role="tablist" aria-label="Date range">
           {RANGES.map((item) => (
@@ -204,18 +232,32 @@ export function AnalyticsView() {
       </div>
 
       {loading ? (
-        <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>Loading analytics…</p>
+        <div className="space-y-6">
+          <div className="dash-grid dash-grid--4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="ds-stat-card">
+                <div className="ds-skeleton" style={{ width: 90, height: 12 }} />
+                <div className="ds-skeleton" style={{ width: 64, height: 30 }} />
+                <div className="ds-skeleton" style={{ width: 72, height: 12 }} />
+              </div>
+            ))}
+          </div>
+          <div className="ds-panel">
+            <div className="ds-skeleton" style={{ width: '100%', height: 224 }} />
+          </div>
+        </div>
       ) : error ? (
-        <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-danger)' }}>{error}</p>
+        <div className="ds-panel">
+          <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-danger)' }}>{error}</p>
+        </div>
       ) : data ? (
         <div className="space-y-6">
           <div className="dash-grid dash-grid--4">
-            <StatCard label="Total page views" value={data.totals.pageViews.toLocaleString()} delay={40} />
+            <StatCard label="Total page views" value={data.totals.pageViews.toLocaleString()} />
             <StatCard
               label="Human traffic"
               value={data.totals.humanViews.toLocaleString()}
               hint={`${100 - agentShare}% of views`}
-              delay={90}
             />
             <StatCard
               label="Agent traffic"
@@ -226,13 +268,11 @@ export function AnalyticsView() {
                   <span className="ds-chip ds-chip--accent">{agentShare}%</span> of views
                 </>
               }
-              delay={140}
             />
             <StatCard
               label="Discovery hits"
               value={data.totals.discoveryHits.toLocaleString()}
               hint="llms.txt, ai.txt, docs-index"
-              delay={190}
             />
           </div>
 
@@ -257,7 +297,10 @@ export function AnalyticsView() {
                 >
                   {(data.totals.feedbackYes + data.totals.feedbackNo).toLocaleString()}
                 </span>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <span className="mt-1.5" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
+                  feedback signals collected
+                </span>
+                <div className="mt-5 flex flex-wrap gap-2">
                   <span className="ds-chip ds-chip--success">{data.totals.feedbackYes} helpful</span>
                   <span className="ds-chip ds-chip--warn">{data.totals.feedbackNo} not helpful</span>
                   <span className="ds-chip ds-chip--neutral">{data.totals.chatMessages} chat</span>
@@ -326,39 +369,38 @@ export function AnalyticsView() {
               </div>
             ) : (
               <div className="dash-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                <div className="ds-panel">
-                  <div className="ds-panel-head">
-                    <div className="ds-panel-title">Top search terms</div>
+                <ListPanel
+                  title="Top search terms"
+                  action={
                     <span className="ds-chip ds-chip--neutral">
                       {data.search.totalSearches.toLocaleString()} searches · {Math.round(data.search.clickThroughRate * 100)}% CTR
                     </span>
+                  }
+                >
+                  <div className="space-y-3">
+                    {data.search.topTerms.map((t) => {
+                      const termMax = Math.max(...data.search.topTerms.map((x) => x.count), 1)
+                      return (
+                        <div key={t.term} className="flex items-center gap-3">
+                          <span className="min-w-0 flex-1 truncate" title={t.term} style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-secondary)' }}>
+                            {t.term}
+                          </span>
+                          <span className="ds-bar-track" aria-hidden>
+                            <span className="ds-bar-fill" style={{ width: `${(t.count / termMax) * 100}%` }} />
+                          </span>
+                          <span className="w-10 text-right tabular-nums" style={{ fontSize: 'var(--ds-text-sm)', fontWeight: 'var(--ds-fw-semibold)' }}>
+                            {t.count.toLocaleString()}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
-                  <table className="ds-table">
-                    <thead>
-                      <tr>
-                        <th>Term</th>
-                        <th className="ds-num">Searches</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.search.topTerms.map((t) => (
-                        <tr key={t.term}>
-                          <td className="max-w-0">
-                            <span className="block truncate" title={t.term}>{t.term}</span>
-                          </td>
-                          <td className="ds-num">
-                            <strong style={{ fontWeight: 'var(--ds-fw-semibold)' }}>{t.count.toLocaleString()}</strong>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                </ListPanel>
 
                 <ListPanel title="Content gaps — zero results">
                   {data.search.zeroResults.length === 0 ? (
                     <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
-                      Every search found something. 🎉
+                      Every search found something.
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
