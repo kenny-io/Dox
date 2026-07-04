@@ -8,7 +8,7 @@ import docsNavigationConfig from '../../docs.json' assert { type: 'json' }
 // Public interfaces (consumed by components, pages, and stores)
 // ---------------------------------------------------------------------------
 
-export type DocPageMode = 'default' | 'wide' | 'custom' | 'center'
+export type DocPageMode = 'default' | 'wide' | 'custom' | 'center' | 'home'
 
 export interface DocEntry {
   id: string
@@ -22,6 +22,10 @@ export interface DocEntry {
   component: ComponentType<Record<string, unknown>>
   timeEstimate: string
   lastUpdated: string
+  /** Public provenance: ISO date a human last confirmed this page is accurate. */
+  lastVerified?: string
+  /** Public provenance: product version this page was verified against. */
+  verifiedVersion?: string
   openapi?: OpenApiReference
   noindex?: boolean
   hidden?: boolean
@@ -181,7 +185,7 @@ interface DocsJsonConfig {
   theme?: StructuralTheme
   ai?: {
     chat?: boolean
-    /** Label shown on the FAB and in the chat header. Defaults to "DoxAI". */
+    /** Label shown on the FAB and in the chat header. Defaults to "Ask AI". */
     label?: string
     /**
      * Icon shown on the FAB. Either a named icon ("sparkles" | "zap" | "bot" |
@@ -207,6 +211,20 @@ interface DocsJsonConfig {
     defaultLocale: string
     locales: Array<{ code: string; label: string }>
   }
+  /**
+   * Admin-dashboard team — the git-committed roster (C1). Version-controlled and
+   * code-reviewed, so team-mode needs no database, even on serverless. Explicit
+   * members win over domain defaults.
+   */
+  team?: {
+    members?: Array<{ email: string; role: 'owner' | 'editor' | 'viewer' }>
+    domains?: Array<{ domain: string; role: 'owner' | 'editor' | 'viewer' }>
+  }
+}
+
+export interface TeamConfig {
+  members: Array<{ email: string; role: 'owner' | 'editor' | 'viewer' }>
+  domains: Array<{ domain: string; role: 'owner' | 'editor' | 'viewer' }>
 }
 
 // ---------------------------------------------------------------------------
@@ -223,10 +241,12 @@ interface FrontmatterData {
   keywords?: Array<string>
   timeEstimate?: string
   lastUpdated?: string
+  lastVerified?: string
+  verifiedVersion?: string
   openapi?: string
   hidden?: boolean
   noindex?: boolean
-  mode?: 'default' | 'wide' | 'custom' | 'center'
+  mode?: DocPageMode
 }
 
 const frontmatterCache = new Map<string, FrontmatterData>()
@@ -327,6 +347,8 @@ function buildDocEntryFromPageId(pageId: string): DocEntry {
     component: Placeholder,
     timeEstimate: fm.timeEstimate ?? '5 min',
     lastUpdated: fm.lastUpdated ?? '',
+    lastVerified: fm.lastVerified,
+    verifiedVersion: fm.verifiedVersion,
   }
 }
 
@@ -645,6 +667,14 @@ export function isAdminDashboardEnabled(): boolean {
 
 export function getI18nConfig(): { defaultLocale: string; locales: Array<{ code: string; label: string }> } | null {
   return docsConfig.i18n ?? null
+}
+
+/** The git-committed admin team roster (C1). Always returns arrays. */
+export function getTeamConfig(): TeamConfig {
+  return {
+    members: docsConfig.team?.members ?? [],
+    domains: docsConfig.team?.domains ?? [],
+  }
 }
 
 export function getBannerConfig(): DocsJsonBanner | null {

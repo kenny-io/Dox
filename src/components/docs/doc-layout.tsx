@@ -26,6 +26,22 @@ export function DocLayout({ doc, children }: DocLayoutProps) {
     return <>{children}</>
   }
 
+  // home mode: a landing moment — no breadcrumbs, header, or TOC. The page's
+  // own <Hero> and card grid carry the art direction; only the "next" link
+  // remains at the foot to keep readers moving into the docs.
+  if (mode === 'home') {
+    return (
+      <article className="flex-1">
+        <div className="space-y-16">
+          <Prose className="max-w-none">{children}</Prose>
+          <div className="not-prose">
+            <DocPagination prev={prev} next={next} />
+          </div>
+        </div>
+      </article>
+    )
+  }
+
   // center mode: single centered column, no sidebar-style TOC
   if (mode === 'center') {
     return (

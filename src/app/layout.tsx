@@ -136,13 +136,9 @@ export const metadata: Metadata = {
     template: `%s • ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  keywords: [
-    'documentation template',
-    'next.js',
-    'mintlify alternative',
-    'tailwind css',
-    'radix ui',
-  ],
+  // Derived from the site config so scaffolded sites never inherit
+  // template-marketing keywords.
+  keywords: [siteConfig.name, `${siteConfig.name} documentation`, 'docs'],
   icons: {
     icon: '/icon',
     shortcut: '/icon',

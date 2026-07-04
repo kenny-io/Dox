@@ -4,7 +4,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { ComponentType } from 'react'
 import { compileMDX } from 'next-mdx-remote/rsc'
-import type { DocEntry, OpenApiReference } from '@/data/docs'
+import type { DocEntry, DocPageMode, OpenApiReference } from '@/data/docs'
 import { deriveTitleFromSlug, getI18nConfig } from '@/data/docs'
 import { remarkPlugins } from '@/mdx/remark'
 import { rehypePlugins } from '@/mdx/rehype'
@@ -22,7 +22,7 @@ interface DocFrontmatter {
   openapi?: string
   noindex?: boolean
   hidden?: boolean
-  mode?: 'default' | 'wide' | 'custom' | 'center'
+  mode?: DocPageMode
 }
 
 const localDocsRoot = path.join(process.cwd(), 'src/content')

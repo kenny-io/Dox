@@ -7,11 +7,12 @@ var COMMANDS = [
   { name: "build", summary: "Build the production site", usage: "dox build" },
   { name: "start", summary: "Serve the built production site", usage: "dox start" },
   { name: "deploy", summary: "Build and deploy to a live URL", usage: "dox deploy [--prod] [--cloudflare]" },
-  { name: "check", summary: "Lint content + Agent Readiness Score", usage: "dox check [--agents] [--fix] [--ci]" },
+  { name: "check", summary: "Lint content + Agent Readiness Score", usage: "dox check [--agents] [--fix] [--ci] [--drift]" },
   { name: "new", summary: "Create a new page and register it in docs.json", usage: 'dox new <page-id> [--title "..."]' },
   { name: "migrate", summary: "Migrate docs from a GitHub URL", usage: "dox migrate <github-url> [dir]" },
   { name: "translate", summary: "Translate content into a locale", usage: "dox translate --locale <code>" },
-  { name: "mcp", summary: "Start the Model Context Protocol server (stdio)", usage: "dox mcp" }
+  { name: "mcp", summary: "Start the Model Context Protocol server (stdio)", usage: "dox mcp" },
+  { name: "agent", summary: "Draft docs from a task (PR, diff, or instruction) as a reviewed PR", usage: 'dox agent "<instruction>" [--diff <ref>] [--from-pr <url>] [--dry-run] [--pr]' }
 ];
 function parseArgs(argv) {
   const command = argv[0] && !argv[0].startsWith("-") ? argv[0] : void 0;
@@ -194,6 +195,7 @@ async function runCheck(args) {
   if (args.hasFlag("--fix")) contentArgs.push("--fix");
   if (args.hasFlag("--ci")) contentArgs.push("--ci");
   if (args.hasFlag("--external")) contentArgs.push("--external");
+  if (args.hasFlag("--drift")) contentArgs.push("--drift");
   let exit = await runPackageBin("create-dox", "create-dox", contentArgs);
   if (args.hasFlag("--agents")) {
     const scripts = projectScripts();
@@ -266,6 +268,118 @@ async function runDeploy(args) {
   return 0;
 }
 
+// src/commands/agent.ts
+import Anthropic from "@anthropic-ai/sdk";
+import {
+  runAgent,
+  resolveDiff,
+  resolvePrContext,
+  scaffoldAgentWorkflow
+} from "@doxlabs/agent";
+function runAgentInit(args) {
+  const docsRepo = args.getFlag("--repo") ?? "<owner>/<docs-repo>";
+  const { written, senderSnippet } = scaffoldAgentWorkflow(process.cwd(), docsRepo);
+  for (const file of written) process.stdout.write(`
+  \u2713 Wrote ${file}`);
+  process.stdout.write("\n");
+  process.stdout.write("\n  Add two secrets to THIS docs repo:\n");
+  process.stdout.write("    - ANTHROPIC_API_KEY   (runs the agent)\n");
+  process.stdout.write("    - DOX_AGENT_TOKEN     (fine-grained PAT/App: write here, read on product repos)\n");
+  process.stdout.write("\n  Then in each PRODUCT repo, add .github/workflows/dox-mention.yml:\n\n");
+  process.stdout.write(
+    senderSnippet.split("\n").map((l) => `    ${l}`).join("\n")
+  );
+  process.stdout.write("\n  \u2026and a DOX_DISPATCH_TOKEN secret there (dispatch access to this docs repo).\n\n");
+  return 0;
+}
+async function runAgentCommand(args) {
+  if (args.positionals[0] === "init") return runAgentInit(args);
+  const instruction = args.positionals.join(" ").trim();
+  const fromPr = args.getFlag("--from-pr");
+  const diffRef = args.getFlag("--diff");
+  if (!instruction && !fromPr) {
+    process.stderr.write(
+      '\n  Usage: dox agent "<what to document>" [--diff <ref>] [--from-pr <url>] [--dry-run] [--pr]\n\n'
+    );
+    return 1;
+  }
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  if (!apiKey) {
+    process.stderr.write("\n  Set ANTHROPIC_API_KEY to run the docs agent.\n\n");
+    return 1;
+  }
+  let context = "";
+  try {
+    if (fromPr) context = resolvePrContext(fromPr);
+    else if (diffRef) context = resolveDiff(process.cwd(), diffRef);
+  } catch (err) {
+    process.stderr.write(`
+  ${err instanceof Error ? err.message : String(err)}
+
+`);
+    return 1;
+  }
+  const mode = args.hasFlag("--dry-run") ? "dry-run" : args.hasFlag("--pr") ? "pr" : "write";
+  const task = {
+    instruction: instruction || `Document the changes described in ${fromPr}`,
+    context: context || void 0,
+    source: "cli"
+  };
+  const real = new Anthropic({ apiKey });
+  const client = {
+    messages: { create: (body) => real.messages.create(body) }
+  };
+  process.stdout.write(`
+  \u{1F916} Dox docs agent \u2014 ${mode}
+
+`);
+  try {
+    const result = await runAgent(client, task, {
+      projectDir: process.cwd(),
+      mode,
+      onEvent: (event) => process.stdout.write(`  ${event}
+`)
+    });
+    if (result.noChanges) {
+      process.stdout.write("\n  No documentation changes were needed.\n\n");
+      return 0;
+    }
+    const v = result.validation;
+    process.stdout.write(`
+  ${result.summary}
+`);
+    process.stdout.write(
+      `
+  Validation: ${v.ok ? "\u2713 passed" : `\u2717 ${v.errors.length} error(s)`}${v.warnings.length ? ` \xB7 ${v.warnings.length} warning(s)` : ""}
+`
+    );
+    if (mode === "dry-run") {
+      process.stdout.write(`
+${result.diff}
+  (dry run \u2014 nothing was written)
+
+`);
+    } else if (mode === "pr" && result.prUrl) {
+      process.stdout.write(`
+  Pull request: ${result.prUrl}
+
+`);
+    } else {
+      process.stdout.write(`
+  Edits are on branch "${result.branch}" \u2014 review, then commit or open a PR.
+
+`);
+    }
+    return v.ok ? 0 : 1;
+  } catch (err) {
+    process.stderr.write(`
+  Agent failed: ${err instanceof Error ? err.message : String(err)}
+
+`);
+    return 1;
+  }
+}
+
 // src/index.ts
 var [major] = process.versions.node.split(".").map(Number);
 if (major < 18) {
@@ -314,6 +428,9 @@ async function main() {
       return runPackageBin("create-dox", "create-dox", ["translate", ...args.rest]);
     case "mcp":
       return runPackageBin("@doxlabs/mcp", "dox-mcp", args.rest);
+    case "agent":
+      requireProject();
+      return runAgentCommand(args);
     default:
       process.stderr.write(`
   Unknown command: ${args.command}

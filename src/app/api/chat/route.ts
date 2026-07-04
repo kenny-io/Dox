@@ -4,6 +4,7 @@ import { trackAnalyticsEvent } from '@/lib/analytics/store'
 import { getAiConfig } from '@/data/docs'
 import { siteConfig } from '@/data/site'
 import { getRelevantChunks } from '@/lib/embeddings'
+import { recordChatInsight, WEAK_SCORE } from '@/lib/chat-insights'
 import { getSiteUrl } from '@/lib/site-url'
 import { resolveAnthropicKey, checkChatRateLimit } from '@/lib/ai/chat-access'
 import type { RetrievalResult } from '@/lib/embeddings'
@@ -119,6 +120,17 @@ export async function POST(request: NextRequest): Promise<Response> {
   const query = latestUserQuery(messages)
   const results = await getRelevantChunks(query, { k: MAX_CHUNKS, tokenBudget: CONTEXT_TOKEN_BUDGET })
   const { context, citations } = buildRetrievedContext(results)
+
+  // Record the exchange for insights (best-effort, opt-out via DOX_CHAT_INSIGHTS=off).
+  const topScore = results[0]?.score ?? 0
+  recordChatInsight({
+    question: query.slice(0, 500),
+    chunkCount: results.length,
+    topScore,
+    slugs: citations.map((c) => c.url).slice(0, 5),
+    tier,
+    weak: results.length === 0 || topScore < WEAK_SCORE,
+  })
 
   const persona = aiConfig.systemPrompt?.trim()
   const sourceList = citations

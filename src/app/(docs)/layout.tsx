@@ -5,6 +5,7 @@ import type { NavigationSection } from '@/data/docs'
 import { getClientSearchCorpus } from '@/lib/search/corpus'
 import { buildApiNavigation } from '@/data/api-reference'
 import { DocsChat } from '@/components/docs/docs-chat'
+import { resolveAnthropicKey } from '@/lib/ai/chat-access'
 
 interface DocsLayoutProps {
   children: React.ReactNode
@@ -51,7 +52,7 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
       >
         {children}
       </SiteShell>
-      {aiConfig.chat && <DocsChat label={aiConfig.label} icon={aiConfig.icon} />}
+      {aiConfig.chat && <DocsChat label={aiConfig.label} icon={aiConfig.icon} enabled={Boolean(resolveAnthropicKey())} />}
     </>
   )
 }

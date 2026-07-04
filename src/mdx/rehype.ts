@@ -93,16 +93,72 @@ function escapeHtml(value: string): string {
  * Render themed tokens to the same inner HTML the old Shiki `renderToHtml`
  * produced for this pipeline: one `<span>` per line wrapping per-token color
  * spans, with no `<pre>`/`<code>` wrapper (those already exist in the tree).
+ * Lines listed in `highlightedLines` (1-based) get a class styled in
+ * globals.css.
  */
-function tokensToHtml(lines: Array<Array<ThemedToken>>): string {
+function tokensToHtml(lines: Array<Array<ThemedToken>>, highlightedLines: Set<number>): string {
   return lines
-    .map((line) => {
+    .map((line, index) => {
       const inner = line
         .map((token) => `<span style="color:${token.color ?? 'inherit'}">${escapeHtml(token.content)}</span>`)
         .join('')
-      return `<span>${inner}</span>`
+      const highlightClass = highlightedLines.has(index + 1) ? ' class="dox-line-highlight"' : ''
+      return `<span${highlightClass}>${inner}</span>`
     })
     .join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// Fence meta parsing — supports:
+//   ```ts api-client.ts          (bare token → title)
+//   ```ts title="api-client.ts"  (explicit title/filename attribute)
+//   ```ts {2,4-6}                (highlighted lines)
+//   ```ts highlight={2,4-6}      (highlighted lines, explicit form)
+//   ```bash wrap                 (soft-wrap long lines)
+// ---------------------------------------------------------------------------
+
+interface CodeFenceMeta {
+  title?: string
+  wrap?: boolean
+  highlight?: Array<number>
+}
+
+function expandLineRanges(spec: string): Array<number> {
+  const lines: Array<number> = []
+  for (const part of spec.split(',')) {
+    const trimmed = part.trim()
+    if (!trimmed) continue
+    const range = trimmed.match(/^(\d+)-(\d+)$/)
+    if (range) {
+      for (let line = Number(range[1]); line <= Number(range[2]); line += 1) lines.push(line)
+    } else if (/^\d+$/.test(trimmed)) {
+      lines.push(Number(trimmed))
+    }
+  }
+  return lines
+}
+
+function parseCodeFenceMeta(meta: string): CodeFenceMeta {
+  const result: CodeFenceMeta = {}
+  const tokens = meta.match(/[^\s"{]+="[^"]*"|\{[^}]*\}|\S+/g) ?? []
+  for (const token of tokens) {
+    if (token === 'wrap') {
+      result.wrap = true
+      continue
+    }
+    const highlightMatch = token.match(/^(?:highlight=)?\{([\d,\s-]+)\}$/)
+    if (highlightMatch) {
+      result.highlight = expandLineRanges(highlightMatch[1])
+      continue
+    }
+    const titleMatch = token.match(/^(?:title|filename)=["']?([^"']+)["']?$/)
+    if (titleMatch) {
+      result.title = titleMatch[1]
+      continue
+    }
+    if (!result.title) result.title = token
+  }
+  return result
 }
 
 function rehypeParseCodeBlocks() {
@@ -122,9 +178,20 @@ function rehypeParseCodeBlocks() {
             : ''
       const language = normalizeLanguage(languageClass.replace(/^language-/, '') || 'txt')
 
+      // The fence meta string (everything after the language) survives on the
+      // code node's data. Lift it onto the <pre> so the Pre/CodeGroup
+      // components receive title/wrap as props and Shiki sees the highlights.
+      const meta = (node.data as { meta?: string } | undefined)?.meta ?? ''
+      const parsedMeta = meta ? parseCodeFenceMeta(meta) : {}
+
       parent.properties = {
         ...parent.properties,
         language,
+        ...(parsedMeta.title ? { title: parsedMeta.title } : {}),
+        ...(parsedMeta.wrap ? { wrap: true } : {}),
+        ...(parsedMeta.highlight?.length
+          ? { highlightLines: parsedMeta.highlight.join(',') }
+          : {}),
       }
     })
   }
@@ -172,7 +239,9 @@ function rehypeShiki() {
         lang: language as Parameters<Highlighter['codeToTokensBase']>[1]['lang'],
         theme: cssVariablesTheme,
       })
-      target.textNode.value = tokensToHtml(lines)
+      const highlightSpec = target.node.properties?.highlightLines as string | undefined
+      const highlightedLines = new Set(highlightSpec ? expandLineRanges(highlightSpec) : [])
+      target.textNode.value = tokensToHtml(lines, highlightedLines)
     }
   }
 }
