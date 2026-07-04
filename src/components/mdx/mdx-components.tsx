@@ -15,6 +15,7 @@ import { View } from '@/components/mdx/view'
 import { Steps, Step } from '@/components/mdx/steps'
 import { Tabs, Tab } from '@/components/mdx/content-tabs'
 import { HeadingAnchor } from '@/components/mdx/heading-anchor'
+import { customComponents } from '@/mdx/custom-components'
 import { cn, slugify } from '@/lib/utils'
 
 function flattenText(node: ReactNode): string {
@@ -118,6 +119,9 @@ export function useMDXComponents(existing: MDXComponents) {
   return {
     ...existing,
     ...components,
+    // User-registered components (src/mdx/custom-components.tsx) merge last, so
+    // they can add new components or override any built-in above.
+    ...customComponents,
   }
 }
 

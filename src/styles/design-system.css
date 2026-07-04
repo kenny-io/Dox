@@ -591,6 +591,104 @@
 }
 
 /* ============================================================================
+   APP SHELL — a floating side-nav rail + scrollable content stage
+   (LI.FI "app rail": a panel that floats over the sunk page background).
+   ============================================================================ */
+.dox-dashboard.ds-shell,
+.dox-dashboard .ds-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--ds-surface-sunk);
+  color: var(--ds-text-primary);
+}
+.dox-dashboard .ds-rail {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  flex-shrink: 0;
+  width: 256px;
+  padding: var(--ds-space-16);
+  transition: width var(--ds-dur-base) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-rail[data-collapsed='true'] { width: 84px; }
+.dox-dashboard .ds-rail-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-4);
+  padding: var(--ds-space-16);
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  box-shadow: var(--ds-elev-2);
+}
+.dox-dashboard .ds-rail-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-12);
+  padding: var(--ds-space-8) var(--ds-space-8) var(--ds-space-16);
+  min-width: 0;
+}
+.dox-dashboard .ds-rail-group {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-text-micro);
+  font-weight: var(--ds-fw-semibold);
+  letter-spacing: var(--ds-tracking-wide);
+  text-transform: uppercase;
+  color: var(--ds-text-faint);
+  padding: 0 var(--ds-space-12);
+  margin: var(--ds-space-16) 0 var(--ds-space-4);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dox-dashboard .ds-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-12);
+  padding: var(--ds-space-8) var(--ds-space-12);
+  border-radius: var(--ds-radius-md);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-fw-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: color var(--ds-dur-fast) var(--ds-ease-standard),
+              background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+.dox-dashboard .ds-nav-item > svg { flex-shrink: 0; }
+.dox-dashboard .ds-nav-item:hover {
+  background: var(--ds-surface-tint);
+  color: var(--ds-text-secondary);
+}
+.dox-dashboard .ds-nav-item[aria-current='page'] {
+  background: var(--ds-accent-tint);
+  color: var(--ds-accent-mid);
+  font-weight: var(--ds-fw-semibold);
+}
+.dox-dashboard .ds-rail[data-collapsed='true'] .ds-rail-label,
+.dox-dashboard .ds-rail[data-collapsed='true'] .ds-rail-group {
+  display: none;
+}
+.dox-dashboard .ds-rail[data-collapsed='true'] .ds-nav-item { justify-content: center; }
+.dox-dashboard .ds-content {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+@media (max-width: 900px) {
+  .dox-dashboard .ds-rail {
+    position: fixed;
+    z-index: 40;
+    left: 0;
+    transform: translateX(-100%);
+  }
+  .dox-dashboard .ds-rail[data-open='true'] { transform: translateX(0); }
+  .dox-dashboard .ds-content { height: auto; }
+}
+
+/* ============================================================================
    GRID PRIMITIVES — compose the patterns above into dashboard layouts
    ============================================================================ */
 .dox-dashboard .dash-grid { display: grid; gap: var(--ds-space-16); }

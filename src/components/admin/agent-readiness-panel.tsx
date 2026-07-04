@@ -100,7 +100,8 @@ function SubscoreRow({ sub, index }: { sub: SubscoreResult; index: number }) {
                 href={offender.href}
                 target="_blank"
                 rel="noreferrer"
-                className="truncate hover:underline"
+                title={offender.href}
+                className="min-w-0 truncate hover:underline"
                 style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-secondary)' }}
               >
                 {offender.href}
