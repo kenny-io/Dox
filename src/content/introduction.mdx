@@ -26,6 +26,8 @@ Dox is an open-source documentation template that gives you a production-ready d
 - **Unified `dox` CLI** — one binary to `init`, `dev`, `build`, `deploy`, `new`, `migrate`, `translate`, `check`, and run the MCP server; the Next.js runtime stays a hidden implementation detail
 - **`create-dox`** — scaffold a new project, migrate from another platform, or lint your docs in one command
 - **CI checks** — `dox check --ci` validates internal links, heading anchors, and your OpenAPI spec, and fails pull requests on broken references (with GitHub annotations)
+- **Docs agent** — `dox agent "<what to document>"` (or a `@dox` comment on a product PR) drafts documentation edits on a git-sandboxed branch, self-checks with `dox check`, and opens a **reviewed pull request** — it never merges
+- **Provenance & drift** — `lastVerified` dates on every page, and `dox check --drift` flags pages whose source code changed since they were last verified
 - **MCP server (`@doxlabs/mcp`)** — 13 tools for Claude, Cursor, and any MCP client to create, edit, search, and migrate docs through natural language, plus query a deployed site's search and agent-readiness
 - **Migration** — import from Mintlify, Docusaurus, GitBook, Nextra, and more with `dox migrate`
 
@@ -37,7 +39,9 @@ Dox is an open-source documentation template that gives you a production-ready d
 - **`/api/docs/[slug]`** — individual pages as structured JSON, JSON-LD, or clean Markdown via content negotiation
 - **Agent manifests** — auto-generated `/skill.md` and `/AGENTS.md`, plus `/.well-known/llms.txt` and `Link` / `X-Llms-Txt` discovery headers so agents find everything without guessing
 - **One-click LLM hand-off** — open any page in ChatGPT, Claude, or Perplexity from the page's copy menu
-- **Admin analytics** — a self-hosted dashboard with human-vs-agent traffic, the Agent Readiness Score, and search analytics (top terms + zero-result content gaps)
+- **Admin analytics** — a self-hosted dashboard with human-vs-agent traffic, the Agent Readiness Score, search analytics, unified **content gaps** (questions the AI chat couldn't answer + zero-result searches), and a **docs-tasks queue** (the agent's PRs to review)
+- **Remote MCP server** — every deployed site is a Model Context Protocol endpoint at `/api/mcp`; any agent attaches with `claude mcp add --transport http <site>/api/mcp` and gets your docs as native tools
+- **Team accounts & roles** — gate the admin dashboard with Google/Microsoft sign-in (OIDC) and Owner/Editor/Viewer roles, from a git-committed roster in `docs.json` — no database, no per-seat pricing
 
 **Design & infrastructure**
 - **Dark mode** — automatic light/dark theming with customizable brand colors
