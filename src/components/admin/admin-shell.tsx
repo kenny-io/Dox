@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   MoonStar,
+  Palette,
   PanelLeft,
   PanelLeftClose,
   Plug,
@@ -52,6 +53,7 @@ const NAV: Array<NavGroup> = [
     label: 'Configuration',
     items: [
       { href: '/admin/team', label: 'Team', icon: Users },
+      { href: '/admin/branding', label: 'Branding', icon: Palette },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -64,6 +66,7 @@ const TITLES: Record<string, string> = {
   '/admin/tasks': 'Docs tasks',
   '/admin/mcp': 'MCP server',
   '/admin/team': 'Team',
+  '/admin/branding': 'Branding',
   '/admin/settings': 'Settings',
 }
 
