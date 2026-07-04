@@ -116,7 +116,7 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="ds-iconbtn ds-focusable md:hidden"
+            className="ds-iconbtn ds-focusable ds-mobile-only"
             aria-label="Close menu"
           >
             <X className="h-4 w-4" />
@@ -218,7 +218,7 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="ds-iconbtn ds-focusable md:hidden"
+            className="ds-iconbtn ds-focusable ds-mobile-only"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
@@ -232,7 +232,7 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
             <button
               type="button"
               onClick={() => setCmdOpen(true)}
-              className="ds-iconbtn ds-focusable md:hidden"
+              className="ds-iconbtn ds-focusable ds-mobile-only"
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
