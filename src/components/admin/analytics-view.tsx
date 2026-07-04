@@ -234,7 +234,7 @@ export function AnalyticsView() {
         </div>
       </div>
 
-      {loading ? (
+      {loading && !data ? (
         <div className="space-y-6">
           <div className="dash-grid dash-grid--4">
             {[0, 1, 2, 3].map((i) => (
@@ -249,12 +249,18 @@ export function AnalyticsView() {
             <div className="ds-skeleton" style={{ width: '100%', height: 224 }} />
           </div>
         </div>
-      ) : error ? (
+      ) : error && !data ? (
         <div className="ds-panel">
           <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-danger)' }}>{error}</p>
         </div>
       ) : data ? (
-        <div className="space-y-6">
+        // Keep the current data on screen while a range switch refetches — just
+        // dim it briefly instead of blanking to a skeleton (no janky blip).
+        <div
+          className="space-y-6"
+          style={{ opacity: loading ? 0.55 : 1, transition: 'opacity 0.2s var(--ds-ease-out, ease)' }}
+          aria-busy={loading}
+        >
           <div className="dash-grid dash-grid--4">
             <StatCard label="Total page views" value={data.totals.pageViews.toLocaleString()} />
             <StatCard
