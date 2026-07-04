@@ -28,7 +28,8 @@
     "@inquirer/prompts": "^7.0.0",
     "gray-matter": "^4.0.3",
     "p-limit": "^6.1.0",
-    "tar": "^6.2.0"
+    "tar": "^6.2.0",
+    "yaml": "^2.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

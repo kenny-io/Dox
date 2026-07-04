@@ -128,8 +128,11 @@ async function runScaffoldCommand(): Promise<void> {
 
 async function runCheckCommand(): Promise<void> {
   const projectDir = resolve(positional[1] ?? '.')
-  const fix = flags.includes('--fix')
-  const exitCode = await runCheck(projectDir, fix)
+  const exitCode = await runCheck(projectDir, {
+    fix: flags.includes('--fix'),
+    ci: flags.includes('--ci'),
+    external: flags.includes('--external'),
+  })
   process.exit(exitCode)
 }
 

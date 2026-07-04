@@ -156,6 +156,7 @@
           "icon": "code-simple",
           "pages": [
             "guides/cli-reference",
+            "guides/ci-checks",
             "guides/mcp-server",
             "guides/agent-manifests",
             "guides/migrating",

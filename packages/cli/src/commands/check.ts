@@ -6,9 +6,10 @@ import { projectScripts, run, runPackageBin } from '../process.js'
  * --agents — run the Agent Readiness Score from the same project script.
  */
 export async function runCheck(args: ParsedArgs): Promise<number> {
-  const fix = args.hasFlag('--fix')
   const contentArgs = ['check', '.']
-  if (fix) contentArgs.push('--fix')
+  if (args.hasFlag('--fix')) contentArgs.push('--fix')
+  if (args.hasFlag('--ci')) contentArgs.push('--ci')
+  if (args.hasFlag('--external')) contentArgs.push('--external')
 
   let exit = await runPackageBin('create-dox', 'create-dox', contentArgs)
 
