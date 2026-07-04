@@ -24,7 +24,6 @@
   "dependencies": {
     "create-dox": "*",
     "@doxlabs/mcp": "*",
-    "@doxlabs/agent": "*",
     "@anthropic-ai/sdk": "^0.78.0"
   },
   "devDependencies": {
