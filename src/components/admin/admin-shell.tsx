@@ -17,6 +17,7 @@ import {
   PanelLeft,
   PanelLeftClose,
   Search,
+  ListChecks,
   Settings,
   Sun,
   Users,
@@ -42,6 +43,7 @@ const NAV: Array<NavGroup> = [
       { href: '/admin', label: 'Home', icon: Home },
       { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
       { href: '/admin/agent-readiness', label: 'Agent Readiness', icon: Gauge },
+      { href: '/admin/tasks', label: 'Docs tasks', icon: ListChecks },
     ],
   },
   {
@@ -57,6 +59,7 @@ const TITLES: Record<string, string> = {
   '/admin': 'Home',
   '/admin/analytics': 'Analytics',
   '/admin/agent-readiness': 'Agent Readiness',
+  '/admin/tasks': 'Docs tasks',
   '/admin/team': 'Team',
   '/admin/settings': 'Settings',
 }
