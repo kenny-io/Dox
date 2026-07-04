@@ -11,6 +11,7 @@ import {
 } from '@/lib/admin/auth-edge'
 import { classifyRequest, isAgentRequest } from '@/lib/traffic-classifier'
 import { isMachineEndpoint } from '@/lib/agent-endpoints'
+import { verifySession, SESSION_COOKIE } from '@/lib/auth/session'
 
 function shouldTrackPath(pathname: string): boolean {
   if (
@@ -76,9 +77,19 @@ async function sendAnalyticsEvent(request: NextRequest, pathname: string) {
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login' && isAdminEnabledEdge()) {
-    const authed = await isAdminAuthenticatedEdge(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)
+  // Gate admin PAGES and admin APIs at the edge — except the public auth routes
+  // (login/OIDC start/callback), which must be reachable pre-auth. This is
+  // defense-in-depth so a new /api/admin/* route can't be reached unauthenticated
+  // by forgetting its own requireCapability check.
+  const isAdminPage = pathname.startsWith('/admin') && pathname !== '/admin/login'
+  const isAdminApi = pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/auth')
+  if ((isAdminPage || isAdminApi) && isAdminEnabledEdge()) {
+    // Coarse, edge-safe check only: a valid break-glass password session OR a
+    // valid signed OIDC identity cookie. The live role lookup happens in node.
+    const passwordAuthed = await isAdminAuthenticatedEdge(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)
+    const authed = passwordAuthed || Boolean(await verifySession(request.cookies.get(SESSION_COOKIE)?.value))
     if (!authed) {
+      if (isAdminApi) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       const loginUrl = request.nextUrl.clone()
       loginUrl.pathname = '/admin/login'
       loginUrl.searchParams.set('next', pathname)
@@ -133,12 +144,14 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   // Advertise the llms.txt discovery endpoint on HTML doc-page responses, so
-  // agents and crawlers find the index without guessing. Relative paths keep it
-  // origin-agnostic; only content pages get the headers (not API/admin/_next).
+  // agents and crawlers find the index without guessing. The `Link` header stays
+  // relative (resolved against the request URL per RFC 8288); `X-Llms-Txt` is a
+  // custom header agents read directly, so it carries an absolute URL. Only
+  // content pages get the headers (not API/admin/_next).
   const response = NextResponse.next()
   if (!pathname.startsWith('/api') && !pathname.startsWith('/admin') && !pathname.startsWith('/_next')) {
     response.headers.append('Link', '</llms.txt>; rel="llms-txt"')
-    response.headers.set('X-Llms-Txt', '/llms.txt')
+    response.headers.set('X-Llms-Txt', `${request.nextUrl.origin}/llms.txt`)
   }
   return response
 }

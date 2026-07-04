@@ -6,6 +6,31 @@ import { getSiteUrl } from '@/lib/site-url'
 
 const baseUrl = getSiteUrl()
 
+/** Nearest valid pages for a missing slug, so a 404'd agent can self-correct. */
+function suggestSlugs(
+  slugPath: string,
+  entries: ReturnType<typeof getDocEntries>,
+): Array<{ slug: string; href: string }> {
+  const target = slugPath.toLowerCase()
+  const lastSeg = target.split('/').pop() ?? target
+  return entries
+    .map((entry) => {
+      const slug = entry.slug.join('/')
+      const s = slug.toLowerCase()
+      const seg = s.split('/').pop() ?? s
+      let score = 0
+      if (s === target) score += 10
+      else if (s && (s.includes(target) || target.includes(s))) score += 5
+      if (seg && seg === lastSeg) score += 4
+      else if (seg && lastSeg && (seg.includes(lastSeg) || lastSeg.includes(seg))) score += 2
+      return { slug, href: entry.href, score }
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(({ slug, href }) => ({ slug, href }))
+}
+
 function resolveRequestedFormat(request: NextRequest): 'json' | 'ldjson' | 'markdown' {
   const formatHeader = request.headers.get('x-dox-format')
   if (formatHeader === 'ldjson') return 'ldjson'
@@ -40,16 +65,25 @@ export async function GET(
   const entry = entries.find((e) => e.slug.join('/') === slugPath || e.id === slugPath)
 
   if (!entry) {
+    const suggestions = suggestSlugs(slugPath, entries)
     if (wantsJson || wantsLdJson) {
       return Response.json(
-        { error: 'not_found', message: 'No documentation page matches this path.' },
+        {
+          error: 'not_found',
+          message: 'No documentation page matches this path.',
+          docs_index: `${baseUrl}/llms.txt`,
+          did_you_mean: suggestions,
+        },
         { status: 404 },
       )
     }
-    return new Response('# 404 — Page not found\n\nNo documentation page matches this path.', {
-      status: 404,
-      headers: { 'Content-Type': 'text/markdown; charset=utf-8' },
-    })
+    const hint = suggestions.length
+      ? `\n\nDid you mean:\n${suggestions.map((s) => `- ${s.href}`).join('\n')}`
+      : ''
+    return new Response(
+      `# 404 — Page not found\n\nNo documentation page matches this path. See ${baseUrl}/llms.txt for the full page index.${hint}`,
+      { status: 404, headers: { 'Content-Type': 'text/markdown; charset=utf-8' } },
+    )
   }
 
   // Single source of truth — parse the content graph once via the content engine.
@@ -57,14 +91,18 @@ export async function GET(
   if (!document) {
     if (wantsJson || wantsLdJson) {
       return Response.json(
-        { error: 'content_not_found', message: 'The source file for this page could not be read.' },
+        {
+          error: 'content_not_found',
+          message: 'The source file for this page could not be read.',
+          docs_index: `${baseUrl}/llms.txt`,
+        },
         { status: 404 },
       )
     }
-    return new Response('# 404 — Content not found\n\nThe source file for this page could not be read.', {
-      status: 404,
-      headers: { 'Content-Type': 'text/markdown; charset=utf-8' },
-    })
+    return new Response(
+      `# 404 — Content not found\n\nThe source file for this page could not be read. See ${baseUrl}/llms.txt for the full page index.`,
+      { status: 404, headers: { 'Content-Type': 'text/markdown; charset=utf-8' } },
+    )
   }
 
   const { content, frontmatter } = document
@@ -144,6 +182,8 @@ export async function GET(
         mode: entry.mode ?? undefined,
         noindex: entry.noindex ?? undefined,
         lastUpdated: entry.lastUpdated || undefined,
+        lastVerified: entry.lastVerified || undefined,
+        verifiedVersion: entry.verifiedVersion || undefined,
         timeEstimate: entry.timeEstimate || undefined,
       },
 
@@ -182,6 +222,8 @@ export async function GET(
   if (entry.description) lines.push(`description: ${entry.description}`)
   lines.push(`url: ${canonicalUrl}`)
   if (entry.lastUpdated) lines.push(`lastUpdated: ${entry.lastUpdated}`)
+  if (entry.lastVerified) lines.push(`lastVerified: ${entry.lastVerified}`)
+  if (entry.verifiedVersion) lines.push(`verifiedVersion: ${entry.verifiedVersion}`)
   lines.push('---')
   lines.push('')
   lines.push(`# ${entry.title}`)

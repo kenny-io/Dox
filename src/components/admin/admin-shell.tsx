@@ -17,8 +17,10 @@ import {
   PanelLeft,
   PanelLeftClose,
   Search,
+  ListChecks,
   Settings,
   Sun,
+  Users,
   X,
 } from 'lucide-react'
 import { AdminCommandMenu } from '@/components/admin/admin-command-menu'
@@ -41,11 +43,15 @@ const NAV: Array<NavGroup> = [
       { href: '/admin', label: 'Home', icon: Home },
       { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
       { href: '/admin/agent-readiness', label: 'Agent Readiness', icon: Gauge },
+      { href: '/admin/tasks', label: 'Docs tasks', icon: ListChecks },
     ],
   },
   {
     label: 'Configuration',
-    items: [{ href: '/admin/settings', label: 'Settings', icon: Settings }],
+    items: [
+      { href: '/admin/team', label: 'Team', icon: Users },
+      { href: '/admin/settings', label: 'Settings', icon: Settings },
+    ],
   },
 ]
 
@@ -53,6 +59,8 @@ const TITLES: Record<string, string> = {
   '/admin': 'Home',
   '/admin/analytics': 'Analytics',
   '/admin/agent-readiness': 'Agent Readiness',
+  '/admin/tasks': 'Docs tasks',
+  '/admin/team': 'Team',
   '/admin/settings': 'Settings',
 }
 
@@ -178,7 +186,7 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
             <button
               type="button"
               onClick={() => setCollapsed((v) => !v)}
-              className="ds-nav-item ds-focusable hidden w-full md:flex"
+              className="ds-nav-item ds-focusable ds-desktop-only w-full"
               title={collapsed ? 'Expand' : 'Collapse'}
             >
               {collapsed ? <PanelLeft className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}

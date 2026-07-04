@@ -103,6 +103,14 @@ function buildStarterDocsJson({
 }): string {
   const config: Record<string, unknown> = {}
 
+  // Opinionated defaults so new sites boot into the polished look instead of
+  // the generic one. Both are plain docs.json fields the owner can change.
+  config.theme = 'sharp'
+  config.fonts = {
+    body: { family: 'Plus Jakarta Sans', weight: ['400', '500', '600', '700'] },
+    heading: { family: 'Outfit', weight: ['600', '700'] },
+  }
+
   if (enableAiChat) {
     config.ai = { chat: true }
   }

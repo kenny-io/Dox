@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { AnalyticsRange, AnalyticsSummary } from '@/lib/analytics/types'
+import type { ContentGap } from '@/lib/chat-insights'
+
+type AnalyticsData = AnalyticsSummary & { contentGaps?: Array<ContentGap> }
 
 const RANGES: Array<{ id: AnalyticsRange; label: string }> = [
   { id: '7d', label: '7 days' },
@@ -166,7 +169,7 @@ function ListPanel({ title, action, children }: { title: string; action?: ReactN
 export function AnalyticsView() {
   const router = useRouter()
   const [range, setRange] = useState<AnalyticsRange>('30d')
-  const [data, setData] = useState<AnalyticsSummary | null>(null)
+  const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -416,6 +419,38 @@ export function AnalyticsView() {
               </div>
             )}
           </div>
+
+          {data.contentGaps && data.contentGaps.length > 0 ? (
+            <div>
+              <div className="mb-4">
+                <div className="ds-eyebrow">Insights</div>
+                <h2 className="ds-section-title" style={{ marginBottom: 0 }}>Content gaps</h2>
+              </div>
+              <div className="ds-panel">
+                <div className="ds-panel-head">
+                  <div className="ds-panel-title">What people want that the docs don&apos;t cover</div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {data.contentGaps.map((g) => (
+                    <span
+                      key={`${g.source}-${g.term}`}
+                      className="ds-chip ds-chip--warn"
+                      title={`${g.count}× from ${g.source === 'chat' ? 'AI chat (unanswered)' : 'search (zero results)'}`}
+                    >
+                      {g.term}
+                      <span style={{ opacity: 0.6, marginLeft: 4 }}>
+                        {g.source === 'chat' ? '💬' : '🔍'}
+                        {g.count > 1 ? ` ${g.count}` : ''}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3" style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>
+                  From AI-chat questions the docs couldn&apos;t answer (💬) and searches with no results (🔍) — each a page worth writing.
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

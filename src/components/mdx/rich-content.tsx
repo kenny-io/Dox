@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ZoomableContent } from '@/components/mdx/zoomable-content'
 import {
+  ArrowRight,
   BookOpen,
   Code2,
   Grid3X3,
@@ -53,6 +54,77 @@ export function Icon({ icon, className }: IconProps) {
   return <Component className={cn('h-5 w-5 text-accent', className)} aria-hidden="true" />
 }
 
+// ---------------------------------------------------------------------------
+// Hero — landing moment for `mode: home` pages
+// ---------------------------------------------------------------------------
+
+interface HeroProps {
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  primaryLabel?: string
+  primaryHref?: string
+  secondaryLabel?: string
+  secondaryHref?: string
+}
+
+export function Hero({
+  eyebrow,
+  title,
+  subtitle,
+  primaryLabel,
+  primaryHref,
+  secondaryLabel,
+  secondaryHref,
+}: HeroProps) {
+  const hasActions = Boolean(primaryHref || secondaryHref)
+  return (
+    <section className="not-prose relative isolate overflow-hidden rounded-[var(--theme-radius-xl)] border border-border/50 bg-gradient-to-b from-muted/50 via-background to-background px-6 py-16 sm:px-12 sm:py-20">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-28 left-1/2 h-72 w-[46rem] -translate-x-1/2 rounded-full bg-accent/15 blur-3xl"
+      />
+      <div className="relative mx-auto flex max-w-3xl flex-col items-center text-center">
+        {eyebrow ? (
+          <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            {eyebrow}
+          </span>
+        ) : null}
+        <h1 className="mt-6 text-4xl font-semibold tracking-tight text-balance text-foreground sm:text-5xl">
+          {title}
+        </h1>
+        {subtitle ? (
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-foreground/70">
+            {subtitle}
+          </p>
+        ) : null}
+        {hasActions ? (
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {primaryHref ? (
+              <Link
+                href={primaryHref}
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-[hsl(var(--dox-accent-foreground))] shadow-sm transition hover:opacity-90"
+              >
+                {primaryLabel ?? 'Get started'}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            ) : null}
+            {secondaryHref ? (
+              <Link
+                href={secondaryHref}
+                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent/50 hover:text-accent"
+              >
+                {secondaryLabel ?? 'Learn more'}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
 interface CardProps {
   title?: string
   href?: string
@@ -68,7 +140,7 @@ function isExternalLink(href: string) {
 
 export function Card({ title, href, icon, iconType, img, children }: CardProps) {
   const content = (
-    <article className="flex h-full flex-col gap-3 rounded-2xl border border-border/40 bg-background/95 p-5 shadow-sm transition hover:border-accent/60">
+    <article className="group/card flex h-full flex-col gap-3 rounded-2xl border border-border/40 bg-background/95 p-5 shadow-sm transition duration-200 hover:border-accent/60 hover:shadow-md motion-safe:hover:-translate-y-0.5">
       {img ? (
         <div className="relative overflow-hidden rounded-xl border border-border/30">
           <Image
@@ -84,6 +156,12 @@ export function Card({ title, href, icon, iconType, img, children }: CardProps) 
       <div className="flex items-center gap-2">
         {icon ? <Icon icon={icon} iconType={iconType} /> : null}
         {title ? <p className="text-base font-semibold text-foreground">{title}</p> : null}
+        {href ? (
+          <ArrowRight
+            className="ml-auto h-4 w-4 text-foreground/25 transition duration-200 group-hover/card:translate-x-0.5 group-hover/card:text-accent"
+            aria-hidden="true"
+          />
+        ) : null}
       </div>
       {children ? <div className="prose prose-sm text-foreground/80 dark:prose-invert">{children}</div> : null}
     </article>
@@ -164,20 +242,6 @@ export function Tooltip({ tip, children }: TooltipProps) {
     <span className="cursor-help underline decoration-dotted underline-offset-4" title={tip}>
       {children}
     </span>
-  )
-}
-
-interface AccordionProps {
-  title: string
-  children: ReactNode
-}
-
-export function Accordion({ title, children }: AccordionProps) {
-  return (
-    <details className="rounded-2xl border border-border/40 bg-background/80 p-4">
-      <summary className="cursor-pointer list-none text-base font-semibold text-foreground">{title}</summary>
-      <div className="mt-3 space-y-2 text-sm text-foreground/80">{children}</div>
-    </details>
   )
 }
 

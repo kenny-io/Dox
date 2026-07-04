@@ -44,8 +44,13 @@ async function verifySignedToken(token: string | undefined, scope?: string): Pro
   }
 }
 
+export function isOidcConfiguredEdge(): boolean {
+  return Boolean(process.env.DOX_OIDC_ISSUER && process.env.DOX_OIDC_CLIENT_ID)
+}
+
 export function isAdminEnabledEdge(): boolean {
-  return Boolean(process.env.DOX_ADMIN_PASSWORD)
+  // Gate /admin when EITHER a break-glass password OR OIDC sign-in is configured.
+  return Boolean(process.env.DOX_ADMIN_PASSWORD) || isOidcConfiguredEdge()
 }
 
 export function isDocsAccessEnabledEdge(): boolean {
@@ -57,7 +62,11 @@ export function getInternalAnalyticsSecretEdge(): string {
 }
 
 export async function isAdminAuthenticatedEdge(cookieValue: string | undefined): Promise<boolean> {
-  if (!isAdminEnabledEdge()) return false
+  // The password cookie is only valid when a password is actually configured.
+  // (Gating on isAdminEnabledEdge — which is also true for OIDC-only — would let
+  // a cookie forged with the public default HMAC secret pass when no password is
+  // set but OIDC enables the admin gate.)
+  if (!process.env.DOX_ADMIN_PASSWORD) return false
   return verifySignedToken(cookieValue)
 }
 

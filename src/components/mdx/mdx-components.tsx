@@ -1,13 +1,13 @@
 import type { MDXComponents } from 'mdx/types'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
-import { Callout } from '@/components/mdx/callout'
 import { Note } from '@/components/mdx/note'
 import { Code, CodeGroup, Pre } from '@/components/mdx/code-blocks'
 import {
-  Accordion, Badge, Card, CardGroup, Color, Columns, Frame, Icon, Panel,
+  Badge, Card, CardGroup, Color, Columns, Frame, Hero, Icon, Panel,
   Prompt, PromptAssistant, PromptUser, RequestExample, ResponseExample,
   Tile, TileGroup, Tooltip, Update,
 } from '@/components/mdx/rich-content'
+import { Accordion } from '@/components/mdx/accordion'
 import { Tree, Folder, File } from '@/components/mdx/file-tree'
 import { ResponseField, ParamField, Expandable } from '@/components/mdx/api-fields'
 import { Mermaid } from '@/components/mdx/mermaid'
@@ -33,14 +33,13 @@ function createHeading(level: 2 | 3) {
     const text = flattenText(children)
     const id = slugify(text)
     return (
+      // Size, weight, color, and rhythm come from the prose config in
+      // tailwind.config.ts so MDX and plain-markdown headings share one scale.
       <Tag
         id={id}
         data-heading={text}
         data-level={level}
-        className={cn(
-          'scroll-mt-24 font-semibold tracking-tight text-foreground',
-          level === 2 ? 'mt-16 text-3xl' : 'mt-10 text-2xl',
-        )}
+        className="scroll-mt-24"
       >
         <HeadingAnchor id={id}>
           {children}
@@ -75,6 +74,7 @@ const components: MDXComponents = {
   AccordionGroup: ({ children }: { children?: ReactNode }) => <>{children}</>,
   // Latex: Mintlify LaTeX component — render as inline code (no renderer available)
   Latex: ({ children }: { children?: ReactNode }) => <code className="font-mono text-sm">{children}</code>,
+  Hero: (props) => <Hero {...props} />,
   Card: (props) => <Card {...props} />,
   CardGroup: (props) => <CardGroup {...props} />,
   Columns: (props) => <Columns {...props} />,

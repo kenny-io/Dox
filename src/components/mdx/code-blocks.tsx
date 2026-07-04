@@ -152,11 +152,13 @@ function CodePanel({
   tag,
   label,
   code,
+  wrap,
 }: {
   children: ReactNode
   tag?: string
   label?: string
   code?: string
+  wrap?: boolean
 }) {
   const renderableChildren = getRenderableChildren(children)
   if (!renderableChildren.length) {
@@ -180,6 +182,7 @@ function CodePanel({
   let resolvedTag = tag
   let resolvedLabel = label
   let resolvedCode = code
+  let resolvedWrap = wrap
 
   const referenceElement = renderableChildren.find((child) =>
     isValidElement(child),
@@ -190,10 +193,13 @@ function CodePanel({
       tag?: string
       label?: string
       code?: string
+      wrap?: boolean | string
     }
     resolvedTag = props.tag ?? resolvedTag
     resolvedLabel = props.label ?? resolvedLabel
     resolvedCode = props.code ?? resolvedCode
+    // MDX may serialize the boolean fence flag as an empty-string attribute.
+    resolvedWrap = resolvedWrap ?? (props.wrap === '' ? true : Boolean(props.wrap))
   } else if (!resolvedCode) {
     const extractedText = renderableChildren
       .map((child) => (typeof child === 'string' ? child : ''))
@@ -215,7 +221,11 @@ function CodePanel({
       <CodePanelHeader tag={resolvedTag} label={resolvedLabel} />
       <div className="relative">
         <pre
-          className={clsx('overflow-x-auto p-4 text-xs text-white', languageClass)}
+          className={clsx(
+            'p-4 text-xs text-white',
+            resolvedWrap ? 'whitespace-pre-wrap break-words' : 'overflow-x-auto',
+            languageClass,
+          )}
           suppressHydrationWarning
         >
           {content}
@@ -328,30 +338,18 @@ function resolvePreferredLanguage(
 
 function useTabGroupProps(availableLanguages: Array<string>) {
   const { preferredLanguages, addPreferredLanguage } = usePreferredLanguageStore()
-  const [selectedIndex, setSelectedIndex] = useState(0)
 
-  useEffect(() => {
-    const preferredLanguage = resolvePreferredLanguage(
-      availableLanguages,
-      preferredLanguages,
-    )
-    if (!preferredLanguage) {
-      return
-    }
-    const preferredIndex = availableLanguages.indexOf(preferredLanguage)
-    if (preferredIndex === -1) {
-      return
-    }
-    setSelectedIndex((current) =>
-      current === preferredIndex ? current : preferredIndex,
-    )
-  }, [availableLanguages, preferredLanguages])
+  // Derive the selected tab from the shared preference store instead of
+  // mirroring it into local state — selecting a language in one group
+  // switches every group on the page.
+  const preferredLanguage = resolvePreferredLanguage(availableLanguages, preferredLanguages)
+  const preferredIndex = preferredLanguage ? availableLanguages.indexOf(preferredLanguage) : 0
+  const selectedIndex = preferredIndex === -1 ? 0 : preferredIndex
 
   return {
     as: 'div' as const,
     selectedIndex,
     onChange: (newSelectedIndex: number) => {
-      setSelectedIndex(newSelectedIndex)
       const language = availableLanguages[newSelectedIndex]
       if (language) {
         addPreferredLanguage(language)

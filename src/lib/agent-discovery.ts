@@ -26,6 +26,7 @@ export function buildAiTxtBody(): string {
     `Docs-Index: ${baseUrl}/api/docs-index`,
     `Docs-LLMs: ${baseUrl}/llms.txt`,
     `Docs-LLMs-Full: ${baseUrl}/llms-full.txt`,
+    `Docs-MCP: ${baseUrl}/api/mcp`,
     `Docs-OpenAPI: ${baseUrl}/openapi.yaml`,
     `Docs-Locale-Default: ${i18n?.defaultLocale ?? 'en'}`,
   ]
@@ -53,6 +54,7 @@ export function buildAiTxtBody(): string {
     'Allow: /llms-full.txt',
     'Allow: /api/docs/',
     'Allow: /api/docs-index',
+    'Allow: /api/mcp',
     'Disallow: /api/chat',
     'Disallow: /api/feedback',
     'Disallow: /api/try-it',

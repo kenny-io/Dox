@@ -16,6 +16,11 @@ export interface DocsJsonTab {
 export interface DocsJsonConfig {
   tabs: Array<DocsJsonTab>
   ai?: { chat?: boolean }
+  /** Admin-dashboard team roster (C1) — git-committed, no database. */
+  team?: {
+    members?: Array<{ email: string; role: 'owner' | 'editor' | 'viewer' }>
+    domains?: Array<{ domain: string; role: 'owner' | 'editor' | 'viewer' }>
+  }
 }
 
 export function readDocsJson(projectDir: string): DocsJsonConfig {

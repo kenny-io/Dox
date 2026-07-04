@@ -40,6 +40,8 @@ export async function GET(_request: NextRequest) {
         group: nav?.group ?? '',
         ...(e.badge ? { badge: e.badge } : {}),
         ...(e.keywords.length ? { keywords: e.keywords } : {}),
+        ...(e.lastVerified ? { last_verified: e.lastVerified } : {}),
+        ...(e.verifiedVersion ? { verified_version: e.verifiedVersion } : {}),
       }
     })
 
@@ -66,6 +68,7 @@ export async function GET(_request: NextRequest) {
         llms_txt: `${baseUrl}/llms.txt`,
         llms_full_txt: `${baseUrl}/llms-full.txt`,
         ai_txt: `${baseUrl}/ai.txt`,
+        mcp: `${baseUrl}/api/mcp`,
         openapi: `${baseUrl}/openapi.yaml`,
       },
       pages,

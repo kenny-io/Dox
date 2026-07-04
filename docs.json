@@ -1,7 +1,7 @@
 {
   "theme": "sharp",
   "banner": {
-    "content": "🚀 Dox v2 is coming — faster builds, more themes, and a brand-new component library. [See what's coming →](/changelog)",
+    "content": "Dox v2 is coming — faster builds, more themes, and a brand-new component library. [See what's coming →](/changelog)",
     "dismissible": true
   },
   "ai": {
@@ -157,7 +157,10 @@
           "pages": [
             "guides/cli-reference",
             "guides/ci-checks",
+            "guides/provenance",
             "guides/mcp-server",
+            "guides/remote-mcp",
+            "guides/docs-agent",
             "guides/agent-manifests",
             "guides/migrating",
             "guides/ai-features",

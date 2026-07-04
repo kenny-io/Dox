@@ -99,6 +99,7 @@ async function gatherAnswers(dirArg, useDefaults) {
 // src/check.ts
 import { existsSync, readFileSync as readFileSync2, readdirSync, statSync } from "fs";
 import { join as join2, extname, relative } from "path";
+import { execFileSync } from "child_process";
 import matter from "gray-matter";
 import { parse as parseYaml } from "yaml";
 
@@ -116,6 +117,57 @@ function writeDocsJson(projectDir, config) {
 }
 
 // src/check.ts
+function gitLocal(projectDir, args2) {
+  try {
+    const out = execFileSync("git", args2, { cwd: projectDir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    return { ok: true, out: out.trim() };
+  } catch {
+    return { ok: false, out: "" };
+  }
+}
+function checkDrift(projectDir, file, data, issues) {
+  const sources = data.sources;
+  const verifiedCommit = data.verifiedCommit;
+  if (!Array.isArray(sources) || sources.length === 0 || typeof verifiedCommit !== "string" || !verifiedCommit.trim()) {
+    return;
+  }
+  const commit = verifiedCommit.trim();
+  if (!gitLocal(projectDir, ["cat-file", "-e", `${commit}^{commit}`]).ok) {
+    issues.push({
+      severity: "warning",
+      message: `Cannot verify freshness: verifiedCommit "${commit.slice(0, 8)}" is not in git history \u2014 run with a full clone (fetch-depth: 0).`,
+      file
+    });
+    return;
+  }
+  for (const src of sources) {
+    if (typeof src !== "string" || !src.trim()) continue;
+    const colon = src.indexOf(":");
+    let filePath = src;
+    if (colon > 0) {
+      const alias = src.slice(0, colon);
+      if (alias !== "." && alias !== "self") {
+        issues.push({
+          severity: "warning",
+          message: `Cross-repo source "${src}" \u2014 drift check skipped (needs the referenced repo; see multi-repo setup).`,
+          file
+        });
+        continue;
+      }
+      filePath = src.slice(colon + 1);
+    }
+    filePath = filePath.replace(/^\.\//, "").replace(/#.*$/, "");
+    const changed = gitLocal(projectDir, ["log", "--format=%H", `${commit}..HEAD`, "--", filePath]).out;
+    if (changed) {
+      const n = changed.split("\n").filter(Boolean).length;
+      issues.push({
+        severity: "warning",
+        message: `Drift: source "${src}" changed in ${n} commit(s) since it was verified \u2014 this page may be stale.`,
+        file
+      });
+    }
+  }
+}
 function collectNavPageIds(groups, seen, duplicates) {
   for (const page of groups) {
     if (typeof page === "string") {
@@ -294,6 +346,7 @@ async function runCheck(projectDir, options) {
     if (!data.title) issues.push({ severity: "warning", message: `Missing "title" in frontmatter`, file: rel2 });
     if (!data.description) issues.push({ severity: "warning", message: `Missing "description" in frontmatter`, file: rel2 });
     if (content.trim().length < 50) issues.push({ severity: "warning", message: `Very short body (${content.trim().length} chars) \u2014 page may be empty`, file: rel2 });
+    if (options.drift) checkDrift(projectDir, rel2, data, issues);
     const path = pageIdToPath(pageId);
     const anchors = extractHeadingAnchors(content);
     validPaths.add(path);
@@ -704,7 +757,8 @@ async function runCheckCommand() {
   const exitCode = await runCheck(projectDir, {
     fix: flags.includes("--fix"),
     ci: flags.includes("--ci"),
-    external: flags.includes("--external")
+    external: flags.includes("--external"),
+    drift: flags.includes("--drift")
   });
   process.exit(exitCode);
 }
