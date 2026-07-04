@@ -1,5 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { getAdminSettings, updateAdminSettings, type AdminSettings } from '@/lib/admin/settings'
+import {
+  getAdminSettings,
+  updateAdminSettings,
+  setBrandAsset,
+  hasBrandAsset,
+  isValidBrandAsset,
+  type AdminSettings,
+  type BrandAsset,
+} from '@/lib/admin/settings'
 import { requireCapabilityFromRequest } from '@/lib/auth/rbac'
 import { hashPassword, encryptSecret } from '@/lib/admin/secrets'
 import type { Role } from '@/lib/auth/types'
@@ -8,8 +16,28 @@ export const runtime = 'nodejs'
 
 const ROLES: Array<Role> = ['owner', 'editor', 'viewer']
 
-/** Body may carry write-only secrets in plaintext (never read back). */
-type SettingsBody = Partial<AdminSettings> & { docsPassword?: string | null; chatKey?: string | null }
+/** Body may carry write-only secrets + brand-asset data URIs (never read back). */
+type SettingsBody = Partial<AdminSettings> & {
+  docsPassword?: string | null
+  chatKey?: string | null
+  logo?: string | null
+  favicon?: string | null
+}
+
+async function applyAsset(kind: BrandAsset, value: string | null | undefined): Promise<'invalid' | void> {
+  if (value === undefined) return
+  if (value === null || value === '') {
+    await setBrandAsset(kind, null)
+    return
+  }
+  if (!isValidBrandAsset(value)) return 'invalid'
+  await setBrandAsset(kind, value)
+}
+
+async function fullResponse(s: AdminSettings) {
+  const [hasLogo, hasFavicon] = await Promise.all([hasBrandAsset('logo'), hasBrandAsset('favicon')])
+  return { ...sanitize(s), hasLogo, hasFavicon }
+}
 
 /** Public shape — secrets are surfaced as booleans only, never the hash or key. */
 function sanitize(s: AdminSettings) {
@@ -26,7 +54,7 @@ function sanitize(s: AdminSettings) {
 export async function GET(request: NextRequest) {
   const session = await requireCapabilityFromRequest(request, 'view_analytics')
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  return NextResponse.json(sanitize(await getAdminSettings()))
+  return NextResponse.json(await fullResponse(await getAdminSettings()))
 }
 
 export async function PUT(request: NextRequest) {
@@ -77,5 +105,15 @@ export async function PUT(request: NextRequest) {
     patch.chatKeyEnc = null
   }
 
-  return NextResponse.json(sanitize(await updateAdminSettings(patch)))
+  // Brand assets (logo/favicon) — separate F1 keys, validated (raster + size cap).
+  const logoResult = await applyAsset('logo', body.logo)
+  const faviconResult = await applyAsset('favicon', body.favicon)
+  if (logoResult === 'invalid' || faviconResult === 'invalid') {
+    return NextResponse.json(
+      { error: 'Invalid image — use PNG/JPEG/WebP under 150KB.' },
+      { status: 400 },
+    )
+  }
+
+  return NextResponse.json(await fullResponse(await updateAdminSettings(patch)))
 }

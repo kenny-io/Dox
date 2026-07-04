@@ -54,3 +54,38 @@ export async function updateAdminSettings(patch: Partial<AdminSettings>): Promis
   await getStorage().kvSet(NS, KEY, next)
   return next
 }
+
+// ---------------------------------------------------------------------------
+// Brand assets (logo / favicon) — stored under SEPARATE F1 keys, not in the
+// settings blob, so getAdminSettings() (on hot paths) stays tiny.
+// ---------------------------------------------------------------------------
+
+export type BrandAsset = 'logo' | 'favicon'
+
+const MAX_ASSET_BYTES = 150 * 1024
+const ALLOWED_ASSET_MIME = /^image\/(png|jpeg|webp)$/ // raster only — no SVG (navigable-route XSS)
+
+/** Validate a base64 image data URI: raster mime + decoded size cap. */
+export function isValidBrandAsset(dataUri: string): boolean {
+  const match = /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataUri)
+  if (!match || !ALLOWED_ASSET_MIME.test(match[1])) return false
+  const bytes = Buffer.from(match[2], 'base64')
+  return bytes.length > 0 && bytes.length <= MAX_ASSET_BYTES
+}
+
+export async function getBrandAsset(kind: BrandAsset): Promise<string | null> {
+  try {
+    return await getStorage().kvGet<string>(NS, kind)
+  } catch {
+    return null
+  }
+}
+
+export async function setBrandAsset(kind: BrandAsset, dataUri: string | null): Promise<void> {
+  if (dataUri === null) await getStorage().kvDelete(NS, kind)
+  else await getStorage().kvSet(NS, kind, dataUri)
+}
+
+export async function hasBrandAsset(kind: BrandAsset): Promise<boolean> {
+  return Boolean(await getBrandAsset(kind))
+}

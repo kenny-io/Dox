@@ -1,9 +1,112 @@
 'use client'
 
-import { useDeferredValue, useState } from 'react'
-import { ArrowUpRight, Check } from 'lucide-react'
+import { useDeferredValue, useEffect, useState } from 'react'
+import { ArrowUpRight, Check, Upload } from 'lucide-react'
 
 type ThemeId = 'default' | 'maple' | 'sharp' | 'minimal'
+
+function AssetUpload({
+  kind,
+  label,
+  hint,
+  hasAsset,
+  version,
+  canEdit,
+  onChange,
+}: {
+  kind: 'logo' | 'favicon'
+  label: string
+  hint: string
+  hasAsset: boolean
+  version: number
+  canEdit: boolean
+  onChange: () => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function upload(file: File) {
+    setError(null)
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return setError('PNG, JPEG or WebP only')
+    if (file.size > 150 * 1024) return setError('Max 150KB')
+    const dataUri = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    setBusy(true)
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ [kind]: dataUri }),
+      })
+      if (res.ok) onChange()
+      else setError((await res.json().catch(() => ({}))).error ?? 'Upload failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function clear() {
+    setBusy(true)
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ [kind]: null }),
+      })
+      onChange()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
+      <div className="min-w-0">
+        <div className="ds-setting-row-label">{label}</div>
+        <div className="ds-setting-row-desc">{hint}</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', minWidth: 200 }}>
+        {hasAsset ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/api/brand/${kind}?v=${version}`}
+            alt=""
+            style={{ height: kind === 'favicon' ? 24 : 30, width: 'auto', borderRadius: 6, background: '#fff', padding: 3 }}
+          />
+        ) : (
+          <span className="ds-chip ds-chip--neutral">Default (Dox)</span>
+        )}
+        {canEdit ? (
+          <div className="flex items-center gap-2">
+            <label className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable" style={{ cursor: 'pointer' }}>
+              <Upload className="h-3.5 w-3.5" /> {busy ? '…' : 'Upload'}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) void upload(f)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            {hasAsset ? (
+              <button type="button" className="ds-btn ds-btn--ghost ds-btn--sm ds-focusable" onClick={() => void clear()}>
+                Remove
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {error ? <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-danger)' }}>{error}</span> : null}
+      </div>
+    </div>
+  )
+}
 
 const THEMES: Array<{ id: ThemeId; name: string; desc: string; radius: string }> = [
   { id: 'default', name: 'Default', desc: 'Balanced, rounded', radius: '0.5rem' },
@@ -28,6 +131,20 @@ export function BrandingView({
   const [theme, setTheme] = useState<ThemeId>(currentTheme)
   const [accentLight, setAccentLight] = useState(currentAccentLight)
   const [accentDark, setAccentDark] = useState(currentAccentDark)
+  const [assets, setAssets] = useState({ hasLogo: false, hasFavicon: false })
+  const [assetVersion, setAssetVersion] = useState(0)
+
+  function refreshAssets() {
+    setAssetVersion((v) => v + 1)
+    fetch('/api/admin/settings')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => s && setAssets({ hasLogo: Boolean(s.hasLogo), hasFavicon: Boolean(s.hasFavicon) }))
+      .catch(() => {})
+  }
+  useEffect(() => {
+    refreshAssets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Deferred so dragging the color picker doesn't refetch the OG image on every frame.
   const deferredAccent = useDeferredValue(accentDark)
@@ -102,6 +219,30 @@ export function BrandingView({
                   <span className="font-mono" style={{ fontSize: 'var(--ds-text-caption)' }}>{accentDark}</span>
                 </span>
               </label>
+            </div>
+          </section>
+
+          <section className="ds-panel">
+            <div className="ds-panel-head"><div className="ds-panel-title">Logo &amp; favicon</div></div>
+            <div className="ds-setting-list">
+              <AssetUpload
+                kind="logo"
+                label="Logo"
+                hint="Header + social cards. PNG/JPEG/WebP, ≤150KB."
+                hasAsset={assets.hasLogo}
+                version={assetVersion}
+                canEdit={canEdit}
+                onChange={refreshAssets}
+              />
+              <AssetUpload
+                kind="favicon"
+                label="Favicon"
+                hint="Browser-tab icon. A square PNG works best."
+                hasAsset={assets.hasFavicon}
+                version={assetVersion}
+                canEdit={canEdit}
+                onChange={refreshAssets}
+              />
             </div>
           </section>
 
