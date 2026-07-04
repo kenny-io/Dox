@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const description = rawDescription.length > 120 ? `${rawDescription.slice(0, 117)}...` : rawDescription
   const group = searchParams.get('group') || ''
 
-  const og = resolveOgConfig()
+  const og = resolveOgConfig(searchParams.get('accent') || undefined)
 
   // Fetch the font from Google Fonts at the edge
   let fontData: ArrayBuffer | null = null

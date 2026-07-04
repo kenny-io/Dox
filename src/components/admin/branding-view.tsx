@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useDeferredValue, useState } from 'react'
 import { ArrowUpRight, Check } from 'lucide-react'
 
 type ThemeId = 'default' | 'maple' | 'sharp' | 'minimal'
@@ -28,6 +28,10 @@ export function BrandingView({
   const [theme, setTheme] = useState<ThemeId>(currentTheme)
   const [accentLight, setAccentLight] = useState(currentAccentLight)
   const [accentDark, setAccentDark] = useState(currentAccentDark)
+
+  // Deferred so dragging the color picker doesn't refetch the OG image on every frame.
+  const deferredAccent = useDeferredValue(accentDark)
+  const ogSrc = `/api/og?title=${encodeURIComponent('Overview')}&group=${encodeURIComponent('Introduction')}&description=${encodeURIComponent('Your page previews, styled from your brand.')}&accent=${encodeURIComponent(deferredAccent)}`
 
   const radius = THEMES.find((t) => t.id === theme)?.radius ?? '0.5rem'
   const changed = theme !== currentTheme || accentLight !== currentAccentLight || accentDark !== currentAccentDark
@@ -154,6 +158,19 @@ export function BrandingView({
           </div>
           <p className="mt-3" style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>
             Approximate preview. The exact theme applies site-wide once the config change is merged.
+          </p>
+
+          <div className="ds-panel-head mt-6"><div className="ds-panel-title">Social preview (OG image)</div></div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={ogSrc}
+            alt="Social share preview"
+            width={1200}
+            height={630}
+            style={{ width: '100%', height: 'auto', borderRadius: 'var(--ds-radius-lg)', border: '1px solid var(--ds-border)' }}
+          />
+          <p className="mt-2" style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>
+            Every page's link preview (Slack, X, iMessage…) is generated from your brand. This reflects the dark accent above.
           </p>
         </section>
       </div>
