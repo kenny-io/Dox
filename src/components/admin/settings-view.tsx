@@ -82,7 +82,7 @@ export function SettingsView({ role = 'viewer' }: { role?: Role }) {
         </p>
       </header>
 
-      <AdminSettingsControls canEdit={role === 'owner'} />
+      <AdminSettingsControls canEdit={role === 'owner'} i18nLocales={i18n?.locales ?? []} repoUrl={siteConfig.repoUrl ?? ''} />
 
       <Group title="Site" desc="Identity and metadata for your documentation site.">
         <Row label="Name" value={siteConfig.name} />

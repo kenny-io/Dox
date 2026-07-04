@@ -113,7 +113,95 @@ function ToggleRow({
   )
 }
 
-export function AdminSettingsControls({ canEdit }: { canEdit: boolean }) {
+function LocalizationSection({
+  locales,
+  repoUrl,
+  canEdit,
+}: {
+  locales: Array<{ code: string; label: string }>
+  repoUrl: string
+  canEdit: boolean
+}) {
+  const [code, setCode] = useState('')
+  const [label, setLabel] = useState('')
+  const editUrl = repoUrl ? `${repoUrl.replace(/\/$/, '')}/edit/main/docs.json` : ''
+  const valid = /^[a-z]{2}(-[A-Za-z]{2,4})?$/.test(code.trim()) && Boolean(label.trim())
+  const snippet = valid ? `{ "code": "${code.trim()}", "label": "${label.trim()}" }` : ''
+
+  return (
+    <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
+      <div className="min-w-0">
+        <div className="ds-setting-row-label">Languages</div>
+        <div className="ds-setting-row-desc">
+          Supported locales (<code className="font-mono">docs.json</code> i18n). Adding one is a reviewed config change; translate
+          content with <code className="font-mono">dox translate</code>.
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', minWidth: 240 }}>
+        <div className="flex flex-wrap justify-end gap-2">
+          {locales.length === 0 ? (
+            <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>Single language</span>
+          ) : (
+            locales.map((l) => (
+              <span key={l.code} className="ds-chip ds-chip--neutral">
+                {l.label} ({l.code})
+              </span>
+            ))
+          )}
+        </div>
+        {canEdit ? (
+          <>
+            <div className="flex items-center gap-2">
+              <input
+                className="ds-input ds-focusable"
+                style={{ width: 70 }}
+                placeholder="es"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+              <input
+                className="ds-input ds-focusable"
+                style={{ width: 130 }}
+                placeholder="Español"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+              />
+            </div>
+            {valid ? (
+              <>
+                <pre
+                  className="mt-1 overflow-x-auto p-2"
+                  style={{ background: 'var(--ds-surface-tint)', borderRadius: 'var(--ds-radius-md)', fontSize: 'var(--ds-text-caption)' }}
+                >
+                  {snippet}
+                </pre>
+                {editUrl ? (
+                  <a href={editUrl} target="_blank" rel="noreferrer" className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable">
+                    Add to docs.json on GitHub
+                  </a>
+                ) : (
+                  <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>
+                    Add the snippet to <code className="font-mono">docs.json</code> → <code className="font-mono">i18n.locales</code>.
+                  </span>
+                )}
+              </>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+export function AdminSettingsControls({
+  canEdit,
+  i18nLocales,
+  repoUrl,
+}: {
+  canEdit: boolean
+  i18nLocales: Array<{ code: string; label: string }>
+  repoUrl: string
+}) {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -268,6 +356,8 @@ export function AdminSettingsControls({ canEdit }: { canEdit: boolean }) {
             ) : null}
           </div>
         </div>
+
+        <LocalizationSection locales={i18nLocales} repoUrl={repoUrl} canEdit={canEdit} />
       </div>
     </section>
   )
