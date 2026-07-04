@@ -1,14 +1,14 @@
 import { getContentDocument } from '@/lib/content'
-import { getDocEntries, getNavContext } from '@/data/docs'
+import { getDocEntries, getNavigablePageIds } from '@/data/docs'
 import type { PageFact } from '@/lib/agent-readiness/types'
 
 /** Build deterministic page facts from the content graph + navigation. */
 export function gatherPageFacts(): Array<PageFact> {
   const facts: Array<PageFact> = []
+  const navPages = getNavigablePageIds()
 
   for (const entry of getDocEntries()) {
     const document = getContentDocument(entry.id)
-    const nav = getNavContext(entry.id)
     // Only pages bound to an OpenAPI operation count as API pages; MDX overview
     // pages under /api are regular docs and shouldn't be penalized.
     const isApi = Boolean(entry.openapi)
@@ -23,7 +23,7 @@ export function gatherPageFacts(): Array<PageFact> {
       headingsCount: document?.content.headings.length ?? 0,
       textLength: document?.content.text.length ?? 0,
       codeBlocksCount: document?.content.codeBlocks.length ?? 0,
-      inNav: Boolean(nav.tab) || entry.href === '/',
+      inNav: navPages.has(entry.id) || entry.href === '/',
       isApi,
       hasOpenApiSpec: Boolean(entry.openapi),
       jsonLdValid: Boolean(entry.title) && Boolean(entry.description),
