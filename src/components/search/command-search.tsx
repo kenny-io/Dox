@@ -136,17 +136,17 @@ export function CommandSearch({ searchIndex }: CommandSearchProps) {
     }
   }, [query, searchIndex])
 
-  // Record a search once the query settles (debounced — never per keystroke).
+  // Record the FINAL query when the palette closes (never per keystroke), plus
+  // result clicks in handleSelect — so we log "changelog", not "c/ch/cha/…".
   const lastTrackedRef = useRef<string>('')
   useEffect(() => {
-    const normalized = query.trim()
-    if (!normalized || normalized === lastTrackedRef.current) return
-    const handle = setTimeout(() => {
-      lastTrackedRef.current = normalized
-      trackSearch({ query: normalized, resultCount: results.length })
-    }, 800)
-    return () => clearTimeout(handle)
-  }, [query, results])
+    if (open) return // only act on close
+    const q = query.trim()
+    if (q.length >= 2 && q !== lastTrackedRef.current) {
+      lastTrackedRef.current = q
+      trackSearch({ query: q, resultCount: results.length })
+    }
+  }, [open, query, results])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
