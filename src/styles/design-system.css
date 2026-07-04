@@ -1044,14 +1044,14 @@
 }
 .dox-dashboard .ds-setting-row-value { flex-shrink: 0; }
 
-/* Status dot — a small leading indicator for chips/labels */
+/* Status dot — a small leading indicator for chips/labels. Flat by design:
+   the old glow ring read like an uptime LED, too loud for repeated use. */
 .dox-dashboard .ds-dot {
   width: 6px;
   height: 6px;
   border-radius: var(--ds-radius-full);
   flex-shrink: 0;
   background: currentColor;
-  box-shadow: 0 0 0 3px color-mix(in oklch, currentColor 18%, transparent);
 }
 
 /* ============================================================================

@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
+import { Check } from 'lucide-react'
 import { siteConfig } from '@/data/site'
 import { isAdminEnabled, isDocsAccessEnabled } from '@/lib/admin/auth'
 import { getAiConfig, getI18nConfig, isAnalyticsEnabled } from '@/data/docs'
 
 type Tone = 'success' | 'warn' | 'neutral'
 
+// Configured/OK states render quietly (neutral chip + muted check) — color is
+// reserved for states that need the owner's attention. A wall of green
+// status LEDs reads like a demo, not a settings page.
 function Row({ label, value, tone = 'neutral', hint }: { label: string; value: ReactNode; tone?: Tone; hint?: string }) {
   return (
     <div className="ds-setting-row">
@@ -17,8 +21,10 @@ function Row({ label, value, tone = 'neutral', hint }: { label: string; value: R
           </div>
         ) : null}
       </div>
-      <span className={`ds-chip ds-setting-row-value ds-chip--${tone === 'neutral' ? 'neutral' : tone}`}>
-        {tone === 'success' ? <span className="ds-dot" /> : null}
+      <span className={`ds-chip ds-setting-row-value ${tone === 'warn' ? 'ds-chip--warn' : 'ds-chip--neutral'}`}>
+        {tone === 'success' ? (
+          <Check className="h-3 w-3" style={{ color: 'var(--ds-text-faint)' }} aria-hidden="true" />
+        ) : null}
         {value}
       </span>
     </div>
