@@ -37,6 +37,24 @@ export interface KvEntry<T = unknown> {
   value: T
 }
 
+/** An append-only event (chat insights, audit). Immutable once written. */
+export interface StorageEvent {
+  id: string
+  stream: string
+  ts: number
+  data: Record<string, unknown>
+}
+
+export interface EventQuery {
+  stream: string
+  /** Inclusive lower bound (epoch ms). */
+  since?: number
+  /** Max events to return. */
+  limit?: number
+  /** Default 'desc' (most recent first). */
+  order?: 'asc' | 'desc'
+}
+
 export interface StorageAdapter {
   /** Read a value, or null if absent/expired. Expired entries are lazily removed. */
   kvGet<T = unknown>(namespace: string, key: string): Promise<T | null>
@@ -52,6 +70,10 @@ export interface StorageAdapter {
    * Returns the new count and the window's expiry. Used for rate limiting.
    */
   kvIncrement(namespace: string, key: string, options?: KvIncrementOptions): Promise<KvIncrementResult>
+  /** Append an immutable event to a stream. */
+  appendEvent(stream: string, data: Record<string, unknown>, ts?: number): Promise<StorageEvent>
+  /** Query a stream by time, newest-first by default. */
+  queryEvents(query: EventQuery): Promise<Array<StorageEvent>>
   /** Drop everything, or a single namespace. Primarily for tests/maintenance. */
   clear(namespace?: string): Promise<void>
 }
