@@ -1,5 +1,5 @@
-import { getMember } from '@/lib/auth/team'
 import { verifySession } from '@/lib/auth/session'
+import { resolveRoleFromRoster } from '@/lib/auth/roster'
 import { roleAllows, type Capability, type Role } from '@/lib/auth/types'
 
 export interface AdminSession {
@@ -8,25 +8,23 @@ export interface AdminSession {
 }
 
 /**
- * Resolve a member's current role — a LIVE read from F1, never from the cookie.
- * That's what makes revocation/downgrade instant: remove or change the member
- * and their next request reflects it, without waiting for the cookie to expire.
+ * A member's current role — resolved LIVE from the git-committed roster on every
+ * request, never trusted from the cookie. Remove or downgrade someone in
+ * `docs.json` and their next request reflects it immediately.
  */
-export async function resolveRole(email: string): Promise<Role | null> {
-  const member = await getMember(email)
-  if (!member || member.status !== 'active') return null
-  return member.role
+export function resolveRole(email: string): Role | null {
+  return resolveRoleFromRoster(email)
 }
 
 /**
- * Turn a session cookie into an authorized admin: verify the signature (identity),
- * then resolve the role live. Returns null if the cookie is invalid or the member
- * is no longer active. Server-side only (reaches F1) — not for edge middleware.
+ * Turn a session cookie into an authorized admin: verify the signature
+ * (identity), then resolve the role live from the roster. Null when the cookie
+ * is invalid or the identity is no longer in the roster. Server-side only.
  */
 export async function resolveAdminSession(token: string | undefined): Promise<AdminSession | null> {
   const session = await verifySession(token)
   if (!session) return null
-  const role = await resolveRole(session.email)
+  const role = resolveRole(session.email)
   return role ? { email: session.email, role } : null
 }
 

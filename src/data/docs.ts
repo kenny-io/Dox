@@ -211,6 +211,20 @@ interface DocsJsonConfig {
     defaultLocale: string
     locales: Array<{ code: string; label: string }>
   }
+  /**
+   * Admin-dashboard team — the git-committed roster (C1). Version-controlled and
+   * code-reviewed, so team-mode needs no database, even on serverless. Explicit
+   * members win over domain defaults.
+   */
+  team?: {
+    members?: Array<{ email: string; role: 'owner' | 'editor' | 'viewer' }>
+    domains?: Array<{ domain: string; role: 'owner' | 'editor' | 'viewer' }>
+  }
+}
+
+export interface TeamConfig {
+  members: Array<{ email: string; role: 'owner' | 'editor' | 'viewer' }>
+  domains: Array<{ domain: string; role: 'owner' | 'editor' | 'viewer' }>
 }
 
 // ---------------------------------------------------------------------------
@@ -653,6 +667,14 @@ export function isAdminDashboardEnabled(): boolean {
 
 export function getI18nConfig(): { defaultLocale: string; locales: Array<{ code: string; label: string }> } | null {
   return docsConfig.i18n ?? null
+}
+
+/** The git-committed admin team roster (C1). Always returns arrays. */
+export function getTeamConfig(): TeamConfig {
+  return {
+    members: docsConfig.team?.members ?? [],
+    domains: docsConfig.team?.domains ?? [],
+  }
 }
 
 export function getBannerConfig(): DocsJsonBanner | null {
