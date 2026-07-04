@@ -12,6 +12,71 @@ interface Settings {
   chatEnabled: boolean | null
   analyticsEnabled: boolean | null
   allowedDomains: Array<Domain>
+  hasDocsPassword: boolean
+  hasChatKey: boolean
+}
+
+/** Write-only secret setter — shows Set/Not set, never a value. */
+function SecretRow({
+  label,
+  desc,
+  isSet,
+  disabled,
+  placeholder,
+  onSave,
+  onClear,
+}: {
+  label: string
+  desc: React.ReactNode
+  isSet: boolean
+  disabled: boolean
+  placeholder: string
+  onSave: (value: string) => void
+  onClear: () => void
+}) {
+  const [value, setValue] = useState('')
+  return (
+    <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
+      <div className="min-w-0">
+        <div className="ds-setting-row-label">{label}</div>
+        <div className="ds-setting-row-desc">{desc}</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', minWidth: 240 }}>
+        <span className={`ds-chip ds-chip--${isSet ? 'success' : 'neutral'}`}>
+          {isSet ? <span className="ds-dot" /> : null}
+          {isSet ? 'Set' : 'Not set'}
+        </span>
+        {!disabled ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="password"
+              className="ds-input ds-focusable"
+              style={{ width: 150 }}
+              placeholder={placeholder}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+            <button
+              type="button"
+              className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable"
+              disabled={!value.trim()}
+              onClick={() => {
+                onSave(value)
+                setValue('')
+              }}
+            >
+              Set
+            </button>
+            {isSet ? (
+              <button type="button" className="ds-btn ds-btn--ghost ds-btn--sm ds-focusable" onClick={onClear}>
+                Clear
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
 }
 
 function ToggleRow({
@@ -62,9 +127,9 @@ export function AdminSettingsControls({ canEdit }: { canEdit: boolean }) {
       .catch(() => {})
   }, [])
 
-  async function save(patch: Partial<Settings>) {
+  async function save(patch: Record<string, unknown>) {
     if (!canEdit || !settings) return
-    setSettings({ ...settings, ...patch }) // optimistic
+    setSettings({ ...settings, ...(patch as Partial<Settings>) }) // optimistic (non-secret fields)
     setSaving(true)
     setSaved(false)
     try {
@@ -110,6 +175,21 @@ export function AdminSettingsControls({ canEdit }: { canEdit: boolean }) {
           on={analyticsOn}
           disabled={!canEdit || saving}
           onToggle={() => save({ analyticsEnabled: !analyticsOn })}
+        />
+
+        <SecretRow
+          label="Docs access password"
+          desc={
+            <>
+              Password for the private-docs visitor gate. Set <code className="font-mono">DOX_ACCESS_PASSWORD</code> (any value) to
+              turn the gate on; this password then takes precedence.
+            </>
+          }
+          isSet={settings.hasDocsPassword}
+          disabled={!canEdit || saving}
+          placeholder="new password"
+          onSave={(v) => save({ docsPassword: v })}
+          onClear={() => save({ docsPassword: null })}
         />
 
         {/* Allowed email domains */}

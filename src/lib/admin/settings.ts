@@ -13,11 +13,21 @@ export interface AdminSettings {
   analyticsEnabled: boolean | null
   /** Extra OIDC access domains, merged with the git-committed `team.domains`. */
   allowedDomains: Array<{ domain: string; role: Role }>
+  /** scrypt hash of the docs-access (visitor) password. Never returned by the API. */
+  docsPasswordHash: string | null
+  /** AES-GCM encrypted Anthropic API key (iv:tag:ct). Never returned by the API. */
+  chatKeyEnc: string | null
 }
 
 const NS = 'admin_settings'
 const KEY = 'settings'
-const DEFAULTS: AdminSettings = { chatEnabled: null, analyticsEnabled: null, allowedDomains: [] }
+const DEFAULTS: AdminSettings = {
+  chatEnabled: null,
+  analyticsEnabled: null,
+  allowedDomains: [],
+  docsPasswordHash: null,
+  chatKeyEnc: null,
+}
 
 export async function getAdminSettings(): Promise<AdminSettings> {
   try {
@@ -26,6 +36,8 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       chatEnabled: typeof stored?.chatEnabled === 'boolean' ? stored.chatEnabled : DEFAULTS.chatEnabled,
       analyticsEnabled: typeof stored?.analyticsEnabled === 'boolean' ? stored.analyticsEnabled : DEFAULTS.analyticsEnabled,
       allowedDomains: Array.isArray(stored?.allowedDomains) ? stored!.allowedDomains! : DEFAULTS.allowedDomains,
+      docsPasswordHash: typeof stored?.docsPasswordHash === 'string' ? stored.docsPasswordHash : DEFAULTS.docsPasswordHash,
+      chatKeyEnc: typeof stored?.chatKeyEnc === 'string' ? stored.chatKeyEnc : DEFAULTS.chatKeyEnc,
     }
   } catch {
     return DEFAULTS
