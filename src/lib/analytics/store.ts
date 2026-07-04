@@ -21,8 +21,15 @@ const RANGE_DAYS: Record<AnalyticsRange, number> = {
 }
 
 const INSERT_SQL = `INSERT OR IGNORE INTO analytics_events
-  (id, ts, type, path, slug, visitor_type, agent_signal, format, referer, vote, page)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  (id, ts, type, path, slug, visitor_type, agent_signal, format, referer, vote, page, query, result_count, clicked_slug)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+/** Columns added after the initial schema — added via ALTER for existing DBs. */
+const ADDED_COLUMNS: Array<[name: string, type: string]> = [
+  ['query', 'TEXT'],
+  ['result_count', 'INTEGER'],
+  ['clicked_slug', 'TEXT'],
+]
 
 /**
  * Resolve the libSQL connection string. Defaults to an embedded on-disk file so
@@ -73,8 +80,19 @@ async function getClient(): Promise<Client> {
         format TEXT,
         referer TEXT,
         vote TEXT,
-        page TEXT
+        page TEXT,
+        query TEXT,
+        result_count INTEGER,
+        clicked_slug TEXT
       )`)
+      // Existing DBs predate the search columns — add them idempotently.
+      for (const [name, columnType] of ADDED_COLUMNS) {
+        try {
+          await client.execute(`ALTER TABLE analytics_events ADD COLUMN ${name} ${columnType}`)
+        } catch {
+          // column already exists — ignore
+        }
+      }
       await client.execute(
         `CREATE INDEX IF NOT EXISTS idx_analytics_events_ts ON analytics_events (ts)`,
       )
@@ -111,6 +129,9 @@ function eventToArgs(event: AnalyticsEvent): Array<InValue> {
     event.referer ?? null,
     event.vote ?? null,
     event.page ?? null,
+    event.query ?? null,
+    event.resultCount ?? null,
+    event.clickedSlug ?? null,
   ]
 }
 
@@ -163,6 +184,9 @@ export async function trackAnalyticsEvent(
     referer: partial.referer,
     vote: partial.vote,
     page: partial.page,
+    query: partial.query,
+    resultCount: partial.resultCount,
+    clickedSlug: partial.clickedSlug,
   }
 
   const client = await getClient()
@@ -193,6 +217,9 @@ async function readEventsSince(sinceMs: number): Promise<Array<AnalyticsEvent>> 
     referer: optionalString(row.referer),
     vote: optionalString(row.vote) as AnalyticsEvent['vote'],
     page: optionalString(row.page),
+    query: optionalString(row.query),
+    resultCount: row.result_count === null || row.result_count === undefined ? undefined : Number(row.result_count),
+    clickedSlug: optionalString(row.clicked_slug),
   }))
 }
 
@@ -209,6 +236,8 @@ export async function aggregateAnalytics(range: AnalyticsRange): Promise<Analyti
   const humanPages = new Map<string, number>()
   const agentPages = new Map<string, number>()
   const signalCounts = new Map<string, number>()
+  const searchTerms = new Map<string, number>()
+  const zeroResultTerms = new Map<string, number>()
 
   let humanViews = 0
   let agentViews = 0
@@ -216,6 +245,8 @@ export async function aggregateAnalytics(range: AnalyticsRange): Promise<Analyti
   let feedbackNo = 0
   let chatMessages = 0
   let discoveryHits = 0
+  let totalSearches = 0
+  let searchClicks = 0
 
   const recentFeedback: AnalyticsSummary['recentFeedback'] = []
 
@@ -255,6 +286,21 @@ export async function aggregateAnalytics(range: AnalyticsRange): Promise<Analyti
     if (event.type === 'chat_message') {
       chatMessages++
     }
+
+    if (event.type === 'search_query' && event.query) {
+      const term = event.query.trim().toLowerCase()
+      if (term) {
+        if (event.clickedSlug) {
+          searchClicks++ // a click on a result (separate event from the search)
+        } else {
+          totalSearches++
+          searchTerms.set(term, (searchTerms.get(term) ?? 0) + 1)
+          if (event.resultCount === 0) {
+            zeroResultTerms.set(term, (zeroResultTerms.get(term) ?? 0) + 1)
+          }
+        }
+      }
+    }
   }
 
   recentFeedback.sort((a, b) => b.ts - a.ts)
@@ -288,6 +334,18 @@ export async function aggregateAnalytics(range: AnalyticsRange): Promise<Analyti
       .sort((a, b) => b[1] - a[1])
       .map(([signal, count]) => ({ signal, count })),
     recentFeedback: recentFeedback.slice(0, 20),
+    search: {
+      totalSearches,
+      clickThroughRate: totalSearches > 0 ? Math.min(1, searchClicks / totalSearches) : 0,
+      topTerms: Array.from(searchTerms.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([term, count]) => ({ term, count })),
+      zeroResults: Array.from(zeroResultTerms.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([term, count]) => ({ term, count })),
+    },
   }
 }
 

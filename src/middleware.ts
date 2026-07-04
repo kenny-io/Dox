@@ -18,6 +18,7 @@ function shouldTrackPath(pathname: string): boolean {
     pathname.startsWith('/admin') ||
     pathname.startsWith('/api/admin') ||
     pathname.startsWith('/api/analytics') ||
+    pathname === '/api/search/track' ||
     pathname.startsWith('/api/access') ||
     pathname === '/access' ||
     pathname === '/icon' ||

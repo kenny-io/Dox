@@ -42,6 +42,25 @@ type ClientDb = Orama<{
   keywords: 'string'
 }>
 
+/** Best-effort beacon of a search / result click to the admin Search analytics. */
+function trackSearch(payload: { query: string; resultCount?: number; clickedSlug?: string }) {
+  try {
+    const body = JSON.stringify(payload)
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      navigator.sendBeacon('/api/search/track', new Blob([body], { type: 'application/json' }))
+    } else {
+      void fetch('/api/search/track', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body,
+        keepalive: true,
+      })
+    }
+  } catch {
+    // never let analytics break search
+  }
+}
+
 export function CommandSearch({ searchIndex }: CommandSearchProps) {
   const router = useRouter()
   const [query, setQuery] = useQueryState('q', parser)
@@ -117,6 +136,18 @@ export function CommandSearch({ searchIndex }: CommandSearchProps) {
     }
   }, [query, searchIndex])
 
+  // Record a search once the query settles (debounced — never per keystroke).
+  const lastTrackedRef = useRef<string>('')
+  useEffect(() => {
+    const normalized = query.trim()
+    if (!normalized || normalized === lastTrackedRef.current) return
+    const handle = setTimeout(() => {
+      lastTrackedRef.current = normalized
+      trackSearch({ query: normalized, resultCount: results.length })
+    }, 800)
+    return () => clearTimeout(handle)
+  }, [query, results])
+
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -128,7 +159,9 @@ export function CommandSearch({ searchIndex }: CommandSearchProps) {
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  function handleSelect(href: string) {
+  function handleSelect(href: string, id: string) {
+    const q = query.trim()
+    if (q) trackSearch({ query: q, clickedSlug: id })
     router.push(href)
     setOpen(false)
   }
@@ -163,7 +196,7 @@ export function CommandSearch({ searchIndex }: CommandSearchProps) {
               {results.map((doc) => {
                 const tag = doc.keywords.split(' ').filter(Boolean)[0]
                 return (
-                  <CommandItem key={doc.id} value={doc.id} onSelect={() => handleSelect(doc.href)}>
+                  <CommandItem key={doc.id} value={doc.id} onSelect={() => handleSelect(doc.href, doc.id)}>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium">{doc.title}</span>
                       <span className="text-xs text-foreground/60">{doc.description}</span>
