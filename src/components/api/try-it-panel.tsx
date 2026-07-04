@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import type { TryItController } from '@/components/api/use-try-it-controller'
+import { CopyButton } from '@/components/api/copy-button'
 import { cn } from '@/lib/utils'
 
 interface TryItPanelProps {
@@ -200,13 +201,10 @@ function formatBody(body: string) {
 export function ResponseBody({ body }: { body: string }) {
   return (
     <pre className="scrollbar-hide relative max-h-[320px] overflow-auto rounded-xl border border-border/40 bg-background/70 p-4 text-xs leading-relaxed text-foreground/80">
-      <button
-        type="button"
-        onClick={() => navigator.clipboard.writeText(body)}
-        className="absolute right-3 top-3 rounded-md border border-border/40 bg-background/80 p-1 text-foreground/60 transition hover:text-foreground"
-      >
-        Copy
-      </button>
+      <CopyButton
+        value={body}
+        className="absolute right-3 top-3 flex items-center gap-1 rounded-md border border-border/40 bg-background/80 px-1.5 py-1 text-[11px] text-foreground/60 transition hover:text-foreground"
+      />
       {formatBody(body)}
     </pre>
   )
