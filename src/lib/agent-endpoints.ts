@@ -13,6 +13,8 @@ export function isMachineEndpoint(pathname: string): boolean {
     '/llms.txt',
     '/llms-full.txt',
     '/ai.txt',
+    '/skill.md',
+    '/AGENTS.md',
     '/sitemap.xml',
     '/robots.txt',
     '/openapi.json',
@@ -22,6 +24,7 @@ export function isMachineEndpoint(pathname: string): boolean {
   ])
   if (exact.has(pathname)) return true
 
-  // Static assets and other non-HTML resources resolve themselves.
-  return /\.(xml|txt|json|ya?ml|rss|png|jpe?g|svg|webp|ico|gif|css|js|map)$/.test(pathname)
+  // Static assets and other non-HTML resources (incl. .md mirrors) resolve
+  // themselves — never rewrite them to /api/docs/{slug}.
+  return /\.(xml|txt|json|ya?ml|rss|md|png|jpe?g|svg|webp|ico|gif|css|js|map)$/.test(pathname)
 }

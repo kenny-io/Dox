@@ -100,6 +100,7 @@ async function gatherAnswers(dirArg, useDefaults) {
 import { existsSync, readFileSync as readFileSync2, readdirSync, statSync } from "fs";
 import { join as join2, extname, relative } from "path";
 import matter from "gray-matter";
+import { parse as parseYaml } from "yaml";
 
 // src/docs-json.ts
 import { readFileSync, writeFileSync } from "fs";
@@ -118,11 +119,8 @@ function writeDocsJson(projectDir, config) {
 function collectNavPageIds(groups, seen, duplicates) {
   for (const page of groups) {
     if (typeof page === "string") {
-      if (seen.has(page)) {
-        duplicates.add(page);
-      } else {
-        seen.add(page);
-      }
+      if (seen.has(page)) duplicates.add(page);
+      else seen.add(page);
     } else if (page.pages) {
       collectNavPageIds(page.pages, seen, duplicates);
     }
@@ -139,11 +137,8 @@ function scanMdx(dir, results) {
     const fullPath = join2(dir, entry);
     try {
       const stat = statSync(fullPath);
-      if (stat.isDirectory()) {
-        scanMdx(fullPath, results);
-      } else if (extname(entry).toLowerCase() === ".mdx") {
-        results.push(fullPath);
-      }
+      if (stat.isDirectory()) scanMdx(fullPath, results);
+      else if (extname(entry).toLowerCase() === ".mdx") results.push(fullPath);
     } catch {
     }
   }
@@ -159,7 +154,80 @@ function addOrphanToNav(projectDir, pageId) {
     writeDocsJson(projectDir, config);
   }
 }
-async function runCheck(projectDir, fix) {
+function slugify2(text) {
+  return text.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
+}
+function extractHeadingAnchors(content) {
+  const anchors = /* @__PURE__ */ new Set();
+  for (const line of content.split("\n")) {
+    const m = /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(line);
+    if (m) anchors.add(slugify2(m[1]));
+  }
+  return anchors;
+}
+function extractLinks(content) {
+  const links = [];
+  const lines = content.split("\n");
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*(```|~~~)/.test(lines[i])) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const line = lines[i].replace(/`[^`]*`/g, "");
+    for (const m of line.matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
+      links.push({ target: m[1], line: i + 1 });
+    }
+    for (const m of line.matchAll(/href=["']([^"']+)["']/g)) {
+      links.push({ target: m[1], line: i + 1 });
+    }
+  }
+  return links;
+}
+function pageIdToPath(pageId) {
+  return pageId === "introduction" ? "/" : `/${pageId}`;
+}
+function validateOpenApi(projectDir, source, issues) {
+  const specPath = join2(projectDir, source);
+  if (!existsSync(specPath)) {
+    issues.push({ severity: "error", message: `API reference points at "${source}" but the file does not exist`, file: source });
+    return;
+  }
+  let spec;
+  try {
+    const raw = readFileSync2(specPath, "utf8");
+    spec = source.endsWith(".json") ? JSON.parse(raw) : parseYaml(raw);
+  } catch (err) {
+    issues.push({ severity: "error", message: `OpenAPI spec is not valid ${source.endsWith(".json") ? "JSON" : "YAML"}: ${err.message}`, file: source });
+    return;
+  }
+  const s = spec;
+  if (typeof s?.openapi !== "string" && typeof s?.swagger !== "string") {
+    issues.push({ severity: "error", message: 'OpenAPI spec is missing the "openapi" (or "swagger") version field', file: source });
+  }
+  if (typeof s?.info !== "object" || s.info === null) {
+    issues.push({ severity: "error", message: 'OpenAPI spec is missing the "info" object', file: source });
+  }
+  const paths = s?.paths;
+  if (typeof paths !== "object" || paths === null) {
+    issues.push({ severity: "error", message: 'OpenAPI spec is missing the "paths" object', file: source });
+  } else {
+    const methods = /* @__PURE__ */ new Set(["get", "post", "put", "patch", "delete", "options", "head", "trace"]);
+    for (const [p, ops] of Object.entries(paths)) {
+      if (typeof ops !== "object" || ops === null) {
+        issues.push({ severity: "error", message: `OpenAPI path "${p}" is not an object`, file: source });
+        continue;
+      }
+      const hasOp = Object.keys(ops).some((k) => methods.has(k.toLowerCase()));
+      if (!hasOp) {
+        issues.push({ severity: "warning", message: `OpenAPI path "${p}" has no operations`, file: source });
+      }
+    }
+  }
+}
+async function runCheck(projectDir, options) {
+  const { fix, ci } = options;
   if (!existsSync(join2(projectDir, "docs.json"))) {
     console.error(`
   \u274C Not a Dox project: docs.json not found in ${projectDir}
@@ -172,7 +240,11 @@ async function runCheck(projectDir, fix) {
   const navPageIds = /* @__PURE__ */ new Set();
   const duplicates = /* @__PURE__ */ new Set();
   for (const tab of config.tabs) {
-    if (tab.href || tab.api) continue;
+    if (tab.href) {
+      if (tab.href.startsWith("/")) navPageIds.add(tab.href.slice(1) || "introduction");
+      continue;
+    }
+    if (tab.api) continue;
     if (!tab.groups || tab.groups.length === 0) {
       issues.push({ severity: "error", message: `Tab "${tab.tab}" has no groups and no href \u2014 it will render empty` });
       continue;
@@ -183,21 +255,17 @@ async function runCheck(projectDir, fix) {
     issues.push({ severity: "error", message: `[duplicate] "${dup}" appears more than once in docs.json` });
   }
   for (const pageId of navPageIds) {
-    const candidates = [
-      join2(contentDir, `${pageId}.mdx`),
-      join2(contentDir, `${pageId}/index.mdx`)
-    ];
+    const candidates = [join2(contentDir, `${pageId}.mdx`), join2(contentDir, `${pageId}/index.mdx`)];
     if (!candidates.some((c) => existsSync(c))) {
-      issues.push({
-        severity: "error",
-        message: `"${pageId}" is in docs.json but has no MDX file`,
-        file: `src/content/${pageId}.mdx`
-      });
+      issues.push({ severity: "error", message: `"${pageId}" is in docs.json but has no MDX file`, file: `src/content/${pageId}.mdx` });
     }
   }
   const allFiles = [];
   if (existsSync(contentDir)) scanMdx(contentDir, allFiles);
   const fixedOrphans = [];
+  const validPaths = /* @__PURE__ */ new Set(["/"]);
+  const anchorsByPath = /* @__PURE__ */ new Map();
+  const linksByFile = [];
   for (const filePath of allFiles) {
     const rel = filePath.slice(contentDir.length + 1).replace(/\.mdx$/, "").replace(/\\/g, "/");
     const pageId = rel.endsWith("/index") ? rel.slice(0, -6) : rel;
@@ -206,37 +274,69 @@ async function runCheck(projectDir, fix) {
         addOrphanToNav(projectDir, pageId);
         fixedOrphans.push(pageId);
       } else {
-        issues.push({
-          severity: "warning",
-          message: `"${pageId}" is not in docs.json nav (orphan)`,
-          file: relative(projectDir, filePath)
-        });
+        issues.push({ severity: "warning", message: `"${pageId}" is not in docs.json nav (orphan)`, file: relative(projectDir, filePath) });
       }
     }
     let data = {};
     let content = "";
+    let lineOffset = 0;
     try {
       const raw = readFileSync2(filePath, "utf8");
       const parsed = matter(raw);
       data = parsed.data;
       content = parsed.content;
+      lineOffset = raw.slice(0, raw.indexOf(content)).split("\n").length - 1;
     } catch {
       issues.push({ severity: "error", message: `Could not parse frontmatter`, file: relative(projectDir, filePath) });
       continue;
     }
     const rel2 = relative(projectDir, filePath);
-    if (!data.title) {
-      issues.push({ severity: "warning", message: `Missing "title" in frontmatter`, file: rel2 });
+    if (!data.title) issues.push({ severity: "warning", message: `Missing "title" in frontmatter`, file: rel2 });
+    if (!data.description) issues.push({ severity: "warning", message: `Missing "description" in frontmatter`, file: rel2 });
+    if (content.trim().length < 50) issues.push({ severity: "warning", message: `Very short body (${content.trim().length} chars) \u2014 page may be empty`, file: rel2 });
+    const path = pageIdToPath(pageId);
+    const anchors = extractHeadingAnchors(content);
+    validPaths.add(path);
+    anchorsByPath.set(path, anchors);
+    linksByFile.push({ file: rel2, path, anchors, links: extractLinks(content), offset: lineOffset });
+  }
+  for (const { file, anchors, links, offset } of linksByFile) {
+    for (const { target, line: contentLine } of links) {
+      const line = contentLine + offset;
+      if (/^(https?:|mailto:|tel:)/i.test(target)) continue;
+      if (target.startsWith("#")) {
+        const anchor2 = target.slice(1);
+        if (anchor2 && !anchors.has(anchor2)) {
+          issues.push({ severity: "warning", message: `Broken anchor: "${target}" not found on this page`, file, line });
+        }
+        continue;
+      }
+      if (!target.startsWith("/")) continue;
+      const [beforeHash, anchor] = target.split("#");
+      let path = beforeHash.split("?")[0];
+      if (path.length > 1) path = path.replace(/\/$/, "");
+      if (path.startsWith("/api") || path.startsWith("/_next") || /\.[a-z0-9]+$/i.test(path)) continue;
+      if (!validPaths.has(path)) {
+        issues.push({ severity: "error", message: `Broken link: "${target}" \u2014 no page at "${path}"`, file, line });
+      } else if (anchor && !anchorsByPath.get(path)?.has(anchor)) {
+        issues.push({ severity: "warning", message: `Broken anchor: "${target}" \u2014 no heading "#${anchor}" on that page`, file, line });
+      }
     }
-    if (!data.description) {
-      issues.push({ severity: "warning", message: `Missing "description" in frontmatter`, file: rel2 });
-    }
-    if (content.trim().length < 50) {
-      issues.push({ severity: "warning", message: `Very short body (${content.trim().length} chars) \u2014 page may be empty`, file: rel2 });
-    }
+  }
+  for (const tab of config.tabs) {
+    if (tab.api?.source) validateOpenApi(projectDir, tab.api.source, issues);
   }
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warning");
+  if (ci) {
+    for (const issue of issues) {
+      const loc = issue.file ? `file=${issue.file}${issue.line ? `,line=${issue.line}` : ""}` : "";
+      console.log(`::${issue.severity} ${loc}::${issue.message}`);
+    }
+    console.log(`
+dox check: ${errors.length} error(s), ${warnings.length} warning(s)`);
+    return errors.length > 0 ? 1 : 0;
+  }
   console.log(`
   Linting ${projectDir}...
 `);
@@ -250,7 +350,7 @@ async function runCheck(projectDir, fix) {
     console.log("  ERRORS:");
     for (const issue of errors) {
       console.log(`    ${issue.message}`);
-      if (issue.file) console.log(`    \u2192 ${issue.file}`);
+      if (issue.file) console.log(`    \u2192 ${issue.file}${issue.line ? `:${issue.line}` : ""}`);
     }
     console.log("");
   }
@@ -258,7 +358,7 @@ async function runCheck(projectDir, fix) {
     console.log("  WARNINGS:");
     for (const issue of warnings) {
       console.log(`    ${issue.message}`);
-      if (issue.file) console.log(`    \u2192 ${issue.file}`);
+      if (issue.file) console.log(`    \u2192 ${issue.file}${issue.line ? `:${issue.line}` : ""}`);
     }
     console.log("");
   }
@@ -601,8 +701,11 @@ async function runScaffoldCommand() {
 }
 async function runCheckCommand() {
   const projectDir = resolve2(positional[1] ?? ".");
-  const fix = flags.includes("--fix");
-  const exitCode = await runCheck(projectDir, fix);
+  const exitCode = await runCheck(projectDir, {
+    fix: flags.includes("--fix"),
+    ci: flags.includes("--ci"),
+    external: flags.includes("--external")
+  });
   process.exit(exitCode);
 }
 async function runTranslateSubcommand() {

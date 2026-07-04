@@ -139,7 +139,7 @@ const brandPreset: BrandPresetKey = 'secondary'
 export const siteConfig: SiteConfig = {
   name: 'Dox',
   description:
-    'Dox is a Mintlify-style documentation template built on Next.js, Tailwind, Radix, and shadcn UI without inherited licensing constraints.',
+    'Dox is the first agent-native documentation platform. Every page is served to humans as polished HTML and to AI agents as structured JSON, JSON-LD, and Markdown from the same URL — self-hosted, open, and fully extensible.',
   repoUrl: 'https://github.com/kenny-io/Dox',
   links: [
     { label: 'Get started', href: '/quickstart' },
