@@ -6,7 +6,7 @@ import { siteConfig } from '@/data/site'
 import { getRelevantChunks } from '@/lib/embeddings'
 import { recordChatInsight, WEAK_SCORE } from '@/lib/chat-insights'
 import { getSiteUrl } from '@/lib/site-url'
-import { resolveAnthropicKey, checkChatRateLimit } from '@/lib/ai/chat-access'
+import { resolveChatKey, checkChatRateLimit } from '@/lib/ai/chat-access'
 import type { RetrievalResult } from '@/lib/embeddings'
 
 // ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // Resolve the active key tier: the owner's own key (generous limits) or the
   // shared trial key that powers the out-of-the-box "aha" experience.
-  const resolved = resolveAnthropicKey()
+  const resolved = await resolveChatKey()
   if (!resolved) {
     return new Response(
       'AI chat needs an Anthropic key. Set ANTHROPIC_API_KEY (your own key) to enable it.',

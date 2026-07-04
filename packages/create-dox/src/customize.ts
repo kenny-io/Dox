@@ -211,23 +211,17 @@ export function updateSiteConfig(
     `const brandPreset: BrandPresetKey = '${brandPreset}'`,
   )
 
-  // Replace repo URL and links
-  if (repoUrl) {
-    source = source.replace(
-      /repoUrl:\s*'[^']*'/,
-      `repoUrl: '${repoUrl}'`,
-    )
-    // Also update GitHub link
-    source = source.replace(
-      /\{\s*label:\s*'GitHub',\s*href:\s*'[^']*'\s*\}/,
-      `{ label: 'GitHub', href: '${repoUrl}' }`,
-    )
-    // Update support link
-    source = source.replace(
-      /\{\s*label:\s*'Support',\s*href:\s*'[^']*'\s*\}/,
-      `{ label: 'Support', href: '${repoUrl}/issues/new' }`,
-    )
-  }
+  // Always reset the repo URL + links (to the user's repo, or blank) so a new
+  // site NEVER inherits the Dox template's github.com/kenny-io/Dox.
+  source = source.replace(/repoUrl:\s*'[^']*'/, `repoUrl: '${repoUrl}'`)
+  source = source.replace(
+    /\{\s*label:\s*'GitHub',\s*href:\s*'[^']*'\s*\}/,
+    `{ label: 'GitHub', href: '${repoUrl}' }`,
+  )
+  source = source.replace(
+    /\{\s*label:\s*'Support',\s*href:\s*'[^']*'\s*\}/,
+    `{ label: 'Support', href: '${repoUrl ? `${repoUrl}/issues/new` : ''}' }`,
+  )
 
   writeFileSync(siteFile, source, 'utf8')
 }

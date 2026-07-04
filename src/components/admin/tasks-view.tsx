@@ -17,7 +17,7 @@ export function TasksView({ tasks, repoConfigured }: { tasks: Array<DocsTask>; r
   return (
     <div className="ds-rise">
       <header className="mb-8">
-        <div className="ds-eyebrow">DevRel</div>
+        <div className="ds-eyebrow">Workflow</div>
         <h1 style={{ fontFamily: 'var(--ds-font-heading)', fontSize: 'var(--ds-text-h2)', fontWeight: 'var(--ds-fw-bold)', lineHeight: 1.1 }}>
           Docs tasks
         </h1>

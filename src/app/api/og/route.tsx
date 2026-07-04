@@ -2,8 +2,10 @@ import { ImageResponse } from 'next/og'
 import { type NextRequest } from 'next/server'
 import { siteConfig } from '@/data/site'
 import { resolveOgConfig } from '@/lib/og'
+import { getBrandAsset } from '@/lib/admin/settings'
 
-export const runtime = 'edge'
+// Node (not edge) so it can read the admin-uploaded logo from F1.
+export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -12,7 +14,8 @@ export async function GET(request: NextRequest) {
   const description = rawDescription.length > 120 ? `${rawDescription.slice(0, 117)}...` : rawDescription
   const group = searchParams.get('group') || ''
 
-  const og = resolveOgConfig()
+  const og = resolveOgConfig(searchParams.get('accent') || undefined)
+  const logoUri = await getBrandAsset('logo')
 
   // Fetch the font from Google Fonts at the edge
   let fontData: ArrayBuffer | null = null
@@ -162,23 +165,28 @@ export async function GET(request: NextRequest) {
               gap: '12px',
             }}
           >
-            {/* Logo circle with first letter */}
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: og.accent,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '16px',
-                fontWeight: 700,
-                color: og.backgroundStart,
-              }}
-            >
-              {og.logoText.charAt(0).toUpperCase()}
-            </div>
+            {/* Admin logo, or a lettered mark fallback */}
+            {logoUri ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUri} alt="" height={32} style={{ height: '32px', width: 'auto', borderRadius: '6px' }} />
+            ) : (
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: og.accent,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: og.backgroundStart,
+                }}
+              >
+                {og.logoText.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div
               style={{
                 fontSize: '18px',
@@ -205,6 +213,7 @@ export async function GET(request: NextRequest) {
       width: 1200,
       height: 630,
       ...(fonts.length > 0 ? { fonts } : {}),
+      headers: { 'cache-control': 'public, max-age=3600, s-maxage=3600' },
     },
   )
 }
