@@ -182,6 +182,8 @@ export async function GET(
         mode: entry.mode ?? undefined,
         noindex: entry.noindex ?? undefined,
         lastUpdated: entry.lastUpdated || undefined,
+        lastVerified: entry.lastVerified || undefined,
+        verifiedVersion: entry.verifiedVersion || undefined,
         timeEstimate: entry.timeEstimate || undefined,
       },
 
@@ -220,6 +222,8 @@ export async function GET(
   if (entry.description) lines.push(`description: ${entry.description}`)
   lines.push(`url: ${canonicalUrl}`)
   if (entry.lastUpdated) lines.push(`lastUpdated: ${entry.lastUpdated}`)
+  if (entry.lastVerified) lines.push(`lastVerified: ${entry.lastVerified}`)
+  if (entry.verifiedVersion) lines.push(`verifiedVersion: ${entry.verifiedVersion}`)
   lines.push('---')
   lines.push('')
   lines.push(`# ${entry.title}`)

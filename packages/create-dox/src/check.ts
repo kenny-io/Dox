@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, extname, relative } from 'node:path'
+import { execFileSync } from 'node:child_process'
 import matter from 'gray-matter'
 import { parse as parseYaml } from 'yaml'
 import { readDocsJson, writeDocsJson } from './docs-json.js'
@@ -17,6 +18,71 @@ export interface CheckOptions {
   ci: boolean
   /** Also HEAD-check external links (network). Off by default for deterministic CI. */
   external?: boolean
+  /** Flag pages whose `sources` changed since their `verifiedCommit` (needs git history). */
+  drift?: boolean
+}
+
+/** Run a git command in the project, returning success + trimmed stdout. */
+function gitLocal(projectDir: string, args: Array<string>): { ok: boolean; out: string } {
+  try {
+    const out = execFileSync('git', args, { cwd: projectDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    return { ok: true, out: out.trim() }
+  } catch {
+    return { ok: false, out: '' }
+  }
+}
+
+/**
+ * Provenance drift: a page is stale when a file it declares in `sources` has
+ * changed since the `verifiedCommit` it was last checked against. Deterministic,
+ * zero-inference. Fails toward "can't tell" — a verifiedCommit missing from
+ * history (e.g. a shallow CI clone) is flagged, never silently passed.
+ */
+function checkDrift(projectDir: string, file: string, data: Record<string, unknown>, issues: Array<LintIssue>): void {
+  const sources = data.sources
+  const verifiedCommit = data.verifiedCommit
+  if (!Array.isArray(sources) || sources.length === 0 || typeof verifiedCommit !== 'string' || !verifiedCommit.trim()) {
+    return
+  }
+
+  const commit = verifiedCommit.trim()
+  // Is the verified commit even in this checkout? Shallow clones drop old history.
+  if (!gitLocal(projectDir, ['cat-file', '-e', `${commit}^{commit}`]).ok) {
+    issues.push({
+      severity: 'warning',
+      message: `Cannot verify freshness: verifiedCommit "${commit.slice(0, 8)}" is not in git history — run with a full clone (fetch-depth: 0).`,
+      file,
+    })
+    return
+  }
+
+  for (const src of sources) {
+    if (typeof src !== 'string' || !src.trim()) continue
+    const colon = src.indexOf(':')
+    let filePath = src
+    if (colon > 0) {
+      const alias = src.slice(0, colon)
+      if (alias !== '.' && alias !== 'self') {
+        issues.push({
+          severity: 'warning',
+          message: `Cross-repo source "${src}" — drift check skipped (needs the referenced repo; see multi-repo setup).`,
+          file,
+        })
+        continue
+      }
+      filePath = src.slice(colon + 1)
+    }
+    filePath = filePath.replace(/^\.\//, '').replace(/#.*$/, '') // strip ./ and #fragment
+    const changed = gitLocal(projectDir, ['log', '--format=%H', `${commit}..HEAD`, '--', filePath]).out
+    if (changed) {
+      const n = changed.split('\n').filter(Boolean).length
+      issues.push({
+        severity: 'warning',
+        message: `Drift: source "${src}" changed in ${n} commit(s) since it was verified — this page may be stale.`,
+        file,
+      })
+    }
+  }
 }
 
 function collectNavPageIds(
@@ -235,6 +301,8 @@ export async function runCheck(projectDir: string, options: CheckOptions): Promi
     if (!data.title) issues.push({ severity: 'warning', message: `Missing "title" in frontmatter`, file: rel2 })
     if (!data.description) issues.push({ severity: 'warning', message: `Missing "description" in frontmatter`, file: rel2 })
     if (content.trim().length < 50) issues.push({ severity: 'warning', message: `Very short body (${content.trim().length} chars) — page may be empty`, file: rel2 })
+
+    if (options.drift) checkDrift(projectDir, rel2, data, issues)
 
     const path = pageIdToPath(pageId)
     const anchors = extractHeadingAnchors(content)

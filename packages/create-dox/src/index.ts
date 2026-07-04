@@ -132,6 +132,7 @@ async function runCheckCommand(): Promise<void> {
     fix: flags.includes('--fix'),
     ci: flags.includes('--ci'),
     external: flags.includes('--external'),
+    drift: flags.includes('--drift'),
   })
   process.exit(exitCode)
 }

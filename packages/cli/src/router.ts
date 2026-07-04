@@ -23,7 +23,7 @@ export const COMMANDS: Array<CommandInfo> = [
   { name: 'build', summary: 'Build the production site', usage: 'dox build' },
   { name: 'start', summary: 'Serve the built production site', usage: 'dox start' },
   { name: 'deploy', summary: 'Build and deploy to a live URL', usage: 'dox deploy [--prod] [--cloudflare]' },
-  { name: 'check', summary: 'Lint content + Agent Readiness Score', usage: 'dox check [--agents] [--fix] [--ci]' },
+  { name: 'check', summary: 'Lint content + Agent Readiness Score', usage: 'dox check [--agents] [--fix] [--ci] [--drift]' },
   { name: 'new', summary: 'Create a new page and register it in docs.json', usage: 'dox new <page-id> [--title "..."]' },
   { name: 'migrate', summary: 'Migrate docs from a GitHub URL', usage: 'dox migrate <github-url> [dir]' },
   { name: 'translate', summary: 'Translate content into a locale', usage: 'dox translate --locale <code>' },
