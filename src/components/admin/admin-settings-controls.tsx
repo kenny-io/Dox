@@ -79,6 +79,45 @@ function SecretRow({
   )
 }
 
+function Switch({ on, disabled, onToggle }: { on: boolean; disabled: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={onToggle}
+      className="ds-focusable"
+      style={{
+        width: 42,
+        height: 24,
+        flexShrink: 0,
+        borderRadius: 999,
+        border: 'none',
+        padding: 2,
+        background: on ? 'var(--ds-accent)' : 'var(--ds-surface-active)',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
+        transition: 'background 0.15s ease',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}
+    >
+      <span
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 999,
+          background: '#fff',
+          transform: on ? 'translateX(18px)' : 'translateX(0)',
+          transition: 'transform 0.15s ease',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
+        }}
+      />
+    </button>
+  )
+}
+
 function ToggleRow({
   label,
   desc,
@@ -98,17 +137,7 @@ function ToggleRow({
         <div className="ds-setting-row-label">{label}</div>
         <div className="ds-setting-row-desc">{desc}</div>
       </div>
-      <button
-        type="button"
-        aria-pressed={on}
-        disabled={disabled}
-        onClick={onToggle}
-        className={`ds-chip ds-setting-row-value ds-chip--${on ? 'success' : 'neutral'}`}
-        style={{ cursor: disabled ? 'default' : 'pointer', border: 'none' }}
-      >
-        {on ? <span className="ds-dot" /> : null}
-        {on ? 'On' : 'Off'}
-      </button>
+      <Switch on={on} disabled={disabled} onToggle={onToggle} />
     </div>
   )
 }

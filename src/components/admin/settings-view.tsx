@@ -5,6 +5,7 @@ import { siteConfig } from '@/data/site'
 import { isAdminEnabled, isDocsAccessEnabled } from '@/lib/admin/auth'
 import { getAiConfig, getI18nConfig, isAnalyticsEnabled } from '@/data/docs'
 import { AdminSettingsControls } from '@/components/admin/admin-settings-controls'
+import { SiteIdentityEditor } from '@/components/admin/site-identity-editor'
 import type { Role } from '@/lib/auth/types'
 
 type Tone = 'success' | 'warn' | 'neutral'
@@ -90,16 +91,18 @@ export function SettingsView({ role = 'viewer' }: { role?: Role }) {
 
       <AdminSettingsControls canEdit={role === 'owner'} i18nLocales={i18n?.locales ?? []} repoUrl={siteConfig.repoUrl ?? ''} />
 
-      <Group title="Site" desc="Identity and metadata for your documentation site.">
-        <Row label="Name" value={siteConfig.name} />
-        <Row
-          label="Repository"
-          value={siteConfig.repoUrl ? 'Linked' : 'Not set'}
-          tone={siteConfig.repoUrl ? 'success' : 'neutral'}
-          hint={siteConfig.repoUrl || undefined}
+      <section className="ds-setting-group">
+        <div className="ds-setting-group-head">
+          <h2 className="ds-setting-group-title">Site</h2>
+          <p className="ds-setting-group-desc">Identity and metadata for your documentation site — edit inline, saved live.</p>
+        </div>
+        <SiteIdentityEditor
+          canEdit={role === 'owner'}
+          defaultName={siteConfig.name}
+          defaultDescription={siteConfig.description}
+          defaultRepoUrl={siteConfig.repoUrl ?? ''}
         />
-        <Row label="Description" value={siteConfig.description ? 'Set' : 'Not set'} tone={siteConfig.description ? 'success' : 'neutral'} />
-      </Group>
+      </section>
 
       <Group title="Access & authentication" desc="Who can reach the admin console and the docs themselves.">
         <Row label="Admin dashboard" value={adminOn ? 'Enabled' : 'Off'} tone={adminOn ? 'success' : 'neutral'} hint="DOX_ADMIN_PASSWORD" />

@@ -9,7 +9,7 @@ import { Icon } from '@/components/mdx/rich-content'
 import { layout, typography } from '@/config/layout'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/layout/logo'
-import { siteConfig } from '@/data/site'
+import { useSiteName } from '@/components/layout/use-site-name'
 
 interface SidebarProps {
   sections: Array<NavigationSection>
@@ -18,6 +18,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ sections, title, className }: SidebarProps) {
+  const siteName = useSiteName()
   const pathname = usePathname()
 
   function isActive(href: string) {
@@ -44,7 +45,7 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
         <div className="flex shrink-0 flex-col gap-3 px-1 pt-2">
           <Link href="/" className="flex items-center gap-2">
             <Logo showText={false} className="shrink-0" />
-            <span className="text-sm font-semibold text-foreground">{siteConfig.name} Docs</span>
+            <span className="text-sm font-semibold text-foreground">{siteName} Docs</span>
           </Link>
         </div>
         <div className="shrink-0 px-1 pt-6">
