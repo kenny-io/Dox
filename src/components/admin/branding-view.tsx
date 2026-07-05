@@ -198,7 +198,8 @@ export function BrandingView({
           Branding
         </h1>
         <p className="mt-1.5 max-w-[62ch]" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
-          Design your docs theme and brand color with a live preview, then apply it as a reviewed config change.
+          Theme, brand color, logo and favicon — changes save automatically and apply to the live docs site. No merge or
+          rebuild needed.
         </p>
       </header>
 
