@@ -1210,6 +1210,16 @@
 }
 @media (max-width: 640px) {
   .dox-dashboard .ds-bar-track { display: none; }
+  /* Stack setting rows (label over control) so fixed-width controls don't overflow. */
+  .dox-dashboard .ds-setting-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ds-space-8);
+  }
+  .dox-dashboard .ds-setting-row > div:last-child {
+    align-items: stretch !important;
+    min-width: 0 !important;
+  }
 }
 
 /* ============================================================================

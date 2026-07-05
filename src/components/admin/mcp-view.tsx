@@ -78,6 +78,16 @@ export function McpView({
     "dox-docs": { "url": "${endpoint}" }
   }
 }`
+  const vscodeJson = `{
+  "servers": {
+    "dox-docs": { "type": "http", "url": "${endpoint}" }
+  }
+}`
+  const zedJson = `{
+  "context_servers": {
+    "dox-docs": { "source": "custom", "url": "${endpoint}" }
+  }
+}`
   const curlCmd = `curl -sX POST ${endpoint} \\
   -H 'content-type: application/json' \\
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`
@@ -127,11 +137,19 @@ export function McpView({
             <CopyBlock code={claudeCmd} />
           </div>
           <div>
-            <p className="ds-rail-label mb-1.5">Cursor / other clients (mcp.json)</p>
+            <p className="ds-rail-label mb-1.5">Cursor · Windsurf · Cline (mcp.json)</p>
             <CopyBlock code={cursorJson} />
           </div>
           <div>
-            <p className="ds-rail-label mb-1.5">Raw HTTP (JSON-RPC 2.0)</p>
+            <p className="ds-rail-label mb-1.5">VS Code · GitHub Copilot (.vscode/mcp.json)</p>
+            <CopyBlock code={vscodeJson} />
+          </div>
+          <div>
+            <p className="ds-rail-label mb-1.5">Zed (settings.json)</p>
+            <CopyBlock code={zedJson} />
+          </div>
+          <div>
+            <p className="ds-rail-label mb-1.5">Any other client — raw HTTP (JSON-RPC 2.0)</p>
             <CopyBlock code={curlCmd} />
           </div>
         </div>

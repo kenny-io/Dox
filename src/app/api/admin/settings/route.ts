@@ -45,6 +45,8 @@ function sanitize(s: AdminSettings) {
     chatEnabled: s.chatEnabled,
     analyticsEnabled: s.analyticsEnabled,
     mcpEnabled: s.mcpEnabled,
+    brandTheme: s.brandTheme,
+    brandAccent: s.brandAccent,
     allowedDomains: s.allowedDomains,
     hasDocsPassword: Boolean(s.docsPasswordHash),
     hasChatKey: Boolean(s.chatKeyEnc),
@@ -78,6 +80,17 @@ export async function PUT(request: NextRequest) {
   }
   if (typeof body.mcpEnabled === 'boolean' || body.mcpEnabled === null) {
     patch.mcpEnabled = body.mcpEnabled
+  }
+  if (body.brandTheme === null || (typeof body.brandTheme === 'string' && ['default', 'maple', 'sharp', 'minimal'].includes(body.brandTheme))) {
+    patch.brandTheme = body.brandTheme
+  }
+  if (body.brandAccent === null) {
+    patch.brandAccent = null
+  } else if (body.brandAccent && typeof body.brandAccent === 'object') {
+    const hex = /^#[0-9a-fA-F]{3,8}$/
+    const light = String((body.brandAccent as { light?: string }).light ?? '')
+    const dark = String((body.brandAccent as { dark?: string }).dark ?? '')
+    if (hex.test(light) && hex.test(dark)) patch.brandAccent = { light, dark }
   }
   if (Array.isArray(body.allowedDomains)) {
     patch.allowedDomains = body.allowedDomains
