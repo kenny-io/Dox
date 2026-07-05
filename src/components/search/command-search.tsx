@@ -169,7 +169,7 @@ export function CommandSearch({ searchIndex }: CommandSearchProps) {
   return (
     <>
       <button
-        className="hidden h-10 flex-1 items-center gap-3 rounded-full border border-border/70 px-4 text-left text-sm text-foreground/70 transition hover:border-border lg:flex"
+        className="hidden h-10 flex-1 items-center gap-3 rounded-[var(--theme-control-radius)] border border-border/70 px-4 text-left text-sm text-foreground/70 transition hover:border-border lg:flex"
         onClick={() => setOpen(true)}
       >
         <Search className="h-4 w-4 text-foreground/50" />
@@ -180,7 +180,7 @@ export function CommandSearch({ searchIndex }: CommandSearchProps) {
       </button>
 
       <button
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 text-foreground/60 lg:hidden"
+        className="flex h-10 w-10 items-center justify-center rounded-[var(--theme-control-radius)] border border-border/70 text-foreground/60 lg:hidden"
         onClick={() => setOpen(true)}
       >
         <Search className="h-4 w-4" />
