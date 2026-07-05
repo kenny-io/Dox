@@ -21,6 +21,17 @@ const config: Config = {
       fontSize: {
         '2xs': ['0.625rem', { lineHeight: '1.25rem' }],
       },
+      // Wire Tailwind's radius scale to the structural-theme vars so the theme
+      // (default/maple/sharp/minimal) actually reshapes cards/panels/buttons, not
+      // just the sidebar. Defaults equal Tailwind's originals, so nothing shifts
+      // until a non-default theme sets the --theme-radius-* overrides.
+      borderRadius: {
+        md: 'var(--theme-radius-sm)', // 0.375rem
+        lg: 'var(--theme-radius-md)', // 0.5rem
+        xl: 'calc((var(--theme-radius-md) + var(--theme-radius-lg)) / 2)', // 0.75rem
+        '2xl': 'var(--theme-radius-lg)', // 1rem
+        '3xl': 'var(--theme-radius-xl)', // 1.5rem
+      },
       colors: {
         background: 'hsl(var(--dox-background) / <alpha-value>)',
         foreground: 'hsl(var(--dox-foreground) / <alpha-value>)',
