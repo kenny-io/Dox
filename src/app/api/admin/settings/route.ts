@@ -47,6 +47,9 @@ function sanitize(s: AdminSettings) {
     mcpEnabled: s.mcpEnabled,
     brandTheme: s.brandTheme,
     brandAccent: s.brandAccent,
+    siteName: s.siteName,
+    siteDescription: s.siteDescription,
+    siteRepoUrl: s.siteRepoUrl,
     allowedDomains: s.allowedDomains,
     hasDocsPassword: Boolean(s.docsPasswordHash),
     hasChatKey: Boolean(s.chatKeyEnc),
@@ -83,6 +86,26 @@ export async function PUT(request: NextRequest) {
   }
   if (body.brandTheme === null || (typeof body.brandTheme === 'string' && ['default', 'maple', 'sharp', 'minimal'].includes(body.brandTheme))) {
     patch.brandTheme = body.brandTheme
+  }
+  // Site identity — trimmed, length-capped, or null to clear.
+  const siteField = (v: unknown, max: number): string | null | undefined => {
+    if (v === null) return null
+    if (typeof v === 'string') {
+      const t = v.trim()
+      return t ? t.slice(0, max) : null
+    }
+    return undefined
+  }
+  const nameVal = siteField(body.siteName, 80)
+  if (nameVal !== undefined) patch.siteName = nameVal
+  const descVal = siteField(body.siteDescription, 300)
+  if (descVal !== undefined) patch.siteDescription = descVal
+  const repoVal = siteField(body.siteRepoUrl, 200)
+  if (repoVal !== undefined) {
+    patch.siteRepoUrl = repoVal && /^https?:\/\//.test(repoVal) ? repoVal : repoVal === null ? null : patch.siteRepoUrl
+    if (repoVal && !/^https?:\/\//.test(repoVal)) {
+      return NextResponse.json({ error: 'Repository must be a valid https URL.' }, { status: 400 })
+    }
   }
   if (body.brandAccent === null) {
     patch.brandAccent = null
