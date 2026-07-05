@@ -77,6 +77,10 @@ The `siteConfig` object in `src/data/site.ts` controls many features beyond bran
 | `analytics` | Plug in Google Analytics, Plausible, or PostHog |
 | `versions` | Enable the version switcher dropdown in the top bar |
 
+<Note type="info" title="Edit these without a redeploy">
+`name`, `description`, `repoUrl`, and the brand/theme fields can also be changed live from the [admin dashboard](/guides/admin-dashboard) — the values in `site.ts` act as the committed defaults.
+</Note>
+
 ## Section primitives
 
 Use the built-in layout helpers from `src/components/layout/sections.tsx`:
