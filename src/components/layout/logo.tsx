@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { siteConfig } from '@/data/site'
 
@@ -13,11 +13,20 @@ export function Logo({ className, showText = true }: LogoProps) {
   // Show an admin-uploaded logo when one exists; otherwise the default mark +
   // site name. The <img> probes /api/brand/logo and swaps in on load.
   const [customOk, setCustomOk] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  // The <img> is server-rendered, so it can finish loading BEFORE React attaches
+  // onLoad (the event never fires). Check completeness on mount to catch that.
+  useEffect(() => {
+    const img = imgRef.current
+    if (img?.complete) setCustomOk(img.naturalWidth > 0)
+  }, [])
 
   return (
     <div className={cn('inline-flex items-center gap-2', className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        ref={imgRef}
         src="/api/brand/logo"
         alt={siteConfig.name}
         onLoad={() => setCustomOk(true)}

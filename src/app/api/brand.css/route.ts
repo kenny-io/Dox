@@ -29,8 +29,11 @@ export async function GET() {
     }
   }
 
+  // `:root:root` (specificity 0,2,0) beats globals.css's `:root` (0,1,0) so the
+  // override wins regardless of how Next/React 19 orders the stylesheets by
+  // precedence — otherwise the globals bundle can re-sort after this link.
   const declarations = parts.filter(Boolean).join(';')
-  const css = declarations ? `:root{${declarations}}` : ''
+  const css = declarations ? `:root:root{${declarations}}` : ''
   return new Response(css, {
     headers: { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'public, max-age=30' },
   })
