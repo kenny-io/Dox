@@ -108,11 +108,14 @@ function AssetUpload({
   )
 }
 
-const THEMES: Array<{ id: ThemeId; name: string; desc: string; radius: string }> = [
-  { id: 'default', name: 'Default', desc: 'Balanced, rounded', radius: '0.5rem' },
-  { id: 'maple', name: 'Maple', desc: 'Soft, generous curves', radius: '1rem' },
-  { id: 'sharp', name: 'Sharp', desc: 'Crisp, near-square', radius: '0.125rem' },
-  { id: 'minimal', name: 'Minimal', desc: 'Understated, flat', radius: '0.375rem' },
+// `radius` is the general card/surface radius; `controlRadius` mirrors the live
+// `--theme-control-radius` token (pills on default/maple, squared on sharp/minimal)
+// so the preview's buttons/pills match what the docs site actually renders.
+const THEMES: Array<{ id: ThemeId; name: string; desc: string; radius: string; controlRadius: string }> = [
+  { id: 'default', name: 'Default', desc: 'Balanced, rounded', radius: '0.5rem', controlRadius: '9999px' },
+  { id: 'maple', name: 'Maple', desc: 'Soft, generous curves', radius: '1rem', controlRadius: '9999px' },
+  { id: 'sharp', name: 'Sharp', desc: 'Crisp, near-square', radius: '0.125rem', controlRadius: '0.1875rem' },
+  { id: 'minimal', name: 'Minimal', desc: 'Understated, flat', radius: '0.375rem', controlRadius: '0' },
 ]
 
 export function BrandingView({
@@ -207,6 +210,7 @@ export function BrandingView({
   const ogSrc = `/api/og?title=${encodeURIComponent('Overview')}&group=${encodeURIComponent('Introduction')}&description=${encodeURIComponent('Your page previews, styled from your brand.')}&accent=${encodeURIComponent(deferredAccent)}`
 
   const radius = THEMES.find((t) => t.id === theme)?.radius ?? '0.5rem'
+  const controlRadius = THEMES.find((t) => t.id === theme)?.controlRadius ?? '9999px'
   const overridden = theme !== currentTheme || accentLight !== currentAccentLight || accentDark !== currentAccentDark
 
   return (
@@ -357,7 +361,7 @@ export function BrandingView({
               <div style={{ flex: 1, padding: 14 }}>
                 <div style={{ fontWeight: 'var(--ds-fw-bold)', fontSize: 'var(--ds-text-sm)' }}>Getting started</div>
                 <div style={{ fontSize: 11, color: 'var(--ds-text-muted)', marginTop: 4, lineHeight: 1.5 }}>A short paragraph of body copy showing your theme radius and accent.</div>
-                <button type="button" style={{ marginTop: 10, background: accentLight, color: '#fff', border: 'none', borderRadius: radius, padding: '6px 12px', fontSize: 12, fontWeight: 600 }}>
+                <button type="button" style={{ marginTop: 10, background: accentLight, color: '#fff', border: 'none', borderRadius: controlRadius, padding: '6px 12px', fontSize: 12, fontWeight: 600 }}>
                   Primary action
                 </button>
               </div>

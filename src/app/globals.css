@@ -19,6 +19,9 @@
   --theme-radius-lg:                 1rem;      /* cards, panels */
   --theme-radius-xl:                 1.5rem;    /* large panels, hero sections */
 
+  /* Buttons / CTAs / pill controls — pill by default; squared by sharp/minimal */
+  --theme-control-radius:            9999px;
+
   /* Sidebar active item */
   --theme-sidebar-item-radius:       0.5rem;
   --theme-sidebar-indicator-opacity: 1;         /* left accent bar */
