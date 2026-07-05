@@ -131,24 +131,15 @@ export function BrandingView({
   const [theme, setTheme] = useState<ThemeId>(currentTheme)
   const [accentLight, setAccentLight] = useState(currentAccentLight)
   const [accentDark, setAccentDark] = useState(currentAccentDark)
+  // Persisted baseline (F1, or the build props) — diff against it for `dirty`.
+  const [savedTheme, setSavedTheme] = useState<ThemeId>(currentTheme)
+  const [savedLight, setSavedLight] = useState(currentAccentLight)
+  const [savedDark, setSavedDark] = useState(currentAccentDark)
   const [assets, setAssets] = useState({ hasLogo: false, hasFavicon: false })
   const [assetVersion, setAssetVersion] = useState(0)
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-
-  async function save(patch: Record<string, unknown>) {
-    if (!canEdit) return
-    try {
-      await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(patch),
-      })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 1400)
-    } catch {
-      /* best-effort */
-    }
-  }
+  const [error, setError] = useState<string | null>(null)
 
   function refreshAssets() {
     setAssetVersion((v) => v + 1)
@@ -157,10 +148,15 @@ export function BrandingView({
       .then((s) => {
         if (!s) return
         setAssets({ hasLogo: Boolean(s.hasLogo), hasFavicon: Boolean(s.hasFavicon) })
-        // Reflect the live override (falls back to the build-config props).
-        if (s.brandTheme) setTheme(s.brandTheme)
-        if (s.brandAccent?.light) setAccentLight(s.brandAccent.light)
-        if (s.brandAccent?.dark) setAccentDark(s.brandAccent.dark)
+        const t = (s.brandTheme as ThemeId) || currentTheme
+        const l = s.brandAccent?.light || currentAccentLight
+        const d = s.brandAccent?.dark || currentAccentDark
+        setTheme(t)
+        setSavedTheme(t)
+        setAccentLight(l)
+        setSavedLight(l)
+        setAccentDark(d)
+        setSavedDark(d)
       })
       .catch(() => {})
   }
@@ -169,18 +165,41 @@ export function BrandingView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function pickTheme(id: ThemeId) {
-    setTheme(id)
-    void save({ brandTheme: id })
+  const dirty = theme !== savedTheme || accentLight !== savedLight || accentDark !== savedDark
+
+  async function saveBranding() {
+    if (!canEdit || !dirty) return
+    setSaving(true)
+    setSaved(false)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ brandTheme: theme, brandAccent: { light: accentLight, dark: accentDark } }),
+      })
+      if (res.ok) {
+        setSavedTheme(theme)
+        setSavedLight(accentLight)
+        setSavedDark(accentDark)
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2500)
+      } else {
+        const b = await res.json().catch(() => ({}))
+        const hint = res.status === 401 || res.status === 403 ? ' — you need Owner access' : ''
+        setError(b.error ?? `Save failed (HTTP ${res.status}${hint})`)
+      }
+    } catch {
+      setError('Save failed — could not reach the server.')
+    } finally {
+      setSaving(false)
+    }
   }
-  function saveAccent() {
-    void save({ brandAccent: { light: accentLight, dark: accentDark } })
-  }
+
   function resetBranding() {
     setTheme(currentTheme)
     setAccentLight(currentAccentLight)
     setAccentDark(currentAccentDark)
-    void save({ brandTheme: null, brandAccent: null })
   }
 
   // Deferred so dragging the color picker doesn't refetch the OG image on every frame.
@@ -192,15 +211,33 @@ export function BrandingView({
 
   return (
     <div className="ds-rise">
-      <header className="mb-8">
-        <div className="ds-eyebrow">Appearance</div>
-        <h1 style={{ fontFamily: 'var(--ds-font-heading)', fontSize: 'var(--ds-text-h2)', fontWeight: 'var(--ds-fw-bold)', lineHeight: 1.1 }}>
-          Branding
-        </h1>
-        <p className="mt-1.5 max-w-[62ch]" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
-          Theme, brand color, logo and favicon — changes save automatically and apply to the live docs site. No merge or
-          rebuild needed.
-        </p>
+      <header className="mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
+        <div className="min-w-0">
+          <div className="ds-eyebrow">Appearance</div>
+          <h1 style={{ fontFamily: 'var(--ds-font-heading)', fontSize: 'var(--ds-text-h2)', fontWeight: 'var(--ds-fw-bold)', lineHeight: 1.1 }}>
+            Branding
+          </h1>
+          <p className="mt-1.5 max-w-[62ch]" style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
+            Pick your theme, brand color, logo and favicon, then Save. Applies to the live docs site — no merge or rebuild.
+          </p>
+        </div>
+        {canEdit ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+            <button
+              type="button"
+              className="ds-btn ds-btn--primary ds-focusable"
+              disabled={!dirty || saving}
+              onClick={saveBranding}
+              style={{ opacity: !dirty && !saving ? 0.55 : 1 }}
+            >
+              {saving ? 'Saving…' : dirty ? 'Save branding' : 'Saved'}
+            </button>
+            {saved ? <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-success)' }}>Saved ✓</span> : null}
+            {error ? (
+              <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-danger)', maxWidth: 220, textAlign: 'right' }}>{error}</span>
+            ) : null}
+          </div>
+        ) : null}
       </header>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -215,7 +252,7 @@ export function BrandingView({
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => pickTheme(t.id)}
+                    onClick={() => setTheme(t.id)}
                     disabled={!canEdit}
                     className="ds-focusable"
                     style={{
@@ -243,14 +280,14 @@ export function BrandingView({
             <div className="ds-panel-head"><div className="ds-panel-title">Brand accent</div></div>
             <div className="flex flex-wrap gap-6">
               <label className="flex items-center gap-2">
-                <input type="color" value={accentLight} disabled={!canEdit} onChange={(e) => setAccentLight(e.target.value)} onBlur={saveAccent} style={{ width: 40, height: 32, border: 'none', background: 'none' }} />
+                <input type="color" value={accentLight} disabled={!canEdit} onChange={(e) => setAccentLight(e.target.value)} style={{ width: 40, height: 32, border: 'none', background: 'none' }} />
                 <span>
                   <span className="ds-rail-label block">Light</span>
                   <span className="font-mono" style={{ fontSize: 'var(--ds-text-caption)' }}>{accentLight}</span>
                 </span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="color" value={accentDark} disabled={!canEdit} onChange={(e) => setAccentDark(e.target.value)} onBlur={saveAccent} style={{ width: 40, height: 32, border: 'none', background: 'none' }} />
+                <input type="color" value={accentDark} disabled={!canEdit} onChange={(e) => setAccentDark(e.target.value)} style={{ width: 40, height: 32, border: 'none', background: 'none' }} />
                 <span>
                   <span className="ds-rail-label block">Dark</span>
                   <span className="font-mono" style={{ fontSize: 'var(--ds-text-caption)' }}>{accentDark}</span>
@@ -286,11 +323,13 @@ export function BrandingView({
           <section className="ds-panel">
             <div className="ds-panel-head">
               <div className="ds-panel-title">Status</div>
-              {saved ? <span className="ds-chip ds-chip--success"><span className="ds-dot" />Saved</span> : null}
+              {dirty ? <span className="ds-chip ds-chip--warn">Unsaved</span> : null}
             </div>
             <p style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)' }}>
               {canEdit
-                ? 'Theme, accent, logo and favicon changes save automatically and apply to the docs site live.'
+                ? dirty
+                  ? 'You have unsaved changes. Logo & favicon uploads save on upload; theme + accent apply when you hit Save.'
+                  : 'Theme + accent are live on the docs site. Logo & favicon save on upload.'
                 : 'Only an Owner can change branding.'}
             </p>
             {canEdit && overridden ? (
@@ -325,7 +364,7 @@ export function BrandingView({
             </div>
           </div>
           <p className="mt-3" style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>
-            Approximate preview. The exact theme applies site-wide once the config change is merged.
+            Approximate preview. The exact theme applies site-wide as soon as you Save.
           </p>
 
           <div className="ds-panel-head mt-6"><div className="ds-panel-title">Social preview (OG image)</div></div>
