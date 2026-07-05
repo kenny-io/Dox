@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import type { Role } from '@/lib/auth/types'
+import { DEFAULT_AI_DISCLAIMER } from '@/lib/ai-defaults'
 
 interface Domain {
   domain: string
@@ -11,6 +12,8 @@ interface Domain {
 interface Settings {
   chatEnabled: boolean | null
   analyticsEnabled: boolean | null
+  aiLabel: string | null
+  aiDisclaimer: string | null
   allowedDomains: Array<Domain>
   hasDocsPassword: boolean
   hasChatKey: boolean
@@ -245,6 +248,8 @@ export function AdminSettingsControls({
   const [draft, setDraft] = useState<{
     chatEnabled: boolean | null
     analyticsEnabled: boolean | null
+    aiLabel: string | null
+    aiDisclaimer: string | null
     allowedDomains: Array<Domain>
   } | null>(null)
   const [pendDocs, setPendDocs] = useState<string | null | undefined>(undefined)
@@ -257,7 +262,13 @@ export function AdminSettingsControls({
 
   function load(s: Settings) {
     setSettings(s)
-    setDraft({ chatEnabled: s.chatEnabled, analyticsEnabled: s.analyticsEnabled, allowedDomains: s.allowedDomains })
+    setDraft({
+      chatEnabled: s.chatEnabled,
+      analyticsEnabled: s.analyticsEnabled,
+      aiLabel: s.aiLabel,
+      aiDisclaimer: s.aiDisclaimer,
+      allowedDomains: s.allowedDomains,
+    })
     setPendDocs(undefined)
     setPendKey(undefined)
   }
@@ -273,6 +284,8 @@ export function AdminSettingsControls({
   const dirty =
     draft.chatEnabled !== settings.chatEnabled ||
     draft.analyticsEnabled !== settings.analyticsEnabled ||
+    draft.aiLabel !== settings.aiLabel ||
+    draft.aiDisclaimer !== settings.aiDisclaimer ||
     JSON.stringify(draft.allowedDomains) !== JSON.stringify(settings.allowedDomains) ||
     pendDocs !== undefined ||
     pendKey !== undefined
@@ -285,6 +298,8 @@ export function AdminSettingsControls({
     const patch: Record<string, unknown> = {
       chatEnabled: draft.chatEnabled,
       analyticsEnabled: draft.analyticsEnabled,
+      aiLabel: draft.aiLabel,
+      aiDisclaimer: draft.aiDisclaimer,
       allowedDomains: draft.allowedDomains,
     }
     if (pendDocs !== undefined) patch.docsPassword = pendDocs
@@ -329,30 +344,6 @@ export function AdminSettingsControls({
         <p className="ds-setting-group-desc" style={{ margin: 0, maxWidth: '52ch' }}>
           {canEdit ? 'Make your changes, then Save. Nothing is written until you do.' : 'Owner access required to edit.'}
         </p>
-        {canEdit ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-            <button
-              type="button"
-              className="ds-btn ds-btn--primary ds-btn--sm ds-focusable"
-              disabled={!dirty || saving}
-              onClick={saveAll}
-              style={{ opacity: !dirty && !saving ? 0.55 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              {saving ? 'Saving…' : dirty ? 'Save changes' : (
-                <>
-                  <Check className="h-4 w-4" aria-hidden="true" /> Saved
-                </>
-              )}
-            </button>
-            {error ? (
-              <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-danger)', maxWidth: 240, textAlign: 'right' }}>
-                {error}
-              </span>
-            ) : saved ? (
-              <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-success)' }}>Saved ✓</span>
-            ) : null}
-          </div>
-        ) : null}
       </div>
 
       <section className="ds-settings-panel">
@@ -365,6 +356,40 @@ export function AdminSettingsControls({
             disabled={!canEdit}
             onToggle={() => setDraft({ ...draft, chatEnabled: !chatOn })}
           />
+          <div className="ds-settings-row ds-settings-row--top">
+            <div className="min-w-0">
+              <div className="ds-setting-row-label">Assistant name</div>
+              <div className="ds-setting-row-desc">Shown on the chat button and panel header. Blank uses the docs.json label (or “Ask AI”).</div>
+            </div>
+            <div className="ds-settings-control">
+              <input
+                className="ds-input ds-focusable"
+                style={{ width: 200 }}
+                placeholder="Ask AI"
+                maxLength={40}
+                disabled={!canEdit}
+                value={draft.aiLabel ?? ''}
+                onChange={(e) => setDraft({ ...draft, aiLabel: e.target.value || null })}
+              />
+            </div>
+          </div>
+          <div className="ds-settings-row ds-settings-row--top">
+            <div className="min-w-0">
+              <div className="ds-setting-row-label">Assistant disclaimer</div>
+              <div className="ds-setting-row-desc">Shown at the foot of the chat panel. Blank uses the generic “answers may be inaccurate” notice.</div>
+            </div>
+            <div className="ds-settings-control">
+              <textarea
+                className="ds-input ds-focusable"
+                style={{ width: 280, minHeight: 68, resize: 'vertical' }}
+                placeholder={DEFAULT_AI_DISCLAIMER}
+                maxLength={300}
+                disabled={!canEdit}
+                value={draft.aiDisclaimer ?? ''}
+                onChange={(e) => setDraft({ ...draft, aiDisclaimer: e.target.value || null })}
+              />
+            </div>
+          </div>
           <ToggleRow
             label="Analytics collection"
             desc="Record page views + agent traffic for the dashboard"
@@ -480,6 +505,41 @@ export function AdminSettingsControls({
           <LocalizationSection locales={i18nLocales} repoUrl={repoUrl} canEdit={canEdit} />
         </div>
       </section>
+
+      {canEdit ? (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 12,
+            marginTop: 'var(--ds-space-16)',
+            paddingTop: 'var(--ds-space-16)',
+            borderTop: '1px solid var(--ds-border)',
+          }}
+        >
+          {error ? (
+            <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-danger)', maxWidth: 320, textAlign: 'right' }}>
+              {error}
+            </span>
+          ) : saved ? (
+            <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-success)' }}>Saved ✓</span>
+          ) : null}
+          <button
+            type="button"
+            className="ds-btn ds-btn--primary ds-focusable"
+            disabled={!dirty || saving}
+            onClick={saveAll}
+            style={{ opacity: !dirty && !saving ? 0.55 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            {saving ? 'Saving…' : dirty ? 'Save changes' : (
+              <>
+                <Check className="h-4 w-4" aria-hidden="true" /> Saved
+              </>
+            )}
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -21,6 +21,10 @@ export interface AdminSettings {
   siteName: string | null
   siteDescription: string | null
   siteRepoUrl: string | null
+  /** Custom name for the AI assistant (FAB, chat header), or null for the build default. */
+  aiLabel: string | null
+  /** Custom disclaimer shown at the foot of the assistant panel, or null for the generic default. */
+  aiDisclaimer: string | null
   /** Extra OIDC access domains, merged with the git-committed `team.domains`. */
   allowedDomains: Array<{ domain: string; role: Role }>
   /** scrypt hash of the docs-access (visitor) password. Never returned by the API. */
@@ -40,6 +44,8 @@ const DEFAULTS: AdminSettings = {
   siteName: null,
   siteDescription: null,
   siteRepoUrl: null,
+  aiLabel: null,
+  aiDisclaimer: null,
   allowedDomains: [],
   docsPasswordHash: null,
   chatKeyEnc: null,
@@ -58,6 +64,8 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       siteName: typeof stored?.siteName === 'string' ? stored.siteName : DEFAULTS.siteName,
       siteDescription: typeof stored?.siteDescription === 'string' ? stored.siteDescription : DEFAULTS.siteDescription,
       siteRepoUrl: typeof stored?.siteRepoUrl === 'string' ? stored.siteRepoUrl : DEFAULTS.siteRepoUrl,
+      aiLabel: typeof stored?.aiLabel === 'string' ? stored.aiLabel : DEFAULTS.aiLabel,
+      aiDisclaimer: typeof stored?.aiDisclaimer === 'string' ? stored.aiDisclaimer : DEFAULTS.aiDisclaimer,
       allowedDomains: Array.isArray(stored?.allowedDomains) ? stored!.allowedDomains! : DEFAULTS.allowedDomains,
       docsPasswordHash: typeof stored?.docsPasswordHash === 'string' ? stored.docsPasswordHash : DEFAULTS.docsPasswordHash,
       chatKeyEnc: typeof stored?.chatKeyEnc === 'string' ? stored.chatKeyEnc : DEFAULTS.chatKeyEnc,

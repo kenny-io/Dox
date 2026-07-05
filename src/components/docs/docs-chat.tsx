@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { X, ArrowUp, Sparkles, Zap, Bot, Brain, Stars, Wand, Square, Maximize2, Minimize2, type LucideProps } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { DEFAULT_AI_DISCLAIMER } from '@/lib/ai-defaults'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -63,6 +64,12 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [chatShown, setChatShown] = useState(true)
+  // Live admin overrides — SSR'd prop is the first-paint value; the chat-status
+  // fetch swaps in the admin's custom name / disclaimer when set. Disclaimer
+  // starts on its generic default so a safety notice always shows, even if the
+  // fetch is slow or fails.
+  const [liveLabel, setLiveLabel] = useState(label)
+  const [disclaimer, setDisclaimer] = useState(DEFAULT_AI_DISCLAIMER)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -91,13 +98,17 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
     setLoading(false)
   }, [])
 
-  // Respect the admin's live enable/disable toggle (hide if turned off).
+  // Respect the admin's live enable/disable toggle (hide if off) and pick up the
+  // admin's custom assistant name + disclaimer.
   useEffect(() => {
     let active = true
     fetch('/api/chat-status')
       .then((r) => (r.ok ? r.json() : { show: true }))
       .then((d) => {
-        if (active && d?.show === false) setChatShown(false)
+        if (!active || !d) return
+        if (d.show === false) setChatShown(false)
+        if (typeof d.label === 'string' && d.label) setLiveLabel(d.label)
+        if (typeof d.disclaimer === 'string') setDisclaimer(d.disclaimer)
       })
       .catch(() => {})
     return () => {
@@ -175,11 +186,11 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          aria-label={`Open ${label}`}
+          aria-label={`Open ${liveLabel}`}
           className="fixed bottom-6 right-6 z-50 flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent text-accent-foreground shadow-lg transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
         >
           <FabIcon icon={icon} className="h-5 w-5" />
-          <span className="text-[9px] font-semibold tracking-wide opacity-90">{label}</span>
+          <span className="text-[9px] font-semibold tracking-wide opacity-90">{liveLabel}</span>
         </button>
       )}
 
@@ -199,7 +210,7 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/10">
                 <FabIcon icon={icon} className="h-3.5 w-3.5 text-accent" />
               </div>
-              <span className="text-sm font-semibold">{label}</span>
+              <span className="text-sm font-semibold">{liveLabel}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                 Beta
               </span>
@@ -315,7 +326,7 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
                     if (enabled) void send()
                   }
                 }}
-                placeholder={enabled ? `Message ${label}…` : 'Add an ANTHROPIC_API_KEY to enable chat'}
+                placeholder={enabled ? `Message ${liveLabel}…` : 'Add an ANTHROPIC_API_KEY to enable chat'}
                 disabled={loading || !enabled}
                 className="min-w-0 flex-1 resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50"
                 style={{ maxHeight: '160px' }}
@@ -332,9 +343,11 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
                 }
               </button>
             </div>
-            <p className="mt-2 text-center text-[10px] text-muted-foreground">
-              Answers grounded in your docs · Powered by Claude
-            </p>
+            {disclaimer ? (
+              <p className="mt-2 text-center text-[10px] leading-relaxed text-muted-foreground/70">
+                {disclaimer}
+              </p>
+            ) : null}
           </div>
         </div>
       )}

@@ -50,6 +50,8 @@ function sanitize(s: AdminSettings) {
     siteName: s.siteName,
     siteDescription: s.siteDescription,
     siteRepoUrl: s.siteRepoUrl,
+    aiLabel: s.aiLabel,
+    aiDisclaimer: s.aiDisclaimer,
     allowedDomains: s.allowedDomains,
     hasDocsPassword: Boolean(s.docsPasswordHash),
     hasChatKey: Boolean(s.chatKeyEnc),
@@ -107,6 +109,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Repository must be a valid https URL.' }, { status: 400 })
     }
   }
+  // AI assistant name + disclaimer — trimmed, length-capped, or null to clear (falls back to defaults).
+  const aiLabelVal = siteField(body.aiLabel, 40)
+  if (aiLabelVal !== undefined) patch.aiLabel = aiLabelVal
+  const aiDisclaimerVal = siteField(body.aiDisclaimer, 300)
+  if (aiDisclaimerVal !== undefined) patch.aiDisclaimer = aiDisclaimerVal
   if (body.brandAccent === null) {
     patch.brandAccent = null
   } else if (body.brandAccent && typeof body.brandAccent === 'object') {
