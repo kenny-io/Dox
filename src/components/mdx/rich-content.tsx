@@ -59,7 +59,6 @@ export function Icon({ icon, className }: IconProps) {
 // ---------------------------------------------------------------------------
 
 interface HeroProps {
-  eyebrow?: string
   title: string
   subtitle?: string
   primaryLabel?: string
@@ -69,7 +68,6 @@ interface HeroProps {
 }
 
 export function Hero({
-  eyebrow,
   title,
   subtitle,
   primaryLabel,
@@ -85,13 +83,7 @@ export function Hero({
         className="pointer-events-none absolute -top-28 left-1/2 h-72 w-[46rem] -translate-x-1/2 rounded-full bg-accent/15 blur-3xl"
       />
       <div className="relative mx-auto flex max-w-3xl flex-col items-center text-center">
-        {eyebrow ? (
-          <span className="inline-flex items-center gap-2 rounded-[var(--theme-control-radius)] border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            {eyebrow}
-          </span>
-        ) : null}
-        <h1 className="mt-6 text-4xl font-semibold tracking-tight text-balance text-foreground sm:text-5xl">
+        <h1 className="text-4xl font-semibold tracking-tight text-balance text-foreground sm:text-5xl">
           {title}
         </h1>
         {subtitle ? (
