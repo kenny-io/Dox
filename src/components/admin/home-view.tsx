@@ -71,9 +71,6 @@ export function HomeView({ siteName }: { siteName: string }) {
             How {siteName} is serving humans and AI agents, at a glance.
           </p>
         </div>
-        <span className="ds-chip ds-chip--success">
-          <span className="ds-dot" /> Agent-ready
-        </span>
       </header>
 
       {/* KPI glance */}

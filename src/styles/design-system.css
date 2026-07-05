@@ -1057,6 +1057,81 @@
   background: currentColor;
 }
 
+/* ── Settings — flat sectioned panel ──────────────────────────────────────
+   One card, brand-accent section eyebrows, full-width row dividers. Colors
+   come from tokens only (brand accent + semantic success), never hardcoded. */
+.dox-dashboard .ds-settings-panel {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface-raised);
+  padding: 0 var(--ds-space-24) var(--ds-space-24);
+}
+.dox-dashboard .ds-settings-section { padding-top: var(--ds-space-24); }
+.dox-dashboard .ds-settings-eyebrow {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-text-caption);
+  font-weight: var(--ds-fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-accent-mid);
+  margin-bottom: var(--ds-space-4);
+}
+.dox-dashboard .ds-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-24);
+  padding: var(--ds-space-20) 0;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+.dox-dashboard .ds-settings-row--top { align-items: flex-start; }
+.dox-dashboard .ds-settings-section > .ds-settings-row:first-of-type { border-top: none; }
+/* Right-hand control column */
+.dox-dashboard .ds-settings-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--ds-space-8, 8px);
+  min-width: 220px;
+}
+.dox-dashboard .ds-settings-field { display: inline-flex; align-items: center; gap: var(--ds-space-8, 8px); }
+.dox-dashboard .ds-settings-check { color: var(--ds-success); flex-shrink: 0; }
+.dox-dashboard .ds-settings-caption { font-size: var(--ds-text-caption); color: var(--ds-text-muted); }
+.dox-dashboard .ds-settings-caption--staged { color: var(--ds-accent-mid); }
+.dox-dashboard .ds-linkbtn {
+  font-size: var(--ds-text-caption);
+  font-weight: var(--ds-fw-semibold);
+  color: var(--ds-accent-mid);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.dox-dashboard .ds-linkbtn:hover { text-decoration: underline; }
+.dox-dashboard .ds-settings-addrow { display: inline-flex; align-items: center; gap: var(--ds-space-8, 8px); }
+.dox-dashboard .ds-settings-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--ds-space-8, 8px); }
+/* Smaller chip + muted small-caps role/locale badge + ghost close */
+.dox-dashboard .ds-chip--sm { min-height: var(--ds-space-20, 20px); padding: 0 var(--ds-space-8, 8px); font-size: var(--ds-text-caption); }
+.dox-dashboard .ds-chip-badge {
+  margin-left: var(--ds-space-4);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-faint);
+  font-weight: var(--ds-fw-semibold);
+}
+.dox-dashboard .ds-chip-x {
+  margin-left: var(--ds-space-4);
+  display: inline-flex;
+  align-items: center;
+  color: var(--ds-text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+.dox-dashboard .ds-chip-x:hover { color: var(--ds-danger); }
+
 /* ============================================================================
    ENDPOINT LIST — compact monospace rows with a trailing open-in-new glyph
    ============================================================================ */

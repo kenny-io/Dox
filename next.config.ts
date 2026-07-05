@@ -25,6 +25,13 @@ const nextConfig: NextConfig = {
       permanent,
     }))
   },
+  // Serve the dynamic brand favicon (admin upload → else the Dox default mark)
+  // for the browser's automatic /favicon.ico request. We deleted the static
+  // app/favicon.ico so Next's default icon can never win; this rewrite makes
+  // sure a direct /favicon.ico hit still resolves to the right icon.
+  async rewrites() {
+    return [{ source: '/favicon.ico', destination: '/api/brand/favicon' }]
+  },
 }
 
 export default nextConfig
