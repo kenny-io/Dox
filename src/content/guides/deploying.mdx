@@ -19,6 +19,18 @@ Before deploying, set the `DOX_SITE_URL` environment variable to your production
 DOX_SITE_URL=https://docs.yourproduct.com
 ```
 
+Depending on which features you use, you may also want to set:
+
+| Variable | Enables |
+| --- | --- |
+| `DOX_SITE_URL` | OpenGraph metadata and canonical URLs (recommended for every deploy) |
+| `ANTHROPIC_API_KEY` | The in-docs AI assistant ([AI features](/guides/ai-features)) |
+| `DOX_ADMIN_PASSWORD` | Break-glass Owner access to the `/admin` dashboard |
+| `DOX_OIDC_ISSUER` / `DOX_OIDC_CLIENT_ID` / `DOX_OIDC_CLIENT_SECRET` | Team sign-in to the dashboard via your IdP |
+| `DOX_AUTH_SECRET` | Signs admin sessions and encrypts stored secrets (required with OIDC) |
+
+Only `DOX_SITE_URL` is needed for a basic docs site. See [Admin dashboard & team access](/guides/admin-dashboard) for the auth variables in context.
+
 ## Vercel
 
 The fastest way to deploy — push to GitHub and import the repo:

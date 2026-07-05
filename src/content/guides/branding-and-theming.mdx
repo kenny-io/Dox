@@ -3,9 +3,22 @@ title: Branding and Theming
 description: Customize colors, fonts, and site identity to match your product.
 ---
 
+## Two places to set your brand
+
+Dox reads branding from two layers:
+
+1. **The admin dashboard** (`/admin/branding`) — an Owner picks the structural theme, brand accent, logo, and favicon and hits **Save**. Changes apply to the live docs site immediately, with **no rebuild or redeploy**. These settings are stored at runtime and layered *on top of* the file defaults below.
+2. **Source files** (`src/data/site.ts`, `docs.json`) — the git-committed defaults. They define what a freshly scaffolded site looks like and what renders before any dashboard override exists. Anything not overridden in the dashboard falls back to these.
+
+<Note type="info" title="Which should I use?">
+Use the **dashboard** for day-to-day changes — theme, brand accent, logo, favicon — with no deploy. Edit the **source files** to set the baseline for a new project, to keep branding in version control, or when you don't run the admin dashboard.
+</Note>
+
+The dashboard overrides the structural theme, the **brand accent** (and its focus ring), the logo, and the favicon. The rest of the palette (backgrounds, borders, sidebar tokens) is defined in the source files described below.
+
 ## Site configuration
 
-All site-level settings live in `src/data/site.ts`. Edit this file to set your product name, description, and links:
+All site-level settings live in `src/data/site.ts`. Edit this file to set your product name, description, and links. (Name, description, and repo URL can also be overridden live from the dashboard.)
 
 ```ts
 export const siteConfig: SiteConfig = {
@@ -59,39 +72,54 @@ Dark mode is handled automatically by `next-themes`. Users toggle it with the th
 
 ## Logo
 
-The logo component lives at `src/components/layout/logo.tsx`. Replace the SVG with your own:
+The quickest way to set a logo is the **dashboard**: upload a PNG, JPEG, or WebP (≤150KB) under **Branding → Logo & favicon** and it appears in the header and social cards immediately — no code change.
+
+Under the hood, the logo component at `src/components/layout/logo.tsx` probes `/api/brand/logo` and swaps in the uploaded logo when one exists. When there's no upload, it falls back to a built-in SVG mark plus your `siteConfig.name`:
 
 ```tsx
 export function Logo({ className, showText = true }: LogoProps) {
+  const [customOk, setCustomOk] = useState(false)
+  // ...
   return (
     <div className={cn('inline-flex items-center gap-2', className)}>
-      {/* Replace this SVG with your logo */}
-      <img src="/logo.svg" alt="Logo" width={32} height={32} />
-      {showText ? (
-        <span className="text-lg font-bold tracking-tight text-foreground">
-          Your Product
-        </span>
+      {/* Admin-uploaded logo; hidden until it loads successfully */}
+      <img
+        src="/api/brand/logo"
+        alt={siteConfig.name}
+        onLoad={() => setCustomOk(true)}
+        onError={() => setCustomOk(false)}
+        style={{ height: 28, display: customOk ? 'block' : 'none' }}
+      />
+      {!customOk ? (
+        <>
+          {/* Default SVG mark + site name */}
+          <svg /* ... */ />
+          {showText ? (
+            <span className="text-lg font-bold tracking-tight text-foreground">
+              {siteConfig.name}
+            </span>
+          ) : null}
+        </>
       ) : null}
     </div>
   )
 }
 ```
 
+To change the **default** mark (what renders before any upload), edit the fallback SVG in `logo.tsx`.
+
 ## Fonts
 
-Fonts are configured in `src/app/layout.tsx` using `next/font/google`. The defaults are:
+The body and heading fonts are set from a `fonts` block in `docs.json` — any Google Font, no code changes:
 
-- **Sans**: Inter
-- **Mono**: JetBrains Mono
-
-To change them, swap the font imports:
-
-```ts
-import { Outfit, Fira_Code } from 'next/font/google'
-
-const fontSans = Outfit({ subsets: ['latin'], variable: '--font-sans' })
-const fontMono = Fira_Code({ subsets: ['latin'], variable: '--font-mono' })
+```json
+"fonts": {
+  "body": { "family": "Plus Jakarta Sans", "weight": ["400", "500", "600", "700"] },
+  "heading": { "family": "Outfit", "weight": ["600", "700"] }
+}
 ```
+
+The defaults are **Inter** (body) and **JetBrains Mono** (code). The monospace font is still configured in `src/app/layout.tsx` via `next/font/google`. See [Custom fonts](/guides/custom-fonts) for the full reference.
 
 ## Analytics
 
@@ -170,7 +198,7 @@ The built-in `/api/feedback` route logs votes to stdout. Replace it with your ow
 
 Structural themes control the shape and density of the UI — border radius, sidebar active item style, and navigation tab appearance. They are independent of brand colors, so any color preset works with any structural theme.
 
-Set the theme in `docs.json`:
+Set the baseline theme in `docs.json` (or switch it live from the dashboard under **Branding → Structural theme**, no rebuild):
 
 ```json
 {
