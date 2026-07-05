@@ -16,66 +16,101 @@ interface Settings {
   hasChatKey: boolean
 }
 
-/** Write-only secret setter — shows Set/Not set, never a value. */
+/**
+ * Write-only secret editor — never renders the value. `pending` is the staged
+ * edit held by the parent draft: a string to set, null to clear, undefined for
+ * unchanged. Saved by the group's global Save button.
+ */
 function SecretRow({
   label,
   desc,
   isSet,
+  pending,
   disabled,
   placeholder,
-  onSave,
-  onClear,
+  onChange,
 }: {
   label: string
   desc: React.ReactNode
   isSet: boolean
+  pending: string | null | undefined
   disabled: boolean
   placeholder: string
-  onSave: (value: string) => void
-  onClear: () => void
+  onChange: (v: string | null | undefined) => void
 }) {
-  const [value, setValue] = useState('')
+  const status =
+    pending === null ? 'Will clear on save' : typeof pending === 'string' ? 'Will set on save' : isSet ? 'Configured' : 'Not set'
+  const statusColor = pending !== undefined ? 'var(--ds-accent-mid)' : 'var(--ds-text-muted)'
   return (
     <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
       <div className="min-w-0">
         <div className="ds-setting-row-label">{label}</div>
         <div className="ds-setting-row-desc">{desc}</div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', minWidth: 240 }}>
-        <span className={`ds-chip ds-chip--${isSet ? 'success' : 'neutral'}`}>
-          {isSet ? <span className="ds-dot" /> : null}
-          {isSet ? 'Set' : 'Not set'}
-        </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', minWidth: 220 }}>
         {!disabled ? (
           <div className="flex items-center gap-2">
             <input
               type="password"
               className="ds-input ds-focusable"
-              style={{ width: 150 }}
+              style={{ width: 160 }}
               placeholder={placeholder}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
+              value={typeof pending === 'string' ? pending : ''}
+              onChange={(e) => onChange(e.target.value ? e.target.value : undefined)}
             />
-            <button
-              type="button"
-              className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable"
-              disabled={!value.trim()}
-              onClick={() => {
-                onSave(value)
-                setValue('')
-              }}
-            >
-              Set
-            </button>
             {isSet ? (
-              <button type="button" className="ds-btn ds-btn--ghost ds-btn--sm ds-focusable" onClick={onClear}>
-                Clear
+              <button
+                type="button"
+                className="ds-btn ds-btn--ghost ds-btn--sm ds-focusable"
+                onClick={() => onChange(pending === null ? undefined : null)}
+              >
+                {pending === null ? 'Keep' : 'Clear'}
               </button>
             ) : null}
           </div>
         ) : null}
+        <span style={{ fontSize: 'var(--ds-text-caption)', color: statusColor }}>{status}</span>
       </div>
     </div>
+  )
+}
+
+function Switch({ on, disabled, onToggle }: { on: boolean; disabled: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={onToggle}
+      className="ds-focusable"
+      style={{
+        width: 42,
+        height: 24,
+        flexShrink: 0,
+        borderRadius: 999,
+        border: 'none',
+        padding: 2,
+        background: on ? 'var(--ds-accent)' : 'var(--ds-surface-active)',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
+        transition: 'background 0.15s ease',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}
+    >
+      <span
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 999,
+          background: '#fff',
+          transform: on ? 'translateX(18px)' : 'translateX(0)',
+          transition: 'transform 0.15s ease',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
+        }}
+      />
+    </button>
   )
 }
 
@@ -98,17 +133,7 @@ function ToggleRow({
         <div className="ds-setting-row-label">{label}</div>
         <div className="ds-setting-row-desc">{desc}</div>
       </div>
-      <button
-        type="button"
-        aria-pressed={on}
-        disabled={disabled}
-        onClick={onToggle}
-        className={`ds-chip ds-setting-row-value ds-chip--${on ? 'success' : 'neutral'}`}
-        style={{ cursor: disabled ? 'default' : 'pointer', border: 'none' }}
-      >
-        {on ? <span className="ds-dot" /> : null}
-        {on ? 'On' : 'Off'}
-      </button>
+      <Switch on={on} disabled={disabled} onToggle={onToggle} />
     </div>
   )
 }
@@ -203,23 +228,53 @@ export function AdminSettingsControls({
   repoUrl: string
 }) {
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [draft, setDraft] = useState<{
+    chatEnabled: boolean | null
+    analyticsEnabled: boolean | null
+    allowedDomains: Array<Domain>
+  } | null>(null)
+  const [pendDocs, setPendDocs] = useState<string | null | undefined>(undefined)
+  const [pendKey, setPendKey] = useState<string | null | undefined>(undefined)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [newDomain, setNewDomain] = useState('')
   const [newRole, setNewRole] = useState<Role>('viewer')
 
+  function load(s: Settings) {
+    setSettings(s)
+    setDraft({ chatEnabled: s.chatEnabled, analyticsEnabled: s.analyticsEnabled, allowedDomains: s.allowedDomains })
+    setPendDocs(undefined)
+    setPendKey(undefined)
+  }
   useEffect(() => {
     fetch('/api/admin/settings')
       .then((r) => (r.ok ? r.json() : null))
-      .then((s) => s && setSettings(s))
+      .then((s) => s && load(s))
       .catch(() => {})
   }, [])
 
-  async function save(patch: Record<string, unknown>) {
-    if (!canEdit || !settings) return
-    setSettings({ ...settings, ...(patch as Partial<Settings>) }) // optimistic (non-secret fields)
+  if (!settings || !draft) return null
+
+  const dirty =
+    draft.chatEnabled !== settings.chatEnabled ||
+    draft.analyticsEnabled !== settings.analyticsEnabled ||
+    JSON.stringify(draft.allowedDomains) !== JSON.stringify(draft.allowedDomains) ||
+    pendDocs !== undefined ||
+    pendKey !== undefined
+
+  async function saveAll() {
+    if (!canEdit || !dirty || !draft) return
     setSaving(true)
     setSaved(false)
+    setError(null)
+    const patch: Record<string, unknown> = {
+      chatEnabled: draft.chatEnabled,
+      analyticsEnabled: draft.analyticsEnabled,
+      allowedDomains: draft.allowedDomains,
+    }
+    if (pendDocs !== undefined) patch.docsPassword = pendDocs
+    if (pendKey !== undefined) patch.chatKey = pendKey
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
@@ -227,42 +282,65 @@ export function AdminSettingsControls({
         body: JSON.stringify(patch),
       })
       if (res.ok) {
-        setSettings(await res.json())
+        load(await res.json())
         setSaved(true)
-        setTimeout(() => setSaved(false), 1500)
+        setTimeout(() => setSaved(false), 2500)
+      } else {
+        const body = await res.json().catch(() => ({}))
+        const hint = res.status === 401 || res.status === 403 ? ' — you need Owner access' : ''
+        setError(body.error ?? `Save failed (HTTP ${res.status}${hint})`)
       }
+    } catch {
+      setError('Save failed — could not reach the server.')
     } finally {
       setSaving(false)
     }
   }
 
-  if (!settings) return null
-  const chatOn = settings.chatEnabled ?? true
-  const analyticsOn = settings.analyticsEnabled ?? true
+  const chatOn = draft.chatEnabled ?? true
+  const analyticsOn = draft.analyticsEnabled ?? true
 
   return (
     <section className="ds-setting-group">
-      <div className="ds-setting-group-head">
-        <h2 className="ds-setting-group-title">Controls</h2>
-        <p className="ds-setting-group-desc">
-          Live settings — changes take effect immediately{canEdit ? '' : ' · Owner only'}.
-          {saved ? <span style={{ color: 'var(--ds-success)', marginLeft: 8 }}>Saved ✓</span> : null}
-        </p>
+      <div className="ds-setting-group-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+        <div className="min-w-0">
+          <h2 className="ds-setting-group-title">Controls</h2>
+          <p className="ds-setting-group-desc">
+            {canEdit ? 'Make your changes, then Save. Nothing is written until you do.' : 'Owner access required to edit.'}
+          </p>
+        </div>
+        {canEdit ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+            <button
+              type="button"
+              className="ds-btn ds-btn--primary ds-btn--sm ds-focusable"
+              disabled={!dirty || saving}
+              onClick={saveAll}
+              style={{ opacity: !dirty && !saving ? 0.55 : 1 }}
+            >
+              {saving ? 'Saving…' : dirty ? 'Save settings' : 'Saved'}
+            </button>
+            {saved ? <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-success)' }}>Saved ✓</span> : null}
+            {error ? (
+              <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-danger)', maxWidth: 240, textAlign: 'right' }}>{error}</span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       <div className="ds-setting-list">
         <ToggleRow
           label="AI Chat widget"
           desc="Show the assistant on the docs site"
           on={chatOn}
-          disabled={!canEdit || saving}
-          onToggle={() => save({ chatEnabled: !chatOn })}
+          disabled={!canEdit}
+          onToggle={() => setDraft({ ...draft, chatEnabled: !chatOn })}
         />
         <ToggleRow
           label="Analytics collection"
           desc="Record page views + agent traffic for the dashboard"
           on={analyticsOn}
-          disabled={!canEdit || saving}
-          onToggle={() => save({ analyticsEnabled: !analyticsOn })}
+          disabled={!canEdit}
+          onToggle={() => setDraft({ ...draft, analyticsEnabled: !analyticsOn })}
         />
 
         <SecretRow
@@ -274,10 +352,10 @@ export function AdminSettingsControls({
             </>
           }
           isSet={settings.hasDocsPassword}
-          disabled={!canEdit || saving}
+          pending={pendDocs}
+          disabled={!canEdit}
           placeholder="new password"
-          onSave={(v) => save({ docsPassword: v })}
-          onClear={() => save({ docsPassword: null })}
+          onChange={setPendDocs}
         />
 
         <SecretRow
@@ -289,10 +367,10 @@ export function AdminSettingsControls({
             </>
           }
           isSet={settings.hasChatKey}
-          disabled={!canEdit || saving}
+          pending={pendKey}
+          disabled={!canEdit}
           placeholder="sk-ant-…"
-          onSave={(v) => save({ chatKey: v })}
-          onClear={() => save({ chatKey: null })}
+          onChange={setPendKey}
         />
 
         {/* Allowed email domains */}
@@ -305,17 +383,17 @@ export function AdminSettingsControls({
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', minWidth: 240 }}>
             <div className="flex flex-wrap justify-end gap-2">
-              {settings.allowedDomains.length === 0 ? (
+              {draft.allowedDomains.length === 0 ? (
                 <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>None</span>
               ) : (
-                settings.allowedDomains.map((d, i) => (
+                draft.allowedDomains.map((d, i) => (
                   <span key={`${d.domain}-${i}`} className="ds-chip ds-chip--neutral">
                     @{d.domain} → {d.role}
                     {canEdit ? (
                       <button
                         type="button"
                         aria-label={`Remove ${d.domain}`}
-                        onClick={() => save({ allowedDomains: settings.allowedDomains.filter((_, j) => j !== i) })}
+                        onClick={() => setDraft({ ...draft, allowedDomains: draft.allowedDomains.filter((_, j) => j !== i) })}
                         style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center' }}
                       >
                         <X className="h-3 w-3" />
@@ -342,11 +420,11 @@ export function AdminSettingsControls({
                 <button
                   type="button"
                   className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable"
-                  disabled={saving || !newDomain.trim()}
+                  disabled={!newDomain.trim()}
                   onClick={() => {
                     const domain = newDomain.trim().toLowerCase().replace(/^@/, '')
                     if (!domain) return
-                    save({ allowedDomains: [...settings.allowedDomains, { domain, role: newRole }] })
+                    setDraft({ ...draft, allowedDomains: [...draft.allowedDomains, { domain, role: newRole }] })
                     setNewDomain('')
                   }}
                 >

@@ -17,6 +17,10 @@ export interface AdminSettings {
   brandTheme: string | null
   /** Live brand accent override (hex per mode), or null. */
   brandAccent: { light: string; dark: string } | null
+  /** Site identity overrides (dashboard-editable), or null to use build config. */
+  siteName: string | null
+  siteDescription: string | null
+  siteRepoUrl: string | null
   /** Extra OIDC access domains, merged with the git-committed `team.domains`. */
   allowedDomains: Array<{ domain: string; role: Role }>
   /** scrypt hash of the docs-access (visitor) password. Never returned by the API. */
@@ -33,6 +37,9 @@ const DEFAULTS: AdminSettings = {
   mcpEnabled: null,
   brandTheme: null,
   brandAccent: null,
+  siteName: null,
+  siteDescription: null,
+  siteRepoUrl: null,
   allowedDomains: [],
   docsPasswordHash: null,
   chatKeyEnc: null,
@@ -48,6 +55,9 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       brandTheme: typeof stored?.brandTheme === 'string' ? stored.brandTheme : DEFAULTS.brandTheme,
       brandAccent:
         stored?.brandAccent && typeof stored.brandAccent === 'object' ? stored.brandAccent : DEFAULTS.brandAccent,
+      siteName: typeof stored?.siteName === 'string' ? stored.siteName : DEFAULTS.siteName,
+      siteDescription: typeof stored?.siteDescription === 'string' ? stored.siteDescription : DEFAULTS.siteDescription,
+      siteRepoUrl: typeof stored?.siteRepoUrl === 'string' ? stored.siteRepoUrl : DEFAULTS.siteRepoUrl,
       allowedDomains: Array.isArray(stored?.allowedDomains) ? stored!.allowedDomains! : DEFAULTS.allowedDomains,
       docsPasswordHash: typeof stored?.docsPasswordHash === 'string' ? stored.docsPasswordHash : DEFAULTS.docsPasswordHash,
       chatKeyEnc: typeof stored?.chatKeyEnc === 'string' ? stored.chatKeyEnc : DEFAULTS.chatKeyEnc,

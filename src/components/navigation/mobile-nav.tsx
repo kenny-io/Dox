@@ -10,13 +10,14 @@ import { Badge } from '@/components/ui/badge'
 import { typography } from '@/config/layout'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/layout/logo'
-import { siteConfig } from '@/data/site'
+import { useSiteName } from '@/components/layout/use-site-name'
 
 interface MobileNavProps {
   sections: Array<NavigationSection>
 }
 
 export function MobileNav({ sections }: MobileNavProps) {
+  const siteName = useSiteName()
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -35,7 +36,7 @@ export function MobileNav({ sections }: MobileNavProps) {
           <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-4">
             <div className="flex items-center gap-2">
               <Logo showText={false} />
-              <span className="text-base font-semibold">{siteConfig.name}</span>
+              <span className="text-base font-semibold">{siteName}</span>
             </div>
             <Dialog.Close className="rounded-full border border-border p-1.5 transition hover:bg-muted/50">
               <span className="sr-only">Close</span>
