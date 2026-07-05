@@ -88,6 +88,14 @@ body {
   @apply bg-accent/20 text-accent-foreground;
 }
 
+/* Suppress the default browser focus halo when focus arrives from a pointer
+   (click/tap) — this is the ugly periwinkle ring that appeared around the
+   sidebar logo and other controls after clicking. Keyboard focus
+   (:focus-visible) keeps its outline so the site stays accessible. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 [inert] ::-webkit-scrollbar {
   display: none;
 }

@@ -43,7 +43,10 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
     >
       <div className={cn('fixed top-0 flex h-screen flex-col', layout.sidebarWidth, layout.sidebarPadding)}>
         <div className="flex shrink-0 flex-col gap-3 px-1 pt-2">
-          <Link href="/" className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="flex items-center gap-2 rounded-lg focus:outline-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/30"
+          >
             <Logo showText={false} className="shrink-0" />
             <span className="text-sm font-semibold text-foreground">{siteName} Docs</span>
           </Link>
@@ -77,6 +80,7 @@ export function Sidebar({ sections, title, className }: SidebarProps) {
                           className={cn(
                             'group relative block px-3 py-2 text-left transition',
                             'rounded-[var(--theme-sidebar-item-radius)]',
+                            'focus:outline-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/30',
                             active
                               ? 'text-foreground shadow-none'
                               : 'text-foreground/70 hover:bg-muted/40 hover:text-foreground',
