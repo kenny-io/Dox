@@ -34,10 +34,18 @@
     "zod": "^3.0.0"
   },
   "license": "MIT",
-  "keywords": ["dox", "documentation", "agent", "ai", "claude", "docs-as-code"],
+  "keywords": [
+    "dox",
+    "documentation",
+    "agent",
+    "ai",
+    "claude",
+    "docs-as-code"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kenny-io/Dox.git",
     "directory": "packages/agent"
-  }
+  },
+  "private": true
 }

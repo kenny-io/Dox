@@ -13,6 +13,10 @@ export interface AdminSettings {
   analyticsEnabled: boolean | null
   /** null → on; false → disable the public /api/mcp endpoint. */
   mcpEnabled: boolean | null
+  /** Live structural-theme override (default/maple/sharp/minimal), or null. */
+  brandTheme: string | null
+  /** Live brand accent override (hex per mode), or null. */
+  brandAccent: { light: string; dark: string } | null
   /** Extra OIDC access domains, merged with the git-committed `team.domains`. */
   allowedDomains: Array<{ domain: string; role: Role }>
   /** scrypt hash of the docs-access (visitor) password. Never returned by the API. */
@@ -27,6 +31,8 @@ const DEFAULTS: AdminSettings = {
   chatEnabled: null,
   analyticsEnabled: null,
   mcpEnabled: null,
+  brandTheme: null,
+  brandAccent: null,
   allowedDomains: [],
   docsPasswordHash: null,
   chatKeyEnc: null,
@@ -39,6 +45,9 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       chatEnabled: typeof stored?.chatEnabled === 'boolean' ? stored.chatEnabled : DEFAULTS.chatEnabled,
       analyticsEnabled: typeof stored?.analyticsEnabled === 'boolean' ? stored.analyticsEnabled : DEFAULTS.analyticsEnabled,
       mcpEnabled: typeof stored?.mcpEnabled === 'boolean' ? stored.mcpEnabled : DEFAULTS.mcpEnabled,
+      brandTheme: typeof stored?.brandTheme === 'string' ? stored.brandTheme : DEFAULTS.brandTheme,
+      brandAccent:
+        stored?.brandAccent && typeof stored.brandAccent === 'object' ? stored.brandAccent : DEFAULTS.brandAccent,
       allowedDomains: Array.isArray(stored?.allowedDomains) ? stored!.allowedDomains! : DEFAULTS.allowedDomains,
       docsPasswordHash: typeof stored?.docsPasswordHash === 'string' ? stored.docsPasswordHash : DEFAULTS.docsPasswordHash,
       chatKeyEnc: typeof stored?.chatKeyEnc === 'string' ? stored.chatKeyEnc : DEFAULTS.chatKeyEnc,
