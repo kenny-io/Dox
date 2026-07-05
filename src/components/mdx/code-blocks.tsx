@@ -116,7 +116,7 @@ function CodePanelHeader({ tag, label }: { tag?: string; label?: string }) {
   }
 
   return (
-    <div className="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/10 bg-white/5 bg-zinc-900 px-4 dark:border-b-white/5 dark:bg-white/10">
+    <div className="flex h-9 items-center gap-2 border-y border-t-transparent border-b-white/10 bg-white/5 bg-zinc-900 px-4 dark:border-b-white/10 dark:bg-white/[0.04]">
       {tag && (
         <div className="flex">
           <Tag variant="small">{tag}</Tag>
@@ -217,7 +217,7 @@ function CodePanel({
   }
 
   return (
-    <div className="group dark:bg-white/10">
+    <div className="group dark:bg-black/20">
       <CodePanelHeader tag={resolvedTag} label={resolvedLabel} />
       <div className="relative">
         <pre
@@ -252,7 +252,7 @@ function CodeGroupHeader({
   }
 
   return (
-    <div className="flex min-h-[calc(3rem+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-zinc-800 dark:bg-transparent">
+    <div className="flex min-h-[calc(3rem+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4 dark:border-white/10 dark:bg-white/[0.04]">
       {title && (
         <p className="mr-auto pt-3 text-xs font-semibold text-white">
           {title}
@@ -378,7 +378,7 @@ export function CodeGroup({
   const hasTabs = Children.count(children) > 1
 
   const containerClassName =
-    'my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10'
+    'my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:bg-[#161b28] dark:ring-1 dark:ring-white/10 dark:shadow-[0_20px_50px_-24px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)]'
   const header = (
     <CodeGroupHeader title={title} selectedIndex={tabGroupProps.selectedIndex}>
       {children}
