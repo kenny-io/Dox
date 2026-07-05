@@ -51,7 +51,7 @@ export function SiteIdentityEditor({
     }
   }
 
-  const inputStyle: React.CSSProperties = { width: 'min(280px, 100%)', maxWidth: '100%' }
+  const inputStyle: React.CSSProperties = { width: 'min(440px, 100%)', maxWidth: '100%' }
 
   return (
     <div className="ds-setting-list">
@@ -78,8 +78,8 @@ export function SiteIdentityEditor({
         </div>
         <textarea
           className="ds-input ds-focusable"
-          rows={2}
-          style={{ ...inputStyle, resize: 'vertical' }}
+          rows={3}
+          style={{ ...inputStyle, height: 'auto', minHeight: 84, padding: '10px 12px', lineHeight: 1.5, resize: 'vertical' }}
           value={description}
           disabled={!canEdit}
           placeholder="One line about your product's docs."

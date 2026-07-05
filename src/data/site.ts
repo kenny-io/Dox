@@ -140,7 +140,7 @@ export const siteConfig: SiteConfig = {
   name: 'Dox',
   description:
     'Dox is the first agent-native documentation platform. Every page is served to humans as polished HTML and to AI agents as structured JSON, JSON-LD, and Markdown from the same URL — self-hosted, open, and fully extensible.',
-  repoUrl: 'https://github.com/kenny-io/Dox',
+  repoUrl: '',
   links: [
     { label: 'Get started', href: '/quickstart' },
     { label: 'Support', href: 'https://github.com/kenny-io/Dox/issues/new' },
