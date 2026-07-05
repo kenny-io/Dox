@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import type { Role } from '@/lib/auth/types'
 
 interface Domain {
@@ -20,6 +20,10 @@ interface Settings {
  * Write-only secret editor — never renders the value. `pending` is the staged
  * edit held by the parent draft: a string to set, null to clear, undefined for
  * unchanged. Saved by the group's global Save button.
+ *
+ * "Set" state is signalled quietly: a masked-dot placeholder + a small green
+ * check + a gray caption (Configured / Ready to save / Not configured). No
+ * colored status pill.
  */
 function SecretRow({
   label,
@@ -28,6 +32,7 @@ function SecretRow({
   pending,
   disabled,
   placeholder,
+  maskedPlaceholder,
   onChange,
 }: {
   label: string
@@ -36,40 +41,46 @@ function SecretRow({
   pending: string | null | undefined
   disabled: boolean
   placeholder: string
+  maskedPlaceholder: string
   onChange: (v: string | null | undefined) => void
 }) {
-  const status =
-    pending === null ? 'Will clear on save' : typeof pending === 'string' ? 'Will set on save' : isSet ? 'Configured' : 'Not set'
-  const statusColor = pending !== undefined ? 'var(--ds-accent-mid)' : 'var(--ds-text-muted)'
+  const stagedClear = pending === null
+  const configured = isSet && !stagedClear
+  const caption = pending !== undefined ? 'Ready to save' : isSet ? 'Configured' : 'Not configured'
+  // Show the masked dots only when a secret is saved and untouched — so it's
+  // clear something exists without exposing it. Typing or clearing reverts to
+  // the plain placeholder.
+  const shownPlaceholder = configured && pending === undefined ? maskedPlaceholder : placeholder
+
   return (
-    <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
+    <div className="ds-settings-row ds-settings-row--top">
       <div className="min-w-0">
         <div className="ds-setting-row-label">{label}</div>
         <div className="ds-setting-row-desc">{desc}</div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', minWidth: 220 }}>
-        {!disabled ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="password"
-              className="ds-input ds-focusable"
-              style={{ width: 160 }}
-              placeholder={placeholder}
-              value={typeof pending === 'string' ? pending : ''}
-              onChange={(e) => onChange(e.target.value ? e.target.value : undefined)}
-            />
-            {isSet ? (
-              <button
-                type="button"
-                className="ds-btn ds-btn--ghost ds-btn--sm ds-focusable"
-                onClick={() => onChange(pending === null ? undefined : null)}
-              >
-                {pending === null ? 'Keep' : 'Clear'}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        <span style={{ fontSize: 'var(--ds-text-caption)', color: statusColor }}>{status}</span>
+      <div className="ds-settings-control">
+        <div className="ds-settings-field">
+          <input
+            type="password"
+            className="ds-input ds-focusable"
+            style={{ width: 200 }}
+            placeholder={shownPlaceholder}
+            value={typeof pending === 'string' ? pending : ''}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.value ? e.target.value : undefined)}
+          />
+          {configured ? <Check className="ds-settings-check h-4 w-4" aria-hidden="true" /> : null}
+          {isSet && !disabled ? (
+            <button
+              type="button"
+              className="ds-linkbtn ds-focusable"
+              onClick={() => onChange(stagedClear ? undefined : null)}
+            >
+              {stagedClear ? 'Undo' : 'Clear'}
+            </button>
+          ) : null}
+        </div>
+        <span className={`ds-settings-caption${pending !== undefined ? ' ds-settings-caption--staged' : ''}`}>{caption}</span>
       </div>
     </div>
   )
@@ -128,7 +139,7 @@ function ToggleRow({
   onToggle: () => void
 }) {
   return (
-    <div className="ds-setting-row">
+    <div className="ds-settings-row">
       <div className="min-w-0">
         <div className="ds-setting-row-label">{label}</div>
         <div className="ds-setting-row-desc">{desc}</div>
@@ -136,6 +147,11 @@ function ToggleRow({
       <Switch on={on} disabled={disabled} onToggle={onToggle} />
     </div>
   )
+}
+
+/** Small section header — brand-accent uppercase eyebrow. */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <div className="ds-settings-eyebrow">{children}</div>
 }
 
 function LocalizationSection({
@@ -154,7 +170,7 @@ function LocalizationSection({
   const snippet = valid ? `{ "code": "${code.trim()}", "label": "${label.trim()}" }` : ''
 
   return (
-    <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
+    <div className="ds-settings-row ds-settings-row--top">
       <div className="min-w-0">
         <div className="ds-setting-row-label">Languages</div>
         <div className="ds-setting-row-desc">
@@ -162,56 +178,54 @@ function LocalizationSection({
           content with <code className="font-mono">dox translate</code>.
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', minWidth: 240 }}>
-        <div className="flex flex-wrap justify-end gap-2">
+      <div className="ds-settings-control">
+        {canEdit ? (
+          <div className="ds-settings-addrow">
+            <input
+              className="ds-input ds-focusable"
+              style={{ width: 70 }}
+              placeholder="es"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            <input
+              className="ds-input ds-focusable"
+              style={{ width: 130 }}
+              placeholder="Español"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+            />
+            {editUrl ? (
+              <a
+                href={valid ? editUrl : undefined}
+                target="_blank"
+                rel="noreferrer"
+                aria-disabled={!valid}
+                className="ds-btn ds-btn--primary ds-btn--sm ds-focusable"
+                style={{ opacity: valid ? 1 : 0.55, pointerEvents: valid ? undefined : 'none' }}
+              >
+                Add
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="ds-settings-chips">
           {locales.length === 0 ? (
-            <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>Single language</span>
+            <span className="ds-settings-caption">Single language</span>
           ) : (
             locales.map((l) => (
-              <span key={l.code} className="ds-chip ds-chip--neutral">
-                {l.label} ({l.code})
+              <span key={l.code} className="ds-chip ds-chip--neutral ds-chip--sm">
+                {l.label}
+                <span className="ds-chip-badge">{l.code}</span>
               </span>
             ))
           )}
         </div>
-        {canEdit ? (
-          <>
-            <div className="flex items-center gap-2">
-              <input
-                className="ds-input ds-focusable"
-                style={{ width: 70 }}
-                placeholder="es"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-              <input
-                className="ds-input ds-focusable"
-                style={{ width: 130 }}
-                placeholder="Español"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-              />
-            </div>
-            {valid ? (
-              <>
-                <pre
-                  className="mt-1 overflow-x-auto p-2"
-                  style={{ background: 'var(--ds-surface-tint)', borderRadius: 'var(--ds-radius-md)', fontSize: 'var(--ds-text-caption)' }}
-                >
-                  {snippet}
-                </pre>
-                {editUrl ? (
-                  <a href={editUrl} target="_blank" rel="noreferrer" className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable">
-                    Add to docs.json on GitHub
-                  </a>
-                ) : (
-                  <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>
-                    Add the snippet to <code className="font-mono">docs.json</code> → <code className="font-mono">i18n.locales</code>.
-                  </span>
-                )}
-              </>
-            ) : null}
-          </>
+        {canEdit && valid && !editUrl ? (
+          <span className="ds-settings-caption">
+            Add <code className="font-mono">{snippet}</code> to <code className="font-mono">docs.json</code> →{' '}
+            <code className="font-mono">i18n.locales</code>.
+          </span>
         ) : null}
       </div>
     </div>
@@ -259,7 +273,7 @@ export function AdminSettingsControls({
   const dirty =
     draft.chatEnabled !== settings.chatEnabled ||
     draft.analyticsEnabled !== settings.analyticsEnabled ||
-    JSON.stringify(draft.allowedDomains) !== JSON.stringify(draft.allowedDomains) ||
+    JSON.stringify(draft.allowedDomains) !== JSON.stringify(settings.allowedDomains) ||
     pendDocs !== undefined ||
     pendKey !== undefined
 
@@ -301,14 +315,20 @@ export function AdminSettingsControls({
   const analyticsOn = draft.analyticsEnabled ?? true
 
   return (
-    <section className="ds-setting-group">
-      <div className="ds-setting-group-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-        <div className="min-w-0">
-          <h2 className="ds-setting-group-title">Controls</h2>
-          <p className="ds-setting-group-desc">
-            {canEdit ? 'Make your changes, then Save. Nothing is written until you do.' : 'Owner access required to edit.'}
-          </p>
-        </div>
+    <div>
+      {/* Toolbar — staged-save model: nothing writes until Save. */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+          marginBottom: 'var(--ds-space-16)',
+        }}
+      >
+        <p className="ds-setting-group-desc" style={{ margin: 0, maxWidth: '52ch' }}>
+          {canEdit ? 'Make your changes, then Save. Nothing is written until you do.' : 'Owner access required to edit.'}
+        </p>
         {canEdit ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
             <button
@@ -316,127 +336,150 @@ export function AdminSettingsControls({
               className="ds-btn ds-btn--primary ds-btn--sm ds-focusable"
               disabled={!dirty || saving}
               onClick={saveAll}
-              style={{ opacity: !dirty && !saving ? 0.55 : 1 }}
+              style={{ opacity: !dirty && !saving ? 0.55 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              {saving ? 'Saving…' : dirty ? 'Save settings' : 'Saved'}
+              {saving ? 'Saving…' : dirty ? 'Save changes' : (
+                <>
+                  <Check className="h-4 w-4" aria-hidden="true" /> Saved
+                </>
+              )}
             </button>
-            {saved ? <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-success)' }}>Saved ✓</span> : null}
             {error ? (
-              <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-danger)', maxWidth: 240, textAlign: 'right' }}>{error}</span>
+              <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-danger)', maxWidth: 240, textAlign: 'right' }}>
+                {error}
+              </span>
+            ) : saved ? (
+              <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-success)' }}>Saved ✓</span>
             ) : null}
           </div>
         ) : null}
       </div>
-      <div className="ds-setting-list">
-        <ToggleRow
-          label="AI Chat widget"
-          desc="Show the assistant on the docs site"
-          on={chatOn}
-          disabled={!canEdit}
-          onToggle={() => setDraft({ ...draft, chatEnabled: !chatOn })}
-        />
-        <ToggleRow
-          label="Analytics collection"
-          desc="Record page views + agent traffic for the dashboard"
-          on={analyticsOn}
-          disabled={!canEdit}
-          onToggle={() => setDraft({ ...draft, analyticsEnabled: !analyticsOn })}
-        />
 
-        <SecretRow
-          label="Docs access password"
-          desc={
-            <>
-              Password for the private-docs visitor gate. Set <code className="font-mono">DOX_ACCESS_PASSWORD</code> (any value) to
-              turn the gate on; this password then takes precedence.
-            </>
-          }
-          isSet={settings.hasDocsPassword}
-          pending={pendDocs}
-          disabled={!canEdit}
-          placeholder="new password"
-          onChange={setPendDocs}
-        />
+      <section className="ds-settings-panel">
+        <div className="ds-settings-section">
+          <SectionLabel>Site experience</SectionLabel>
+          <ToggleRow
+            label="AI Chat widget"
+            desc="Show the assistant on the docs site"
+            on={chatOn}
+            disabled={!canEdit}
+            onToggle={() => setDraft({ ...draft, chatEnabled: !chatOn })}
+          />
+          <ToggleRow
+            label="Analytics collection"
+            desc="Record page views + agent traffic for the dashboard"
+            on={analyticsOn}
+            disabled={!canEdit}
+            onToggle={() => setDraft({ ...draft, analyticsEnabled: !analyticsOn })}
+          />
+        </div>
 
-        <SecretRow
-          label="AI Chat API key"
-          desc={
-            <>
-              Anthropic API key for the assistant, <strong>encrypted at rest</strong>. Overrides the{' '}
-              <code className="font-mono">ANTHROPIC_API_KEY</code> env. Requires <code className="font-mono">DOX_AUTH_SECRET</code>.
-            </>
-          }
-          isSet={settings.hasChatKey}
-          pending={pendKey}
-          disabled={!canEdit}
-          placeholder="sk-ant-…"
-          onChange={setPendKey}
-        />
+        <div className="ds-settings-section">
+          <SectionLabel>Access &amp; keys</SectionLabel>
+          <SecretRow
+            label="Docs access password"
+            desc={
+              <>
+                Password for the private-docs visitor gate. Set <code className="font-mono">DOX_ACCESS_PASSWORD</code> (any value)
+                to turn the gate on; this password then takes precedence.
+              </>
+            }
+            isSet={settings.hasDocsPassword}
+            pending={pendDocs}
+            disabled={!canEdit}
+            placeholder="new password"
+            maskedPlaceholder="••••••••••••"
+            onChange={setPendDocs}
+          />
+          <SecretRow
+            label="AI Chat API key"
+            desc={
+              <>
+                Anthropic API key for the assistant, <strong>encrypted at rest</strong>. Overrides the{' '}
+                <code className="font-mono">ANTHROPIC_API_KEY</code> env. Requires <code className="font-mono">DOX_AUTH_SECRET</code>.
+              </>
+            }
+            isSet={settings.hasChatKey}
+            pending={pendKey}
+            disabled={!canEdit}
+            placeholder="sk-ant-…"
+            maskedPlaceholder="sk-ant-••••…"
+            onChange={setPendKey}
+          />
+        </div>
 
-        {/* Allowed email domains */}
-        <div className="ds-setting-row" style={{ alignItems: 'flex-start' }}>
-          <div className="min-w-0">
-            <div className="ds-setting-row-label">Allowed email domains</div>
-            <div className="ds-setting-row-desc">
-              Verified work emails in these domains can sign in (merged with docs.json <code className="font-mono">team.domains</code>)
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', minWidth: 240 }}>
-            <div className="flex flex-wrap justify-end gap-2">
-              {draft.allowedDomains.length === 0 ? (
-                <span style={{ fontSize: 'var(--ds-text-caption)', color: 'var(--ds-text-muted)' }}>None</span>
-              ) : (
-                draft.allowedDomains.map((d, i) => (
-                  <span key={`${d.domain}-${i}`} className="ds-chip ds-chip--neutral">
-                    @{d.domain} → {d.role}
-                    {canEdit ? (
-                      <button
-                        type="button"
-                        aria-label={`Remove ${d.domain}`}
-                        onClick={() => setDraft({ ...draft, allowedDomains: draft.allowedDomains.filter((_, j) => j !== i) })}
-                        style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center' }}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    ) : null}
-                  </span>
-                ))
-              )}
-            </div>
-            {canEdit ? (
-              <div className="flex items-center gap-2">
-                <input
-                  className="ds-input ds-focusable"
-                  style={{ width: 130 }}
-                  placeholder="acme.com"
-                  value={newDomain}
-                  onChange={(e) => setNewDomain(e.target.value)}
-                />
-                <select className="ds-input ds-focusable" value={newRole} onChange={(e) => setNewRole(e.target.value as Role)}>
-                  <option value="viewer">viewer</option>
-                  <option value="editor">editor</option>
-                  <option value="owner">owner</option>
-                </select>
-                <button
-                  type="button"
-                  className="ds-btn ds-btn--secondary ds-btn--sm ds-focusable"
-                  disabled={!newDomain.trim()}
-                  onClick={() => {
-                    const domain = newDomain.trim().toLowerCase().replace(/^@/, '')
-                    if (!domain) return
-                    setDraft({ ...draft, allowedDomains: [...draft.allowedDomains, { domain, role: newRole }] })
-                    setNewDomain('')
-                  }}
-                >
-                  Add
-                </button>
+        <div className="ds-settings-section">
+          <SectionLabel>Team access</SectionLabel>
+          <div className="ds-settings-row ds-settings-row--top">
+            <div className="min-w-0">
+              <div className="ds-setting-row-label">Allowed email domains</div>
+              <div className="ds-setting-row-desc">
+                Verified work emails in these domains can sign in (merged with docs.json{' '}
+                <code className="font-mono">team.domains</code>).
               </div>
-            ) : null}
+            </div>
+            <div className="ds-settings-control">
+              {canEdit ? (
+                <div className="ds-settings-addrow">
+                  <input
+                    className="ds-input ds-focusable"
+                    style={{ width: 130 }}
+                    placeholder="acme.com"
+                    value={newDomain}
+                    onChange={(e) => setNewDomain(e.target.value)}
+                  />
+                  <select className="ds-input ds-focusable" value={newRole} onChange={(e) => setNewRole(e.target.value as Role)}>
+                    <option value="viewer">viewer</option>
+                    <option value="editor">editor</option>
+                    <option value="owner">owner</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="ds-btn ds-btn--primary ds-btn--sm ds-focusable"
+                    disabled={!newDomain.trim()}
+                    style={{ opacity: newDomain.trim() ? 1 : 0.55 }}
+                    onClick={() => {
+                      const domain = newDomain.trim().toLowerCase().replace(/^@/, '')
+                      if (!domain) return
+                      setDraft({ ...draft, allowedDomains: [...draft.allowedDomains, { domain, role: newRole }] })
+                      setNewDomain('')
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
+              ) : null}
+              <div className="ds-settings-chips">
+                {draft.allowedDomains.length === 0 ? (
+                  <span className="ds-settings-caption">None</span>
+                ) : (
+                  draft.allowedDomains.map((d, i) => (
+                    <span key={`${d.domain}-${i}`} className="ds-chip ds-chip--neutral ds-chip--sm">
+                      {d.domain}
+                      <span className="ds-chip-badge">{d.role}</span>
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          className="ds-chip-x ds-focusable"
+                          aria-label={`Remove ${d.domain}`}
+                          onClick={() => setDraft({ ...draft, allowedDomains: draft.allowedDomains.filter((_, j) => j !== i) })}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      ) : null}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        <LocalizationSection locales={i18nLocales} repoUrl={repoUrl} canEdit={canEdit} />
-      </div>
-    </section>
+        <div className="ds-settings-section">
+          <SectionLabel>Localization</SectionLabel>
+          <LocalizationSection locales={i18nLocales} repoUrl={repoUrl} canEdit={canEdit} />
+        </div>
+      </section>
+    </div>
   )
 }
