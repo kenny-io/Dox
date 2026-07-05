@@ -19,6 +19,9 @@
   --theme-radius-lg:                 1rem;      /* cards, panels */
   --theme-radius-xl:                 1.5rem;    /* large panels, hero sections */
 
+  /* Buttons / CTAs / pill controls — pill by default; squared by sharp/minimal */
+  --theme-control-radius:            9999px;
+
   /* Sidebar active item */
   --theme-sidebar-item-radius:       0.5rem;
   --theme-sidebar-indicator-opacity: 1;         /* left accent bar */
@@ -86,6 +89,14 @@ body {
 
 ::selection {
   @apply bg-accent/20 text-accent-foreground;
+}
+
+/* Suppress the default browser focus halo when focus arrives from a pointer
+   (click/tap) — this is the ugly periwinkle ring that appeared around the
+   sidebar logo and other controls after clicking. Keyboard focus
+   (:focus-visible) keeps its outline so the site stays accessible. */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 [inert] ::-webkit-scrollbar {

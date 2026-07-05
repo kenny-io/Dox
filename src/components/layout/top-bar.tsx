@@ -85,7 +85,7 @@ export function TopBar({
           <div className="ml-auto flex w-full flex-1 flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
             <Suspense
               fallback={
-                <div className="hidden h-9 flex-1 items-center rounded-full border border-border/40 px-4 sm:h-10 lg:flex" />
+                <div className="hidden h-9 flex-1 items-center rounded-[var(--theme-control-radius)] border border-border/40 px-4 sm:h-10 lg:flex" />
               }
             >
               <CommandSearch searchIndex={searchIndex} />
@@ -100,7 +100,7 @@ export function TopBar({
                       href={link.href}
                       target={isExternal ? '_blank' : undefined}
                       rel={isExternal ? 'noreferrer' : undefined}
-                      className="hidden items-center gap-1.5 rounded-full border border-border/50 px-3 py-1.5 text-xs font-medium text-foreground/70 transition hover:text-foreground sm:inline-flex sm:px-4 sm:py-2 sm:text-sm"
+                      className="hidden items-center gap-1.5 rounded-[var(--theme-control-radius)] border border-border/50 px-3 py-1.5 text-xs font-medium text-foreground/70 transition hover:text-foreground sm:inline-flex sm:px-4 sm:py-2 sm:text-sm"
                     >
                       {isGithub ? (
                         <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
@@ -117,7 +117,7 @@ export function TopBar({
                 ? (
                     <Link
                       href={supportLink.href}
-                      className="hidden items-center rounded-full border border-border/50 px-3 py-1.5 text-xs font-medium text-foreground/70 transition hover:text-foreground sm:inline-flex sm:px-4 sm:py-2 sm:text-sm"
+                      className="hidden items-center rounded-[var(--theme-control-radius)] border border-border/50 px-3 py-1.5 text-xs font-medium text-foreground/70 transition hover:text-foreground sm:inline-flex sm:px-4 sm:py-2 sm:text-sm"
                     >
                       <span className="hidden sm:inline">{supportLink.label}</span>
                       <span className="inline sm:hidden">{supportLink.label.split(' ')[0]}</span>
@@ -127,7 +127,7 @@ export function TopBar({
             {primaryCta ? (
               <Link
                 href={primaryCta.href}
-                className="inline-flex items-center rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground shadow hover:bg-accent/90 sm:px-4 sm:py-2 sm:text-sm"
+                className="inline-flex items-center rounded-[var(--theme-control-radius)] bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground shadow hover:bg-accent/90 sm:px-4 sm:py-2 sm:text-sm"
               >
                 <span className="hidden sm:inline">{primaryCta.label}</span>
                 <span className="inline sm:hidden">{primaryCta.label.replace('Get ', '')}</span>
