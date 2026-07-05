@@ -136,6 +136,13 @@ const brandStyle: Record<string, string> = {
   '--brand-sidebar-active-text-dark': toHslValue(siteConfig.brand.dark.sidebarActiveText),
 }
 
+// The brand palette must live in a :root <style> (NOT inline on <html>): inline
+// styles beat every stylesheet, so /api/brand.css could never override the
+// dashboard accent. As a :root rule, brand.css's :root:root wins.
+const brandCss = Object.entries(brandStyle)
+  .map(([k, v]) => `${k}:${v}`)
+  .join(';')
+
 const defaultLang = getI18nConfig()?.defaultLocale ?? 'en'
 const bannerConfig = getBannerConfig()
 const customScripts = getCustomScriptsConfig()
@@ -144,7 +151,7 @@ const siteJsonLd = buildSiteJsonLd({ siteUrl, locale: defaultLang })
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang={defaultLang} suppressHydrationWarning style={brandStyle} data-theme={structuralTheme}>
+    <html lang={defaultLang} suppressHydrationWarning data-theme={structuralTheme}>
       <head>
         <JsonLdScript data={siteJsonLd} />
         {/* Google Fonts for custom body/heading fonts set in docs.json */}
@@ -157,6 +164,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             ))}
           </>
         )}
+        {/* Brand palette (default) — a :root rule so /api/brand.css can override it */}
+        <style>{`:root { ${brandCss} }`}</style>
         {/* CSS variable overrides for custom fonts */}
         {fontOverrides && <style>{`:root { ${fontOverrides} }`}</style>}
         {/* CSS variable overrides for structural theme (radius, sidebar, nav tabs) */}
