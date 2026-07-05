@@ -57,7 +57,7 @@
   --ds-accent-tint:       color-mix(in oklch, var(--ds-accent) 12%, transparent);
   --ds-accent-tint-hover: color-mix(in oklch, var(--ds-accent) 18%, transparent);
   --ds-accent-border:     color-mix(in oklch, var(--ds-accent) 30%, transparent);
-  --ds-accent-ring:       color-mix(in oklch, var(--ds-accent) 28%, transparent);
+  --ds-accent-ring:       color-mix(in oklch, var(--ds-accent) 15%, transparent);
   --ds-accent-glow:       color-mix(in oklch, var(--ds-accent) 22%, transparent);
 
   /* ────────────────────────────────────────────────────────────────────────
@@ -629,8 +629,8 @@
 .dox-dashboard .ds-input::placeholder { color: var(--ds-text-faint); }
 .dox-dashboard .ds-input:focus {
   outline: none;
-  border-color: color-mix(in oklch, var(--ds-accent) 55%, var(--ds-border));
-  box-shadow: 0 0 0 2px var(--ds-accent-ring);
+  border-color: color-mix(in oklch, var(--ds-accent) 35%, var(--ds-border));
+  box-shadow: 0 0 0 1px var(--ds-accent-ring);
 }
 
 /* ============================================================================
