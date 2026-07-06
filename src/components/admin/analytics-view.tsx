@@ -9,9 +9,13 @@ import type { ContentGap } from '@/lib/chat-insights'
 type AnalyticsData = AnalyticsSummary & { contentGaps?: Array<ContentGap> }
 
 const RANGES: Array<{ id: AnalyticsRange; label: string }> = [
-  { id: '7d', label: '7 days' },
-  { id: '30d', label: '30 days' },
-  { id: '90d', label: '90 days' },
+  { id: '7d', label: '7d' },
+  { id: '30d', label: '30d' },
+  { id: '90d', label: '90d' },
+  { id: '6mo', label: '6mo' },
+  { id: '1y', label: '1y' },
+  { id: '3y', label: '3y' },
+  { id: 'all', label: 'All' },
 ]
 
 function niceMax(value: number): number {
