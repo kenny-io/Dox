@@ -2,7 +2,7 @@
 
 import '@/styles/design-system.css'
 
-import { useState, type ComponentType } from 'react'
+import { useState, useSyncExternalStore, type ComponentType } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
@@ -75,6 +75,9 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+// Stable no-op subscribe for the hydration-gate useSyncExternalStore below.
+const emptySubscribe = () => () => {}
+
 export function AdminShell({ siteName, children }: { siteName: string; children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -82,6 +85,11 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
+  // next-themes resolves the real theme only on the client, so gate any
+  // theme-dependent render on hydration to keep SSR and first client render
+  // identical. useSyncExternalStore returns the server snapshot (false) through
+  // hydration, then the client snapshot (true) — no setState-in-effect.
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false)
 
   // The login screen renders bare — no shell chrome.
   if (pathname === '/admin/login') {
@@ -93,9 +101,10 @@ export function AdminShell({ siteName, children }: { siteName: string; children:
     router.replace('/admin/login')
   }
 
-  // next-themes returns undefined until hydrated, so the first client render
-  // matches the server (no mismatch); the icon settles after mount.
-  const isDark = resolvedTheme === 'dark'
+  // Until mounted, this is always false on both server and client (matching the
+  // SSR default) so the toggle icon can't cause a hydration mismatch; it settles
+  // to the real theme after mount.
+  const isDark = mounted && resolvedTheme === 'dark'
   const title = TITLES[pathname] ?? 'Admin'
 
   return (
