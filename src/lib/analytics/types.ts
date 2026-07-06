@@ -28,7 +28,7 @@ export interface AnalyticsEvent {
   clickedSlug?: string
 }
 
-export type AnalyticsRange = '7d' | '30d' | '90d'
+export type AnalyticsRange = '7d' | '30d' | '90d' | '6mo' | '1y' | '3y' | 'all'
 
 export interface DailyTrafficPoint {
   date: string

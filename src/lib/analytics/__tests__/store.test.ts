@@ -2,6 +2,8 @@ import { describe, expect, it, beforeEach, afterEach } from 'vitest'
 import {
   aggregateAnalytics,
   trackAnalyticsEvent,
+  bucketUnitForDays,
+  bucketKey,
   __resetAnalyticsStoreForTests,
 } from '@/lib/analytics/store'
 
@@ -54,6 +56,51 @@ describe('analytics store', () => {
     const summary = await aggregateAnalytics('7d')
     expect(summary.totals.pageViews).toBe(1)
     expect(summary.topPages.human[0]?.path).toBe('/recent')
+  })
+
+  it('includes older events only within a matching longer window', async () => {
+    const now = Date.now()
+    const day = 24 * 60 * 60 * 1000
+    await trackAnalyticsEvent({ type: 'page_view', path: '/recent', visitorType: 'human', ts: now })
+    await trackAnalyticsEvent({ type: 'page_view', path: '/200d', visitorType: 'human', ts: now - 200 * day })
+    await trackAnalyticsEvent({ type: 'page_view', path: '/400d', visitorType: 'human', ts: now - 400 * day })
+
+    expect((await aggregateAnalytics('90d')).totals.pageViews).toBe(1) // only /recent
+    expect((await aggregateAnalytics('6mo')).totals.pageViews).toBe(1) // 182d < 200d
+    expect((await aggregateAnalytics('1y')).totals.pageViews).toBe(2) // + /200d
+    expect((await aggregateAnalytics('3y')).totals.pageViews).toBe(3) // + /400d
+    expect((await aggregateAnalytics('all')).totals.pageViews).toBe(3)
+  })
+
+  it('chooses bucket granularity by window length', () => {
+    expect(bucketUnitForDays(30)).toBe('day')
+    expect(bucketUnitForDays(90)).toBe('day')
+    expect(bucketUnitForDays(182)).toBe('week')
+    expect(bucketUnitForDays(365)).toBe('week')
+    expect(bucketUnitForDays(1095)).toBe('month')
+    expect(bucketUnitForDays(100000)).toBe('month')
+  })
+
+  it('buckets timestamps to UTC day / Monday-week / month-start', () => {
+    const wed = Date.parse('2026-07-08T15:00:00Z') // a Wednesday, UTC
+    expect(bucketKey(wed, 'day')).toBe('2026-07-08')
+    expect(bucketKey(wed, 'week')).toBe('2026-07-06') // Monday of that week
+    expect(bucketKey(wed, 'month')).toBe('2026-07-01')
+  })
+
+  it('coarsens the traffic series for longer ranges', async () => {
+    const now = Date.now()
+    const day = 24 * 60 * 60 * 1000
+    // Three events on three distinct recent days (all inside every window here).
+    for (const offset of [0, 1, 2]) {
+      await trackAnalyticsEvent({ type: 'page_view', path: '/a', visitorType: 'human', ts: now - offset * day })
+    }
+    const dayBuckets = (await aggregateAnalytics('30d')).dailyTraffic.length
+    const weekBuckets = (await aggregateAnalytics('6mo')).dailyTraffic.length
+    const monthBuckets = (await aggregateAnalytics('3y')).dailyTraffic.length
+    expect(dayBuckets).toBe(3) // day granularity → one point per distinct day
+    expect(weekBuckets).toBeLessThanOrEqual(dayBuckets) // coarser can only collapse points
+    expect(monthBuckets).toBeLessThanOrEqual(weekBuckets)
   })
 
   it('persists events across a client reset (durable store)', async () => {

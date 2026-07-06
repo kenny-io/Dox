@@ -18,6 +18,37 @@ const RANGE_DAYS: Record<AnalyticsRange, number> = {
   '7d': 7,
   '30d': 30,
   '90d': 90,
+  '6mo': 182,
+  '1y': 365,
+  '3y': 1095,
+  // "All time" — a window wide enough to include every stored event; the
+  // computed sinceMs goes negative, so `ts >= sinceMs` matches everything.
+  'all': 100000,
+}
+
+type BucketUnit = 'day' | 'week' | 'month'
+
+// Keep the traffic chart readable: fine-grained buckets for short windows,
+// coarser for long ones (a 3-year window would otherwise be ~1,095 daily bars).
+export function bucketUnitForDays(days: number): BucketUnit {
+  if (days <= 92) return 'day' // 7 / 30 / 90 days
+  if (days <= 550) return 'week' // 6 months, 1 year
+  return 'month' // 3 years, all-time
+}
+
+// Bucket key for an event timestamp. All keys are UTC-derived (matching
+// `dateKey`'s toISOString) so buckets never straddle days inconsistently.
+// week → the Monday of that UTC week; month → the 1st of that UTC month.
+export function bucketKey(ts: number, unit: BucketUnit): string {
+  if (unit === 'day') return dateKey(ts)
+  const d = new Date(ts)
+  if (unit === 'month') {
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`
+  }
+  // week: shift back to Monday (UTC)
+  const sinceMonday = (d.getUTCDay() + 6) % 7 // 0 = Mon … 6 = Sun
+  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - sinceMonday))
+  return monday.toISOString().slice(0, 10)
 }
 
 const INSERT_SQL = `INSERT OR IGNORE INTO analytics_events
@@ -230,6 +261,7 @@ function dateKey(ts: number): string {
 export async function aggregateAnalytics(range: AnalyticsRange): Promise<AnalyticsSummary> {
   const days = RANGE_DAYS[range]
   const sinceMs = Date.now() - days * 24 * 60 * 60 * 1000
+  const bucket = bucketUnitForDays(days)
   const events = await readEventsSince(sinceMs)
 
   const dailyMap = new Map<string, DailyTrafficPoint>()
@@ -263,7 +295,7 @@ export async function aggregateAnalytics(range: AnalyticsRange): Promise<Analyti
         humanPages.set(event.path, (humanPages.get(event.path) ?? 0) + 1)
       }
 
-      const key = dateKey(event.ts)
+      const key = bucketKey(event.ts, bucket)
       const point = dailyMap.get(key) ?? { date: key, human: 0, agent: 0, total: 0 }
       if (event.visitorType === 'agent') point.agent++
       else point.human++

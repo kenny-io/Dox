@@ -8,9 +8,10 @@ import type { AnalyticsRange } from '@/lib/analytics/types'
 
 export const runtime = 'nodejs'
 
+const VALID_RANGES: ReadonlyArray<AnalyticsRange> = ['7d', '30d', '90d', '6mo', '1y', '3y', 'all']
+
 function parseRange(value: string | null): AnalyticsRange {
-  if (value === '7d' || value === '30d' || value === '90d') return value
-  return '30d'
+  return VALID_RANGES.includes(value as AnalyticsRange) ? (value as AnalyticsRange) : '30d'
 }
 
 export async function GET(request: NextRequest) {
