@@ -178,6 +178,23 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
     }
   }, [input, loading, messages])
 
+  // Lock the page's scroll while the panel is open so its own scrollbar isn't
+  // shown next to the panel's (the "two scrollbars" issue). Pad by the scrollbar
+  // width so hiding it doesn't shift the docs content underneath.
+  useEffect(() => {
+    if (!open) return
+    const root = document.documentElement
+    const scrollbarWidth = window.innerWidth - root.clientWidth
+    const prevOverflow = root.style.overflow
+    const prevPad = document.body.style.paddingRight
+    root.style.overflow = 'hidden'
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
+    return () => {
+      root.style.overflow = prevOverflow
+      document.body.style.paddingRight = prevPad
+    }
+  }, [open])
+
   if (!chatShown) return null
 
   return (
@@ -234,7 +251,7 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-5 pb-2">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 pb-2">
             {messages.length === 0 ? (
               /* Welcome state */
               <div className="flex h-full flex-col items-center justify-center gap-6 pb-4">
@@ -264,7 +281,7 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
             ) : (
               <div className="flex flex-col gap-6 py-2">
                 {messages.map((msg, i) => (
-                  <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div key={i} className={`flex min-w-0 gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {msg.role === 'assistant' && (
                       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10">
                         <FabIcon icon={icon} className="h-3 w-3 text-accent" />
@@ -282,7 +299,8 @@ export function DocsChat({ label = 'Ask AI', icon, enabled = true }: DocsChatPro
                       /* Assistant — no bubble, full prose */
                       <div className="min-w-0 flex-1 text-sm leading-relaxed">
                         {msg.content ? (
-                          <div className="prose prose-sm dark:prose-invert max-w-none
+                          <div className="prose prose-sm dark:prose-invert max-w-none break-words
+                            [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_:not(pre)>code]:break-words
                             prose-p:leading-relaxed prose-p:my-2 first:prose-p:mt-0
                             prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-1
                             prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5
