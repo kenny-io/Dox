@@ -8,6 +8,10 @@
  */
 export function isMachineEndpoint(pathname: string): boolean {
   if (pathname.startsWith('/api/')) return true
+  // Everything under /.well-known/ is by definition a machine-targeted
+  // document (RFC 8615) — many are extensionless (api-catalog,
+  // oauth-protected-resource), so the extension check below can't catch them.
+  if (pathname.startsWith('/.well-known/')) return true
 
   const exact = new Set<string>([
     '/llms.txt',
