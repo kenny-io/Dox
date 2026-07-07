@@ -34,6 +34,17 @@ const AGENT_ALLOW = [
   '/openapi.json',
 ] as const
 
+const DISALLOW = [
+  '/admin',
+  '/access',
+  '/api/chat',
+  '/api/feedback',
+  '/api/og',
+  '/api/try-it',
+  '/api/admin',
+  '/api/analytics',
+] as const
+
 const CONTENT_SIGNALS = 'Content-Signal: search=yes, ai-input=yes, ai-train=yes'
 
 export const dynamic = 'force-static'
@@ -51,14 +62,7 @@ export function GET(): Response {
     'Allow: /api/docs/',
     'Allow: /api/docs-index',
     'Allow: /openapi.yaml',
-    'Disallow: /admin',
-    'Disallow: /access',
-    'Disallow: /api/chat',
-    'Disallow: /api/feedback',
-    'Disallow: /api/og',
-    'Disallow: /api/try-it',
-    'Disallow: /api/admin',
-    'Disallow: /api/analytics',
+    ...DISALLOW.map((path) => `Disallow: ${path}`),
     '',
   ]
 
@@ -66,6 +70,7 @@ export function GET(): Response {
     lines.push(`User-Agent: ${bot}`)
     lines.push(CONTENT_SIGNALS)
     for (const path of AGENT_ALLOW) lines.push(`Allow: ${path}`)
+    for (const path of DISALLOW) lines.push(`Disallow: ${path}`)
     lines.push('')
   }
 
