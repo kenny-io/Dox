@@ -157,9 +157,16 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     event.waitUntil(sendAnalyticsEvent(request, pathname))
   }
 
-  // `.md` page mirrors rewrite to the markdown API — but /skill.md and
-  // /AGENTS.md are their own generated routes, so leave them alone.
-  if (pathname.endsWith('.md') && pathname !== '/skill.md' && pathname !== '/AGENTS.md') {
+  // `.md` page mirrors rewrite to the markdown API — but /skill.md, /AGENTS.md,
+  // /auth.md, and Agent Skills files under /.well-known/ are their own
+  // generated routes, so leave them alone.
+  if (
+    pathname.endsWith('.md') &&
+    pathname !== '/skill.md' &&
+    pathname !== '/AGENTS.md' &&
+    pathname !== '/auth.md' &&
+    !pathname.startsWith('/.well-known/')
+  ) {
     const slugPath = pathname.slice(1, -3)
     if (slugPath) {
       const url = request.nextUrl.clone()
@@ -191,6 +198,12 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const response = NextResponse.next()
   if (!pathname.startsWith('/api') && !pathname.startsWith('/admin') && !pathname.startsWith('/_next')) {
     response.headers.append('Link', '</llms.txt>; rel="llms-txt"')
+    // Standard relation types agents actually dereference (RFC 8288): the
+    // Markdown alternate of the corpus, the OpenAPI description
+    // (rel="service-desc", RFC 9727), and the API catalog (rel="api-catalog").
+    response.headers.append('Link', '</llms.txt>; rel="alternate"; type="text/markdown"')
+    response.headers.append('Link', '</openapi.yaml>; rel="service-desc"; type="application/yaml"')
+    response.headers.append('Link', '</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"')
     response.headers.set('X-Llms-Txt', `${request.nextUrl.origin}/llms.txt`)
   }
   return response
