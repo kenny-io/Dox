@@ -10,7 +10,7 @@ import {
   isDocsAccessGrantedEdge,
 } from '@/lib/admin/auth-edge'
 import { classifyRequest, isAgentRequest } from '@/lib/traffic-classifier'
-import { isMachineEndpoint } from '@/lib/agent-endpoints'
+import { isMachineEndpoint, isPublicAgentEndpoint } from '@/lib/agent-endpoints'
 import { verifySession, SESSION_COOKIE } from '@/lib/auth/session'
 
 function shouldTrackPath(pathname: string): boolean {
@@ -78,17 +78,18 @@ function buildAnalyticsPayload(request: NextRequest, pathname: string) {
   const classification = classifyRequest(request, pathname)
   const slugPath = pathname === '/' ? 'introduction' : pathname.slice(1).replace(/\.md$/, '')
 
-  const isDiscovery =
-    pathname === '/llms.txt' ||
-    pathname === '/.well-known/llms.txt' ||
-    pathname === '/llms-full.txt' ||
-    pathname === '/ai.txt' ||
-    pathname === '/api/docs-index'
+  // Crawler-control + agent-discovery machine documents (robots.txt, sitemap,
+  // llms.txt/ai.txt, OpenAPI, RSS, skill.md/AGENTS.md/auth.md, everything under
+  // /.well-known/) are 'discovery' — not docs page views. Without this,
+  // /.well-known/mcp.json and /auth.md were recorded as 'page_view' with bogus
+  // slugs like '.well-known/mcp.json' and 'auth', masquerading as docs pages.
+  const isDiscovery = isPublicAgentEndpoint(pathname) || pathname === '/api/docs-index'
 
   return {
     type: isDiscovery ? 'discovery' : pathname.startsWith('/api/') ? 'api_fetch' : 'page_view',
     path: pathname,
-    slug: slugPath || undefined,
+    // Discovery endpoints are not docs pages, so they never get a page slug.
+    slug: isDiscovery ? undefined : slugPath || undefined,
     visitorType: classification.visitorType,
     agentSignal: classification.agentSignal,
     format: classification.format,
@@ -145,6 +146,12 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     !pathname.startsWith('/api/access') &&
     pathname !== '/access' &&
     !pathname.startsWith('/_next') &&
+    // Public agent-discovery + crawler-control docs (robots.txt, sitemap,
+    // llms.txt, /.well-known/*, auth.md, …) must stay machine-reachable even
+    // under docs-access protection — otherwise an MCP client or crawler gets
+    // the HTML /access page instead of the JSON/markdown it asked for, and the
+    // anonymous-access promises in auth.md / oauth-protected-resource go false.
+    !isPublicAgentEndpoint(pathname) &&
     !(await isDocsAccessGrantedEdge(request.cookies.get(DOCS_ACCESS_COOKIE)?.value))
   ) {
     const accessUrl = request.nextUrl.clone()
@@ -160,6 +167,19 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   // `.md` page mirrors rewrite to the markdown API — but /skill.md, /AGENTS.md,
   // /auth.md, and Agent Skills files under /.well-known/ are their own
   // generated routes, so leave them alone.
+  //
+  // RESERVED SLUG: because /auth.md is served by the generated agent-auth guide
+  // (via a next.config.ts rewrite to /api/well-known), 'auth' is a reserved
+  // top-level slug on this template. A real docs page slugged 'auth' would have
+  // its .md mirror silently shadowed by that boilerplate. We can't safely
+  // resolve this here: middleware runs on the edge, and the only doc-slug
+  // enumerator (getNavigablePageIds/getDocEntries) lives in a module that
+  // imports node:fs at top scope, so it can't be bundled into edge middleware.
+  // A docs.json-based check would also be *wrong*, not just unavailable — the
+  // .md mirror resolves against fs.existsSync(src/content/auth.mdx), i.e. file
+  // existence, not nav membership. The real fix belongs in the nodejs-runtime
+  // /api/well-known route (which can use fs) or the next.config.ts rewrite —
+  // both outside this file.
   if (
     pathname.endsWith('.md') &&
     pathname !== '/skill.md' &&
