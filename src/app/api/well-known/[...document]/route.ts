@@ -126,6 +126,9 @@ function oauthProtectedResource(origin: string): Response {
   return json({
     resource: origin,
     resource_name: 'Dox documentation',
+    // Empty by declaration, not omission: no OAuth authorization server
+    // fronts this resource (RFC 9728 §2 — the array lists AS issuers).
+    authorization_servers: [],
     bearer_methods_supported: [],
     resource_documentation: `${origin}/auth.md`,
   })
