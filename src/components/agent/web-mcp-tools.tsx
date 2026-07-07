@@ -41,8 +41,11 @@ function buildTools(): Array<ModelContextTool> {
       async execute(args) {
         const query = typeof args.query === 'string' ? args.query : ''
         const limit = typeof args.limit === 'number' ? args.limit : 8
+        // Finding (7): pin mode=fulltext to match the server-side search_docs
+        // tool — hybrid mode embeds the query per call, which is too costly for
+        // this public, anonymous path.
         const response = await fetch(
-          `/api/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(String(limit))}`,
+          `/api/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(String(limit))}&mode=fulltext`,
         )
         const text = await response.text()
         return { content: [{ type: 'text', text }] }
@@ -61,7 +64,43 @@ function buildTools(): Array<ModelContextTool> {
       },
       async execute(args) {
         const path = typeof args.path === 'string' ? args.path.replace(/^\/+/, '') : ''
-        const response = await fetch(`/${path}`, { headers: { accept: 'text/markdown' } })
+        // Finding (1): read_page must only fetch documentation pages — never the
+        // credentialed operator surfaces (/api/*, /admin/*) or traversal paths.
+        // Gate on the FIRST path segment so legit pages like "api-reference"
+        // still resolve, while "api/…" and "admin/…" do not.
+        const firstSegment = path.split('/')[0]
+        if (!path || firstSegment === 'api' || firstSegment === 'admin' || path.includes('..')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `read_page can only read documentation pages, not "${path || '(empty)'}".`,
+              },
+            ],
+            isError: true,
+          }
+        }
+        // credentials:'omit' — an operator's admin session cookie must never ride
+        // along on a same-origin fetch driven by an attached agent.
+        const response = await fetch(`/${path}`, {
+          headers: { accept: 'text/markdown' },
+          credentials: 'omit',
+        })
+        // Finding (4/11): only hand back real Markdown. A redirect to the HTML
+        // /access page or a 404 HTML page is NOT markdown — return an explicit
+        // error instead of labelling HTML as markdown.
+        const contentType = response.headers.get('content-type') ?? ''
+        if (!response.ok || !contentType.includes('text/markdown')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Could not read "${path}" as Markdown (HTTP ${response.status}, content-type "${contentType || 'unknown'}"). The page may not exist or may require access.`,
+              },
+            ],
+            isError: true,
+          }
+        }
         const text = await response.text()
         return { content: [{ type: 'text', text }] }
       },

@@ -1,5 +1,5 @@
 import { type NextRequest } from 'next/server'
-import { siteTools } from '@/lib/mcp/site-tools'
+import { toolMetadata } from '@/lib/mcp/tool-metadata'
 
 /**
  * Agent-discovery documents served under `/.well-known/*` (and `/auth.md`),
@@ -15,9 +15,12 @@ import { siteTools } from '@/lib/mcp/site-tools'
  *  - Agent Skills discovery (/.well-known/agent-skills/*)
  *  - RFC 9728 OAuth Protected Resource Metadata
  *  - auth.md (agent-readable auth documentation)
+ *
+ * Deliberately imports the dependency-free `tool-metadata` (not `site-tools`),
+ * so these discovery documents don't drag the search engine + MDX/remark
+ * toolchain into their cold-start bundle. No `export const runtime` is needed:
+ * nothing here requires the Node runtime (Next defaults to nodejs anyway).
  */
-
-export const runtime = 'nodejs'
 
 const JSON_TYPE = 'application/json; charset=utf-8'
 const LINKSET_TYPE = 'application/linkset+json; charset=utf-8'
@@ -80,7 +83,7 @@ function mcpServerCard(origin: string): Response {
     transport: ['streamable-http'],
     authentication: { type: 'none' },
     capabilities: { tools: { listChanged: false } },
-    tools: siteTools.map((tool) => ({
+    tools: toolMetadata.map((tool) => ({
       name: tool.name,
       description: tool.description,
       inputSchema: tool.inputSchema,
@@ -90,15 +93,31 @@ function mcpServerCard(origin: string): Response {
 }
 
 function a2aAgentCard(origin: string): Response {
+  // Finding (6): /api/mcp speaks MCP, NOT A2A. It implements only the MCP
+  // JSON-RPC methods `initialize`, `ping`, `tools/list`, and `tools/call`
+  // (see src/app/api/mcp/route.ts) — and ZERO A2A methods (`message/send`,
+  // `tasks/*`). So advertising it under an A2A transport (`preferredTransport:
+  // 'JSONRPC'`, which in A2A means "send A2A JSON-RPC here") is categorically
+  // false: a compliant A2A client would POST `message/send` and get -32601.
+  //
+  // Honest fix (keep the discovery document, drop the false protocol claim):
+  // the only advertised interface uses transport `MCP` — a value NOT in A2A's
+  // transport enum (JSONRPC / GRPC / HTTP+JSON). A spec-compliant A2A client
+  // finds no interface it can speak and therefore CANNOT be told to send A2A
+  // methods to this MCP endpoint. It routes agents to the canonical MCP
+  // discovery doc (mcp-server-card.json) instead. This advertises only what
+  // /api/mcp actually implements.
   return json({
     protocolVersion: '0.3.0',
     name: 'Dox Docs Agent',
     description:
-      'Documentation agent for this site. Answers questions from the docs corpus via search, Markdown page reads, and a machine-readable page index. Read-only and public.',
-    url: `${origin}/api/mcp`,
-    preferredTransport: 'JSONRPC',
+      'Documentation agent for this site. Answers questions from the docs corpus via search, Markdown page reads, and a machine-readable page index. Read-only and public. Accessible over MCP (not A2A) — attach with an MCP client.',
+    // No A2A service URL is advertised: this agent exposes no A2A transport.
+    // The MCP interface is described below via a non-A2A transport annotation.
+    url: `${origin}/.well-known/mcp-server-card.json`,
+    preferredTransport: 'MCP',
     supportedInterfaces: [
-      { url: `${origin}/api/mcp`, transport: 'JSONRPC', protocol: 'MCP' },
+      { url: `${origin}/api/mcp`, transport: 'MCP', protocol: 'MCP' },
     ],
     version: '1.0.0',
     capabilities: {
@@ -108,7 +127,7 @@ function a2aAgentCard(origin: string): Response {
     },
     defaultInputModes: ['text/plain'],
     defaultOutputModes: ['text/markdown', 'application/json'],
-    skills: siteTools.map((tool) => ({
+    skills: toolMetadata.map((tool) => ({
       id: tool.name,
       name: tool.name,
       description: tool.description,
@@ -257,7 +276,7 @@ This site runs a read-only MCP server (streamable HTTP, no auth):
 claude mcp add --transport http dox ${origin}/api/mcp
 \`\`\`
 
-Available tools: ${siteTools.map((tool) => `\`${tool.name}\``).join(', ')}.
+Available tools: ${toolMetadata.map((tool) => `\`${tool.name}\``).join(', ')}.
 `,
   },
 }
