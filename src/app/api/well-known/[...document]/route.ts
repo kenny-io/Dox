@@ -132,16 +132,20 @@ function oauthProtectedResource(origin: string): Response {
 }
 
 function authMd(origin: string): Response {
+  const host = new URL(origin).host
   return markdown(`# auth.md
 
-This service supports agent access. Resource server: ${origin}. The agent
-surface is public and read-only, so agent registration is instant and
-implicit — no credential issuance, claim, or consent step exists.
+You are an agent. This document tells you how to access **${host}** — a
+public documentation service. This is the **anonymous** flow: every agent
+surface works without registering, provisioning a credential, or claiming
+anything. There is no agent-verified or email-verified registration today.
 
-## Discovery
+Supported credential types: **none — access is anonymous.** There is no
+\`api_key\` issuance, no \`client_id\`/\`client_secret\`, no
+\`registration_endpoint\` (OAuth 2.0 Dynamic Client Registration, RFC 7591,
+is not offered), and no claim ceremony — there is nothing to claim.
 
-Read this section first. This site is a public documentation site;
-everything an agent needs is readable **without authentication**:
+## Step 1 — Discover the surface
 
 | Surface | Auth |
 | --- | --- |
@@ -151,44 +155,34 @@ everything an agent needs is readable **without authentication**:
 | Page index — \`GET ${origin}/api/docs-index\` | None |
 | MCP server — \`${origin}/api/mcp\` (streamable HTTP) | None |
 
-## Registration
-
-Agent registration status for this service, stated explicitly so agents do
-not go looking for endpoints that do not exist:
-
-1. **No registration is required.** An agent may begin using every endpoint
-   in the Discovery table immediately, anonymously.
-2. **OAuth 2.0 Dynamic Client Registration (RFC 7591) is not offered.**
-   There is no \`registration_endpoint\`, no \`client_id\` or
-   \`client_secret\` issuance, and no token endpoint.
-3. **No claim ceremony.** The auth.md claim/verification flow is not
-   applicable — there is no credential to claim.
-4. Requests need no \`Authorization\` header:
+## Step 2 — Use the API (anonymous, no credential)
 
 \`\`\`
 GET /api/search?q=example HTTP/1.1
-Host: ${new URL(origin).host}
+Host: ${host}
 User-Agent: your-agent/1.0
 \`\`\`
 
-Identify honestly via \`User-Agent\` so rate limiting can be fair.
+Do not send an \`Authorization: Bearer\` header — requests carry no
+credential, and none will ever be required for the read surface. Identify
+honestly via \`User-Agent\` so rate limiting can be fair.
 
-## Operation
+## Step 3 — Attach over MCP (optional)
 
-Use the endpoints in the Discovery table directly. The MCP server at
-\`${origin}/api/mcp\` accepts unauthenticated \`initialize\` and \`tools/call\`
-requests over streamable HTTP.
+\`\`\`
+claude mcp add --transport http dox ${origin}/api/mcp
+\`\`\`
 
-## Rate limits
+The MCP server accepts anonymous \`initialize\` and \`tools/call\` requests.
 
-The MCP server applies a per-IP rate limit on tool calls. Well-behaved
-agents will not hit it in normal use.
+## Errors
 
-## Administrative surfaces
-
-\`/admin\` and \`/api/admin/*\` are operator-only, session-authenticated, and
-disallowed in \`robots.txt\`. They are not part of the agent surface, and no
-agent credential exchange exists for them.
+- \`429\` — per-IP rate limit on MCP tool calls. Back off and retry; the
+  limit resets within a minute.
+- \`401\`/\`403\` — you have reached an operator-only surface (\`/admin\`,
+  \`/api/admin/*\`). These are session-authenticated for human operators,
+  disallowed in robots.txt, and have no agent credential exchange. Do not
+  retry with credentials; none exist for agents.
 `)
 }
 
