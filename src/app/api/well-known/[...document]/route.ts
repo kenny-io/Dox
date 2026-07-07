@@ -153,11 +153,25 @@ everything an agent needs is readable **without authentication**:
 
 ## Registration
 
-1. No registration is required. An agent may begin using every endpoint in
-   the Discovery table immediately.
-2. There is no registration endpoint, no client credential issuance, and no
-   claim/verification step — requests need no \`Authorization\` header.
-3. Identify honestly via \`User-Agent\` so rate limiting can be fair.
+Agent registration status for this service, stated explicitly so agents do
+not go looking for endpoints that do not exist:
+
+1. **No registration is required.** An agent may begin using every endpoint
+   in the Discovery table immediately, anonymously.
+2. **OAuth 2.0 Dynamic Client Registration (RFC 7591) is not offered.**
+   There is no \`registration_endpoint\`, no \`client_id\` or
+   \`client_secret\` issuance, and no token endpoint.
+3. **No claim ceremony.** The auth.md claim/verification flow is not
+   applicable — there is no credential to claim.
+4. Requests need no \`Authorization\` header:
+
+\`\`\`
+GET /api/search?q=example HTTP/1.1
+Host: ${new URL(origin).host}
+User-Agent: your-agent/1.0
+\`\`\`
+
+Identify honestly via \`User-Agent\` so rate limiting can be fair.
 
 ## Operation
 
