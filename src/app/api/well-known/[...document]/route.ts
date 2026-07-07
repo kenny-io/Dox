@@ -25,13 +25,13 @@ const MARKDOWN_TYPE = 'text/markdown; charset=utf-8'
 
 function json(body: unknown, contentType: string = JSON_TYPE): Response {
   return new Response(JSON.stringify(body, null, 2), {
-    headers: { 'content-type': contentType, 'cache-control': 'public, max-age=3600' },
+    headers: { 'content-type': contentType, 'cache-control': 'public, max-age=300' },
   })
 }
 
 function markdown(body: string): Response {
   return new Response(body, {
-    headers: { 'content-type': MARKDOWN_TYPE, 'cache-control': 'public, max-age=3600' },
+    headers: { 'content-type': MARKDOWN_TYPE, 'cache-control': 'public, max-age=300' },
   })
 }
 
