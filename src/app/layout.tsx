@@ -14,6 +14,7 @@ import { getSiteUrl } from '@/lib/site-url'
 import { JsonLdScript } from '@/components/seo/json-ld-script'
 import { AnalyticsProvider } from '@/components/analytics/analytics-provider'
 import { SiteBanner } from '@/components/layout/site-banner'
+import { WebMcpTools } from '@/components/agent/web-mcp-tools'
 
 // Default fonts via next/font (optimal performance — preloaded, no FOUC)
 const fontSans = Inter({
@@ -178,6 +179,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {bannerConfig && <SiteBanner banner={bannerConfig} />}
         <Providers>{children}</Providers>
         <AnalyticsProvider />
+        <WebMcpTools />
         {customScripts.map((script) => (
           <Script
             key={script.src}

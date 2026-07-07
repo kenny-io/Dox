@@ -30,7 +30,19 @@ const nextConfig: NextConfig = {
   // app/favicon.ico so Next's default icon can never win; this rewrite makes
   // sure a direct /favicon.ico hit still resolves to the right icon.
   async rewrites() {
-    return [{ source: '/favicon.ico', destination: '/api/brand/favicon' }]
+    return [
+      { source: '/favicon.ico', destination: '/api/brand/favicon' },
+      // Agent-discovery documents. Served by a route handler (not static
+      // files) so every deployment emits absolute URLs for its own origin.
+      { source: '/.well-known/api-catalog', destination: '/api/well-known/api-catalog' },
+      { source: '/.well-known/mcp.json', destination: '/api/well-known/mcp-server-card' },
+      { source: '/.well-known/mcp/server-card.json', destination: '/api/well-known/mcp-server-card' },
+      { source: '/.well-known/agent-card.json', destination: '/api/well-known/agent-card' },
+      { source: '/.well-known/oauth-protected-resource', destination: '/api/well-known/oauth-protected-resource' },
+      { source: '/.well-known/agent-skills/index.json', destination: '/api/well-known/agent-skills-index' },
+      { source: '/.well-known/agent-skills/:file', destination: '/api/well-known/agent-skills-file/:file' },
+      { source: '/auth.md', destination: '/api/well-known/auth-md' },
+    ]
   },
 }
 
