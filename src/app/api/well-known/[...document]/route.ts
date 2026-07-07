@@ -134,14 +134,14 @@ function oauthProtectedResource(origin: string): Response {
 function authMd(origin: string): Response {
   return markdown(`# auth.md
 
-This service supports unauthenticated agent access. Resource server:
-${origin}. There is no authorization server — the entire agent surface is
-public and read-only, so no registration, claim, or credential flow exists.
+This service supports agent access. Resource server: ${origin}. The agent
+surface is public and read-only, so agent registration is instant and
+implicit — no credential issuance, claim, or consent step exists.
 
 ## Discovery
 
-This site is a public documentation site. Everything an agent needs is
-readable **without authentication**:
+Read this section first. This site is a public documentation site;
+everything an agent needs is readable **without authentication**:
 
 | Surface | Auth |
 | --- | --- |
@@ -150,6 +150,20 @@ readable **without authentication**:
 | Search API — \`GET ${origin}/api/search?q=<query>\` | None |
 | Page index — \`GET ${origin}/api/docs-index\` | None |
 | MCP server — \`${origin}/api/mcp\` (streamable HTTP) | None |
+
+## Registration
+
+1. No registration is required. An agent may begin using every endpoint in
+   the Discovery table immediately.
+2. There is no registration endpoint, no client credential issuance, and no
+   claim/verification step — requests need no \`Authorization\` header.
+3. Identify honestly via \`User-Agent\` so rate limiting can be fair.
+
+## Operation
+
+Use the endpoints in the Discovery table directly. The MCP server at
+\`${origin}/api/mcp\` accepts unauthenticated \`initialize\` and \`tools/call\`
+requests over streamable HTTP.
 
 ## Rate limits
 
