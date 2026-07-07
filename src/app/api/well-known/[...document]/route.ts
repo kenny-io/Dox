@@ -97,6 +97,9 @@ function a2aAgentCard(origin: string): Response {
       'Documentation agent for this site. Answers questions from the docs corpus via search, Markdown page reads, and a machine-readable page index. Read-only and public.',
     url: `${origin}/api/mcp`,
     preferredTransport: 'JSONRPC',
+    supportedInterfaces: [
+      { url: `${origin}/api/mcp`, transport: 'JSONRPC', protocol: 'MCP' },
+    ],
     version: '1.0.0',
     capabilities: {
       streaming: false,
@@ -129,7 +132,13 @@ function oauthProtectedResource(origin: string): Response {
 }
 
 function authMd(origin: string): Response {
-  return markdown(`# Authentication
+  return markdown(`# auth.md
+
+This service supports unauthenticated agent access. Resource server:
+${origin}. There is no authorization server — the entire agent surface is
+public and read-only, so no registration, claim, or credential flow exists.
+
+## Discovery
 
 This site is a public documentation site. Everything an agent needs is
 readable **without authentication**:
