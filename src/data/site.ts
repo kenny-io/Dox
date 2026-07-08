@@ -84,7 +84,34 @@ export interface SiteConfig {
 }
 
 const brandPresets: Record<BrandPresetKey, BrandConfig> = {
+  // Dox's canonical brand — violet. Chosen over the earlier emerald so the
+  // identity reads as distinctly Dox (green docs platforms are a crowded look).
   primary: {
+    light: {
+      background: '#FFFFFF',
+      foreground: '#0F172A',
+      muted: '#F5F3FF',
+      border: '#E4E4F7',
+      accent: '#8B5CF6',
+      accentForeground: '#F5F3FF',
+      ring: '#A855F7',
+      sidebarActiveBg: '262 83% 90% / 0.5',
+      sidebarActiveText: '#312E81',
+    },
+    dark: {
+      background: '#070B14',
+      foreground: '#EDE9FE',
+      muted: '#141129',
+      border: '#1C1A2C',
+      accent: '#C084FC',
+      accentForeground: '#0B1220',
+      ring: '#C084FC',
+      sidebarActiveBg: '262 45% 32% / 0.3',
+      sidebarActiveText: '#EDE9FE',
+    },
+  },
+  // Alternate preset — emerald. Still a first-class, ready-to-use accent.
+  secondary: {
     light: {
       background: '#FFFFFF',
       foreground: '#0F172A',
@@ -108,33 +135,9 @@ const brandPresets: Record<BrandPresetKey, BrandConfig> = {
       sidebarActiveText: '#A7F3D0',
     },
   },
-  secondary: {
-    light: {
-      background: '#FFFFFF',
-      foreground: '#0F172A',
-      muted: '#F5F3FF',
-      border: '#E4E4F7',
-      accent: '#8B5CF6',
-      accentForeground: '#F5F3FF',
-      ring: '#A855F7',
-      sidebarActiveBg: '262 83% 90% / 0.5',
-      sidebarActiveText: '#312E81',
-    },
-    dark: {
-      background: '#0B1220',
-      foreground: '#EDE9FE',
-      muted: '#141129',
-      border: '#1C1A2C',
-      accent: '#C084FC',
-      accentForeground: '#0B1220',
-      ring: '#C084FC',
-      sidebarActiveBg: '262 45% 32% / 0.3',
-      sidebarActiveText: '#EDE9FE',
-    },
-  },
 }
 
-const brandPreset: BrandPresetKey = 'secondary'
+const brandPreset: BrandPresetKey = 'primary'
 
 export const siteConfig: SiteConfig = {
   name: 'Dox',
