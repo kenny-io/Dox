@@ -84,9 +84,35 @@ export interface SiteConfig {
 }
 
 const brandPresets: Record<BrandPresetKey, BrandConfig> = {
-  // Dox's canonical brand — violet. Chosen over the earlier emerald so the
-  // identity reads as distinctly Dox (green docs platforms are a crowded look).
+  // Dox's canonical brand — Ink + Crimson (see Brand-Design-System). Neutral ink
+  // surfaces do the work; crimson is the signal accent (links, active states,
+  // marks). Light accent #E11D48, brightened to #F43F5E on dark for contrast.
   primary: {
+    light: {
+      background: '#FFFFFF',
+      foreground: '#111827',
+      muted: '#F3F4F6',
+      border: '#E5E7EB',
+      accent: '#E11D48',
+      accentForeground: '#FFFFFF',
+      ring: '#E11D48',
+      sidebarActiveBg: '347 77% 92% / 0.55',
+      sidebarActiveText: '#9F1239',
+    },
+    dark: {
+      background: '#0B0D12',
+      foreground: '#F3F4F6',
+      muted: '#111827',
+      border: '#232A38',
+      accent: '#F43F5E',
+      accentForeground: '#FFFFFF',
+      ring: '#F43F5E',
+      sidebarActiveBg: '347 77% 50% / 0.22',
+      sidebarActiveText: '#FDA4AF',
+    },
+  },
+  // Alternate preset — violet. Still a first-class, ready-to-use accent.
+  secondary: {
     light: {
       background: '#FFFFFF',
       foreground: '#0F172A',
@@ -108,31 +134,6 @@ const brandPresets: Record<BrandPresetKey, BrandConfig> = {
       ring: '#C084FC',
       sidebarActiveBg: '262 45% 32% / 0.3',
       sidebarActiveText: '#EDE9FE',
-    },
-  },
-  // Alternate preset — emerald. Still a first-class, ready-to-use accent.
-  secondary: {
-    light: {
-      background: '#FFFFFF',
-      foreground: '#0F172A',
-      muted: '#F8FAFC',
-      border: '#E2E8F0',
-      accent: '#10B981',
-      accentForeground: '#ECFEF3',
-      ring: '#10B981',
-      sidebarActiveBg: '152 60% 88% / 0.55',
-      sidebarActiveText: '#0F172A',
-    },
-    dark: {
-      background: '#0B1220',
-      foreground: '#F8FAFC',
-      muted: '#111827',
-      border: '#1F2937',
-      accent: '#34D399',
-      accentForeground: '#0B1220',
-      ring: '#34D399',
-      sidebarActiveBg: '152 40% 30% / 0.35',
-      sidebarActiveText: '#A7F3D0',
     },
   },
 }

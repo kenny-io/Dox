@@ -4,7 +4,7 @@
    A perceptual, OKLCH-based token system for Dox's admin analytics dashboard,
    modeled on LI.FI's design language (perceptual color scales, three-tier
    elevation, one dark/light flip, 4px spacing rhythm) but reskinned to Dox's
-   VIOLET brand (brandPresets.primary — #8B5CF6 light / #C084FC dark). The
+   CRIMSON brand (brandPresets.primary — #E11D48 light / #F43F5E dark). The
    green scale below is a fixed, brand-independent data-viz intensity ramp.
 
    SCOPING — this file is OPT-IN and MUST NOT leak into the docs site.
@@ -45,11 +45,11 @@
      Functional color (status, chart series, green data ramp) stays fixed
      below — semantics must not change with the brand.
      ──────────────────────────────────────────────────────────────────────── */
-  --ds-accent:            hsl(var(--dox-accent, 258 90% 66%));
+  --ds-accent:            hsl(var(--dox-accent, 347 77% 50%));
   --ds-accent-mid:        color-mix(in oklch, var(--ds-accent) 85%, black);  /* hovers, icons */
   --ds-accent-strong:     color-mix(in oklch, var(--ds-accent) 72%, black);  /* pressed / active */
   --ds-accent-fg:         color-mix(in oklch, var(--ds-accent) 8%, white);   /* text/icon on solid fill */
-  --ds-accent-secondary:  #10B981;  /* Dox secondary — emerald (charts, dual metrics) */
+  --ds-accent-secondary:  #8B5CF6;  /* Dox secondary — violet (charts, dual metrics) */
   --ds-accent-tertiary:   #F59E0B;  /* amber — third categorical accent */
 
   /* Derived accent companions — the LI.FI recipe: one token, many tones.
