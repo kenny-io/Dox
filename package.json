@@ -13,6 +13,7 @@
     "embeddings:build": "tsx scripts/build-embeddings.ts",
     "start": "next start -p 3040",
     "lint": "eslint",
+    "pretest": "npm run packages:build",
     "test": "vitest run",
     "check:agents": "tsx scripts/agent-readiness.ts",
     "packages:build": "npm run build -w packages/create-dox && npm run build -w packages/mcp && npm run build -w packages/agent && npm run build -w packages/cli"
