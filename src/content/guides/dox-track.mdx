@@ -24,6 +24,8 @@ Everything runs on your infrastructure with your keys. Nothing is hosted by Dox.
 
 ## Register a repo
 
+Track is **opt-in**. A freshly scaffolded Dox site (`npx create-dox`) tracks **nothing** — there's no `tracking` block in `docs.json` until you add one. You opt in from your project root:
+
 ```bash
 dox track add acme/api-server --paths "src/**,openapi.yaml" --tab "API Reference"
 ```
