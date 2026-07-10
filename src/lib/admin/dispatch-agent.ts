@@ -50,7 +50,7 @@ export async function dispatchDocsAgent(opts: {
       code: 'no_repo',
       status: 400,
       message:
-        'No docs repository configured. Set the repository URL in Admin → Settings (or DOX_REPO_URL) so the docs agent can open a PR.',
+        'No docs repository URL set. Under Admin → Settings → Site, fill in Repository with your docs GitHub URL (e.g. https://github.com/org/docs), or set DOX_REPO_URL. Connecting the GitHub App alone is not enough.',
     }
   }
 
